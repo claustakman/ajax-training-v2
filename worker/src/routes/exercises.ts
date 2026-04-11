@@ -87,10 +87,16 @@ exerciseRoutes.delete('/:id', requireAuth('trainer'), async (c) => {
   return c.json({ ok: true });
 });
 
-// GET /api/exercises/:id/image — server billede fra R2
+// GET /api/exercises/:id/image?key=exercises/foo.jpg — server billede fra R2
 exerciseRoutes.get('/:id/image', async (c) => {
   const id = c.req.param('id');
-  const key = `exercises/${id}.jpg`;
+  // Brug ?key= hvis sendt (frontend kender nøglen fra exerciseData), ellers DB, ellers default
+  const keyParam = c.req.query('key');
+  let key = keyParam ?? `exercises/${id}.jpg`;
+  if (!keyParam) {
+    const row = await c.env.DB.prepare('SELECT image_r2_key FROM exercises WHERE id = ?').bind(id).first();
+    if (row?.image_r2_key) key = row.image_r2_key as string;
+  }
   const obj = await c.env.STORAGE.get(key);
   if (!obj) return c.json({ error: 'Ikke fundet' }, 404);
   return new Response(obj.body, {

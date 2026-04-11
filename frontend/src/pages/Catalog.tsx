@@ -30,7 +30,8 @@ const ALL_TAGS = [...new Set([...HAL_TAGS, ...FYS_TAGS])];
 
 function imageUrl(ex: Exercise) {
   if (!ex.image_r2_key) return null;
-  return `${API_URL}/api/exercises/${ex.id}/image`;
+  const key = encodeURIComponent(ex.image_r2_key);
+  return `${API_URL}/api/exercises/${encodeURIComponent(ex.id)}/image?key=${key}`;
 }
 
 // Resize billede client-side til max 800px JPEG 0.75

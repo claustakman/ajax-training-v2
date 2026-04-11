@@ -1517,7 +1517,7 @@ export const EXERCISES = [
     "variants": null,
     "link": null,
     "default_mins": 15,
-    "image_r2_key": "exercises/finterr_i_åben_ramme.jpg"
+    "image_r2_key": "exercises/finterr_i_aben_ramme.jpg"
   },
   {
     "id": "finter i åben ramme med skrå tilgang",
@@ -1530,7 +1530,7 @@ export const EXERCISES = [
     "variants": null,
     "link": null,
     "default_mins": 15,
-    "image_r2_key": "exercises/finter_i_åben_ramme_med_skrå_tilgang.jpg"
+    "image_r2_key": "exercises/finter_i_aben_ramme_med_skra_tilgang.jpg"
   },
   {
     "id": "crxb9np2ez",
