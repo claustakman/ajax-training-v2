@@ -33,13 +33,7 @@ export default function Login() {
         padding: 32, boxShadow: '0 2px 16px rgba(0,0,0,0.08)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            display: 'inline-block',
-            fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 32,
-            color: 'var(--accent)', letterSpacing: 2, marginBottom: 4,
-          }}>
-            AJAX
-          </div>
+          <img src="/ajax-logo.png" alt="Ajax København" style={{ width: 120, height: 120, objectFit: 'contain', marginBottom: 12 }} />
           <div style={{ color: 'var(--text2)', fontSize: 14 }}>Træningsplanlægger</div>
         </div>
 

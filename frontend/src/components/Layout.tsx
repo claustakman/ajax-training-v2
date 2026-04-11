@@ -31,9 +31,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         display: 'flex', alignItems: 'center',
         padding: '0 16px', gap: 8,
       }}>
-        <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 20, color: 'var(--accent)', marginRight: 8 }}>
-          AJAX
-        </span>
+        <img src="/ajax-logo.png" alt="Ajax" style={{ height: 36, width: 36, objectFit: 'contain', marginRight: 4 }} />
 
         {/* Desktop nav */}
         <nav style={{ display: 'flex', gap: 4, flex: 1 }} className="desktop-nav">
