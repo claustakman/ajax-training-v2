@@ -227,11 +227,7 @@ function ExerciseCard({ ex, isExpanded, onToggle, canEdit, onEdit }: {
   return (
     <div style={{ background: 'var(--bg-card)', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
       <button onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 16px', background: 'none', textAlign: 'left' }}>
-        {/* Thumbnail */}
-        {imgUrl && (
-          <img src={imgUrl} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
-        )}
-        {ex.stars > 0 && <span style={{ fontSize: 14, flexShrink: 0 }}>{'⭐'.repeat(Math.min(ex.stars, 3))}</span>}
+        {ex.stars > 0 && <span style={{ fontSize: 14, flexShrink: 0 }}>{'⭐'.repeat(Math.min(ex.stars, 5))}</span>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 4 }}>{ex.name}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
