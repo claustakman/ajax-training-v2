@@ -169,18 +169,18 @@ export default function Catalog() {
       </div>
 
       {/* Aldersgruppe + stjerner */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <select value={selectedAge} onChange={e => setSelectedAge(e.target.value)}
-          style={{ padding: '8px 12px', borderRadius: 8, fontSize: 14, background: 'var(--bg-card)', border: '1px solid var(--border2)', color: selectedAge ? 'var(--text)' : 'var(--text3)' }}>
+          style={{ padding: '0 12px', height: 36, borderRadius: 8, fontSize: 14, background: 'var(--bg-card)', border: '1px solid var(--border2)', color: selectedAge ? 'var(--text)' : 'var(--text3)' }}>
           <option value="">Alle aldersgrupper</option>
           {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
         </select>
         <button onClick={() => setStarsOnly(o => !o)}
-          style={{ padding: '8px 12px', borderRadius: 8, fontSize: 14, background: starsOnly ? 'var(--accent-light)' : 'var(--bg-card)', color: starsOnly ? 'var(--accent)' : 'var(--text2)', border: `1px solid ${starsOnly ? 'var(--accent)' : 'var(--border2)'}` }}>
+          style={{ height: 36, padding: '0 12px', borderRadius: 8, fontSize: 14, background: starsOnly ? 'var(--accent-light)' : 'var(--bg-card)', color: starsOnly ? 'var(--accent)' : 'var(--text2)', border: `1px solid ${starsOnly ? 'var(--accent)' : 'var(--border2)'}` }}>
           ⭐ Favoritter
         </button>
         {hasFilters && (
-          <button onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 13, background: 'none', color: 'var(--text3)', border: '1px solid var(--border)' }}>
+          <button onClick={clearFilters} style={{ height: 36, padding: '0 12px', borderRadius: 8, fontSize: 13, background: 'none', color: 'var(--text3)', border: '1px solid var(--border)' }}>
             Ryd filtre
           </button>
         )}
@@ -296,6 +296,7 @@ function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
   const [error, setError] = useState('');
   const [imgPreview, setImgPreview] = useState<string | null>(ex.image_r2_key ? imageUrl(ex) : null);
   const [imgBlob, setImgBlob] = useState<Blob | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -320,6 +321,20 @@ function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
     const file = e.dataTransfer.files[0];
     if (file?.type.startsWith('image/')) handleImageFile(file);
   }, []);
+
+  async function handleAiDescription() {
+    if (!form.name.trim()) { setError('Skriv et navn først'); return; }
+    setAiLoading(true); setError('');
+    try {
+      const tags = form.tags.length > 0 ? `Tags: ${form.tags.join(', ')}. ` : '';
+      const catalog = form.catalog === 'hal' ? 'håndbold haltræning' : 'håndbold fysisk træning';
+      const prompt = `Du er træner i Ajax håndbold og skal skrive en kort, præcis beskrivelse af følgende ${catalog}-øvelse til brug i en træningsplanlægger.\n\nØvelse: "${form.name}"\n${tags}${form.age_groups.length > 0 ? `Aldersgruppe: ${form.age_groups.join(', ')}. ` : ''}\n\nSkriv 2-4 sætninger der beskriver:\n1. Hvad spillerne gør\n2. Hvad øvelsen træner\n\nVær konkret og praktisk. Brug dansk. Ingen overskrift, ingen punktlister — kun løbende tekst.`;
+      const res = await api.post<{ text: string }>('/api/ai/suggest', { prompt });
+      set('description', res.text.trim());
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'AI fejlede');
+    } finally { setAiLoading(false); }
+  }
 
   async function handleSave() {
     if (!form.name.trim()) { setError('Navn er påkrævet'); return; }
@@ -413,7 +428,13 @@ function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
 
           {/* Beskrivelse */}
           <div>
-            <Label>Beskrivelse</Label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text2)' }}>Beskrivelse</div>
+              <button onClick={handleAiDescription} disabled={aiLoading}
+                style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: aiLoading ? 'var(--bg-input)' : 'var(--accent-light)', color: aiLoading ? 'var(--text3)' : 'var(--accent)', border: `1px solid ${aiLoading ? 'var(--border)' : 'var(--accent)'}` }}>
+                {aiLoading ? '⏳ Genererer…' : '✨ Generer med AI'}
+              </button>
+            </div>
             <textarea value={form.description ?? ''} onChange={e => set('description', e.target.value)}
               rows={4} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Beskriv øvelsen…" />
           </div>
@@ -455,14 +476,7 @@ function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
               <Label>Stjerner</Label>
-              <div style={{ display: 'flex', gap: 4 }}>
-                {[0, 1, 2, 3].map(n => (
-                  <button key={n} onClick={() => set('stars', n)}
-                    style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, background: form.stars === n ? 'var(--accent)' : 'var(--bg-input)', color: form.stars === n ? '#fff' : 'var(--text2)', border: 'none' }}>
-                    {n === 0 ? '—' : '⭐'.repeat(n)}
-                  </button>
-                ))}
-              </div>
+              <StarRating value={form.stars} onChange={n => set('stars', n)} />
             </div>
             <div style={{ flex: 1 }}>
               <Label>Vejl. minutter</Label>
@@ -525,6 +539,31 @@ function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
 
 function Label({ children }: { children: React.ReactNode }) {
   return <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text2)', marginBottom: 6 }}>{children}</div>;
+}
+
+function StarRating({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 44 }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <button
+          key={n}
+          onClick={() => onChange(value === n ? 0 : n)}
+          onMouseEnter={() => setHover(n)}
+          onMouseLeave={() => setHover(0)}
+          style={{ background: 'none', padding: '2px 3px', fontSize: 22, lineHeight: 1, opacity: n <= (hover || value) ? 1 : 0.25, transition: 'opacity 0.1s' }}
+          title={`${n} stjerne${n > 1 ? 'r' : ''}`}
+        >
+          ⭐
+        </button>
+      ))}
+      {value > 0 && (
+        <button onClick={() => onChange(0)} style={{ background: 'none', fontSize: 12, color: 'var(--text3)', padding: '2px 4px' }}>
+          ✕
+        </button>
+      )}
+    </div>
+  );
 }
 
 const inputStyle: React.CSSProperties = {
