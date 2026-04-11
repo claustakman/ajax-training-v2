@@ -21,12 +21,13 @@ export interface Exercise {
 
 const HAL_TAGS = [
   'opvarmning', 'aflevering', 'skud', 'finter', 'forsvar', 'kontra',
-  'keeper', 'sammenspil', 'beslutning', 'taktik', 'duel', 'kamp',
+  'sammenspil', 'beslutning', 'taktik', 'duel', 'kamp',
   'stafet', 'leg', 'styrke', 'hurtighed',
 ];
 const FYS_TAGS = ['plyometrik', 'eksplosion', 'styrke', 'hurtighed', 'finter', 'opvarmning'];
+const KEEPER_TAGS = ['keeper', 'teknik', 'aflevering', 'skud', 'forsvar'];
 const AGE_GROUPS = ['U9', 'U11', 'U13', 'U15', 'U17', 'U19'];
-const ALL_TAGS = [...new Set([...HAL_TAGS, ...FYS_TAGS])];
+const ALL_TAGS = [...new Set([...HAL_TAGS, ...FYS_TAGS, ...KEEPER_TAGS])];
 
 function imageUrl(ex: Exercise) {
   if (!ex.image_r2_key) return null;
@@ -63,7 +64,7 @@ export default function Catalog() {
   const { user } = useAuth();
   const canEdit = hasRole(user, 'trainer');
 
-  const [tab, setTab] = useState<'hal' | 'fys'>('hal');
+  const [tab, setTab] = useState<'hal' | 'fys' | 'keeper'>('hal');
   const [search, setSearch] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedAge, setSelectedAge] = useState('');
@@ -78,11 +79,16 @@ export default function Catalog() {
   const [editingEx, setEditingEx] = useState<Exercise | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const tags = tab === 'hal' ? HAL_TAGS : FYS_TAGS;
+  const tags = tab === 'hal' ? HAL_TAGS : tab === 'fys' ? FYS_TAGS : KEEPER_TAGS;
 
   const filtered = useMemo(() => {
     return exercises.filter(ex => {
-      if (ex.catalog !== tab) return false;
+      if (tab === 'keeper') {
+        if (!ex.tags.includes('keeper')) return false;
+      } else {
+        if (ex.catalog !== tab) return false;
+        if (ex.tags.includes('keeper')) return false; // keeper-øvelser vises kun i keeper-tab
+      }
       if (search) {
         const q = search.toLowerCase();
         if (!ex.name.toLowerCase().includes(q) && !ex.description?.toLowerCase().includes(q)) return false;
@@ -135,7 +141,7 @@ export default function Catalog() {
           <span style={{ fontSize: 13, color: 'var(--text3)' }}>{filtered.length} øvelser</span>
           {canEdit && (
             <button
-              onClick={() => { setIsCreating(true); setEditingEx({ id: '', name: '', description: '', catalog: tab, tags: [], age_groups: [], stars: 0, variants: null, link: null, default_mins: null, image_r2_key: null }); }}
+              onClick={() => { setIsCreating(true); setEditingEx({ id: '', name: '', description: '', catalog: tab === 'keeper' ? 'hal' : tab, tags: tab === 'keeper' ? ['keeper'] : [], age_groups: [], stars: 0, variants: null, link: null, default_mins: null, image_r2_key: null }); }}
               style={{ padding: '7px 14px', background: 'var(--accent)', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 13 }}
             >
               + Ny øvelse
@@ -146,10 +152,10 @@ export default function Catalog() {
 
       {/* Subtabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'var(--bg-input)', borderRadius: 10, padding: 4 }}>
-        {(['hal', 'fys'] as const).map(t => (
+        {([['hal', '🤾 Hal'], ['keeper', '🧤 Keeper'], ['fys', '💪 Fysisk']] as const).map(([t, label]) => (
           <button key={t} onClick={() => { setTab(t); setSelectedTags([]); }}
             style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontWeight: 600, fontSize: 14, background: tab === t ? 'var(--bg-card)' : 'transparent', color: tab === t ? 'var(--accent)' : 'var(--text2)', boxShadow: tab === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none' }}>
-            {t === 'hal' ? '🤾 Haltræning' : '💪 Fysisk'}
+            {label}
           </button>
         ))}
       </div>
