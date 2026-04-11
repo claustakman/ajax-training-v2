@@ -2488,7 +2488,7 @@ export const EXERCISES = [
   },
   {
     "id": "za5icqx1yh",
-    "name": "Keeper: Skud i bunden af målet",
+    "name": "Skud i bunden af målet",
     "description": "En serie skud til keeperens ene fod. Keeper øver at redde lavt med foden. Skal over til modsatte stolpe mellem skud. Fokus på korrekt fodbevægelse og lavt tyngdepunkt. Grundlæggende keepertræning.",
     "catalog": "hal",
     "tags": [
@@ -2503,7 +2503,7 @@ export const EXERCISES = [
   },
   {
     "id": "a3saa4zrka",
-    "name": "Keeper: Skud i toppen af målet",
+    "name": "Skud i toppen af målet",
     "description": "En serie skud til keeperens ene hånd i toppen. kal over til modsatte stolpe mellem skud Skift side løbende. Fokus på korrekt håndstilling og spring til bolden.",
     "catalog": "hal",
     "tags": [
@@ -2518,7 +2518,7 @@ export const EXERCISES = [
   },
   {
     "id": "m35hvx63g1",
-    "name": "Keeper: Skud i siden af målet",
+    "name": "Skud i siden af målet",
     "description": "En serie skud til forudbestemt side – kan variere mellem høj og lav. Keeper kender siden og fokuserer på korrekt teknik. Øver målrettet reaktion og korrekt positionering.",
     "catalog": "hal",
     "tags": [
@@ -2533,7 +2533,7 @@ export const EXERCISES = [
   },
   {
     "id": "pvssukrmk4",
-    "name": "Keeper: Fløjskud",
+    "name": "Fløjskud",
     "description": "Keeperens positionering og teknik ved fløjskud. Fokus på at komme ud i god vinkel n. Keeper øver afstand til fløj og timing af udspring.",
     "catalog": "hal",
     "tags": [
@@ -2548,7 +2548,7 @@ export const EXERCISES = [
   },
   {
     "id": "i4ulskrp2n",
-    "name": "Keeper: Hurtige bevægelser",
+    "name": "Hurtige bevægelser",
     "description": "To skud i træk i hver sin side. Keeper skal reagere hurtigt på andet skud efter første redning/forsøg. Fokus på at få arm og ben med i begge retninger. Kræver eksplosiv lateral bevægelighed.",
     "catalog": "hal",
     "tags": [
@@ -2563,7 +2563,7 @@ export const EXERCISES = [
   },
   {
     "id": "qf8amp50tq",
-    "name": "Keeper: Nærskud",
+    "name": "Nærskud",
     "description": "Øv nærskud: skud over keeperens hoved og i hoften fra tæt hold. Fra fløj eller back, indefra eller udefra. Fokus på hurtig reaktion ved kort afstand og korrekt positionering: Angrib skytten",
     "catalog": "hal",
     "tags": [
@@ -2578,7 +2578,7 @@ export const EXERCISES = [
   },
   {
     "id": "hv1t7qgd9d",
-    "name": "Keeper: Sidebevægelser",
+    "name": "Sidebevægelser",
     "description": "En serie skud fra hele buen fra en side til den anden fra markspillere linet up langs buen. Keeper bevæger sig sidelæns med bolden og reagerer på skud. Øver lateral bevægelighed og timing.",
     "catalog": "hal",
     "tags": [
@@ -2774,7 +2774,7 @@ export const EXERCISES = [
   },
   {
     "id": "g0vq9dtd1zsmmlq48b4",
-    "name": "keeperopvarmning: Skud fra to rækker",
+    "name": "Skud fra to rækker",
     "description": "To rækker, der skyder i kort side hos keeper. Hver runde er enden oppe, nede, eller valgfri - men altid i kort side. Keeper øver bevægelser i målet",
     "catalog": "hal",
     "tags": [
