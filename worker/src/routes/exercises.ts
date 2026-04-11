@@ -87,6 +87,20 @@ exerciseRoutes.delete('/:id', requireAuth('trainer'), async (c) => {
   return c.json({ ok: true });
 });
 
+// GET /api/exercises/:id/image — server billede fra R2
+exerciseRoutes.get('/:id/image', async (c) => {
+  const id = c.req.param('id');
+  const key = `exercises/${id}.jpg`;
+  const obj = await c.env.STORAGE.get(key);
+  if (!obj) return c.json({ error: 'Ikke fundet' }, 404);
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'public, max-age=31536000',
+    },
+  });
+});
+
 // POST /api/exercises/:id/image — multipart/form-data, felt: "image"
 exerciseRoutes.post('/:id/image', requireAuth('trainer'), async (c) => {
   const id = c.req.param('id');

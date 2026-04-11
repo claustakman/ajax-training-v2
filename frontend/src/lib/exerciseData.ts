@@ -1,4 +1,4 @@
-// Auto-genereret fra CSV-eksport
+// Auto-genereret fra CSV-eksport + R2 billeder
 export const EXERCISES = [
   {
     "id": "ktc4qjmenu",
@@ -16,7 +16,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Fungerer også godt hvor man befris med en tackling af en spiller der kommer i fuld fart",
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "obwheydmpr",
@@ -34,7 +35,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "stonj8g0aw",
@@ -49,7 +51,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://issuu.com/dhf_publikationer/docs/tr_ningsprogram_u11_uge_33_1_dd6f883722e78b",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "bvztytxode",
@@ -67,7 +70,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "8xj98zuy70",
@@ -85,7 +89,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "dn5pkzwl1b",
@@ -100,7 +105,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "xi4bqzjk79",
@@ -118,7 +124,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "96lfpj7g8d",
@@ -136,7 +143,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "ken8kdirey",
@@ -154,7 +162,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Finsk partibold er en variant, på et mindre område men med flere spillere. Knap så meget løben, men mere bold og sammenspil",
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "rtnc6s3pm2",
@@ -169,7 +178,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "7u9y78u2kg",
@@ -184,7 +194,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "r9q5nuqvvo",
@@ -202,7 +213,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "i2k03lhfe0",
@@ -220,7 +232,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "x767b4vlb9",
@@ -235,7 +248,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "pvg9iz4nrd",
@@ -250,7 +264,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "uc91ygaark",
@@ -266,7 +281,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "wn2vmetyr0",
@@ -284,7 +300,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "7kbi4devmy",
@@ -299,7 +316,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Lav den evt med en navngiven direkte modstander",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "pshmcudiga",
@@ -314,7 +332,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": "exercises/pshmcudiga.jpg"
   },
   {
     "id": "bkrmlqo48z",
@@ -329,7 +348,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Tilføj at man får 5 englehop/armbøjninger hvis man røres af boldholder. Dette gør at man forsvarere forsøger at bryde afleveringer, i stedet for at mandsopdække. Og det skaber overtal",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "hcg8w3s6pk",
@@ -344,7 +364,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": "https://traenerguiden.dgi.dk/guide/haandbold/exercises-overview/Alle%20%C3%B8velser%20-%20haandbold/1d324e3a-a4c8-4ff8-a545-aac6b8dcad0e",
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "y5qoalanbi",
@@ -359,7 +380,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "y49yy2grby",
@@ -374,7 +396,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "y2elddmvr5",
@@ -389,7 +412,8 @@ export const EXERCISES = [
     "stars": 3,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "rxxioowqaa",
@@ -404,7 +428,8 @@ export const EXERCISES = [
     "stars": 3,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "tt2pk0f511",
@@ -419,7 +444,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Kræver meget overvågning",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "to1k35haga",
@@ -434,7 +460,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "akcdf25t1w",
@@ -449,7 +476,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": "Den rette strategi for forsvar er at gå højt på boldholder, og lade de andre forsvarer stå tæt om keglen. Lidt 3-2-1 agtigt.",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "u3ukbs29p7",
@@ -464,7 +492,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": "Den rette strategi for forsvar er at gå højt så angriberne ikke kan nå ind til madrassen med 3 skridt",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "2f5vg6uao0",
@@ -479,7 +508,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DSDcSTjDHpr/?igsh=aHdienUyZTZpcWdw",
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "hhg01m5ezt",
@@ -494,7 +524,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Forlæns og baglæns",
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "azbq6jfksy",
@@ -509,7 +540,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": "Forlæns og baglæns",
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "mv4v5dxa41",
@@ -524,7 +556,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "zp6lcbx79e",
@@ -539,7 +572,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "19gw220nha",
@@ -554,7 +588,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Forlæns og baglæns. Med højre og venstre",
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "psfllb06g8",
@@ -569,7 +604,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "t66mhdml7n",
@@ -584,7 +620,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "z46ryjwsav",
@@ -599,7 +636,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "uvko42mbdb",
@@ -614,7 +652,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "opjdyymsmj",
@@ -629,7 +668,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "cdyreyueso",
@@ -644,7 +684,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "26nxsaj3ml",
@@ -660,7 +701,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "55jceqdm2r",
@@ -675,7 +717,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "8mk5bdjqy4",
@@ -690,7 +733,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Vvariant: Bagerste skal løbe over rækken, og bowle tilbage. Tredje variant: løb op foran og bowl bolden under rækken i udgangsstilling",
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "50dxli0igv",
@@ -705,7 +749,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "8pomtp8v0w",
@@ -721,7 +766,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "6c1p38q1pr",
@@ -737,7 +783,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "de24uba1zi",
@@ -753,7 +800,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "p2zxzvptyp",
@@ -767,7 +815,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "aqrp1l1gsr",
@@ -783,7 +832,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.facebook.com/share/r/eyugB1Tej3zKw9iD/?mibextid=WC7FNe",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "73oaz44i60",
@@ -802,7 +852,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Variant: Den ene skal drible i 15 sekunder uden den anden slår bolden væk",
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "6ghf3ilw2h",
@@ -821,7 +872,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "400pjktikv",
@@ -837,7 +889,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Varier afstand til bolden, afstand mellem spillerne. Start siddende, liggende",
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "ndd117gv9m",
@@ -853,7 +906,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "chcbbpmldd",
@@ -869,7 +923,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Variant: Giv folk en vest som hale, som de også skal passe på",
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "yakjb2y858",
@@ -885,7 +940,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Variant: lige og ulige",
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "cjqirdv09l",
@@ -901,7 +957,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "uucin65hz5",
@@ -917,7 +974,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "d97iqv3hgq",
@@ -933,7 +991,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "rk151jue04",
@@ -949,7 +1008,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "gstp6nzawq",
@@ -965,7 +1025,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "i6h3dne1yi",
@@ -981,7 +1042,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "2t4p86is4o",
@@ -997,7 +1059,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "7jd9j708t6",
@@ -1013,7 +1076,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "sf1gh7b5nu",
@@ -1032,7 +1096,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "2l6iflxca4",
@@ -1048,7 +1113,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "nfnkwzkjus",
@@ -1064,7 +1130,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "1qtfob8d1y",
@@ -1080,7 +1147,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "zz517x7ydk",
@@ -1096,7 +1164,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "yot627dia3",
@@ -1110,7 +1179,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Træd frem i kastet, lange, hopskud, sidelæns, kig væk, bagom ryggen, een hånd,  høj arm, knæk, mellem benene, studs, hop med vip, 3 skridt, sidde ned, sidde på knæ, forkerte hånd, samlede ben",
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "ciahryat3r",
@@ -1124,7 +1194,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "qvvcqn77wa",
@@ -1138,7 +1209,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "n3ddr5503q",
@@ -1152,7 +1224,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "28hprtor9c",
@@ -1166,7 +1239,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "vkjesd2ki6",
@@ -1180,7 +1254,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": "https://traenerguiden.dgi.dk/guide/haandbold/exercises-overview/Alle%20%C3%B8velser%20-%20haandbold/73c377ed-46c0-4323-84a2-b4dea3fa5b69",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "fuwwd6d0rd",
@@ -1194,7 +1269,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "8vqlfqifnq",
@@ -1208,7 +1284,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "ukugxvw4yv",
@@ -1222,7 +1299,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": "exercises/ukugxvw4yv.jpg"
   },
   {
     "id": "0vbigz0kmv",
@@ -1236,7 +1314,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "Afleveringer med finter",
@@ -1251,7 +1330,8 @@ export const EXERCISES = [
     "stars": 3,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": "exercises/Afleveringer_med_finter.jpg"
   },
   {
     "id": "9kj225tnxy",
@@ -1265,7 +1345,8 @@ export const EXERCISES = [
     "stars": 2,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "bh5p3jvdj9",
@@ -1279,7 +1360,8 @@ export const EXERCISES = [
     "stars": 2,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "npby7bkdk1",
@@ -1293,7 +1375,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://traenerguiden.dgi.dk/guide/haandbold/exercises-overview/Alle%20%C3%B8velser%20-%20haandbold/074512c0-6f20-4514-85c7-9c53cfc673f2",
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "awgbx4e3j6",
@@ -1307,7 +1390,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "wlxwy3yelz",
@@ -1321,7 +1405,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "gxdpdbb7fh",
@@ -1336,7 +1421,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "hwk5zy6zmh",
@@ -1351,7 +1437,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "qnn7v3xbz7",
@@ -1367,7 +1454,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/qnn7v3xbz7.jpg"
   },
   {
     "id": "w3nvsq8opz",
@@ -1383,7 +1471,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "variation med en forsvarsspiller eller 2x Georg at skude over",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/w3nvsq8opz.jpg"
   },
   {
     "id": "vjnq6r7teq",
@@ -1398,7 +1487,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "lgpbjq8zbq",
@@ -1413,7 +1503,8 @@ export const EXERCISES = [
     "stars": 3,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "finterr i åben ramme",
@@ -1425,7 +1516,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/finterr_i_åben_ramme.jpg"
   },
   {
     "id": "finter i åben ramme med skrå tilgang",
@@ -1437,7 +1529,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/finter_i_åben_ramme_med_skrå_tilgang.jpg"
   },
   {
     "id": "crxb9np2ez",
@@ -1452,7 +1545,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Variant, lad dem gå den anden vej som i video",
     "link": "https://www.facebook.com/share/r/1Vzo6vkuD7/?mibextid=wwXIfr",
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "s4w3k1ubvl",
@@ -1467,7 +1561,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "m9apd655v0",
@@ -1482,7 +1577,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": "Vaiant: Skud fra samlet når man lander (aka fremfaldsskud). Variant to: først den ene vej, så den anden (dobbeltfinter)",
     "link": "https://www.instagram.com/p/DPpOMtKCBrD/?img_index=1",
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "b964q0cygh",
@@ -1497,7 +1593,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "y69a0s9fny",
@@ -1511,7 +1608,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "pad5f3qyh7",
@@ -1525,7 +1623,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "xa2v7m0r6i",
@@ -1539,7 +1638,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "qievifizod",
@@ -1553,7 +1653,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "586vaj750e",
@@ -1569,7 +1670,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/586vaj750e.jpg"
   },
   {
     "id": "sviwfa2q4v",
@@ -1585,7 +1687,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": "fungerer godt. god til opvarmning",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "jrjxlqk0v5",
@@ -1599,7 +1702,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "uz9evva7h2",
@@ -1614,7 +1718,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "fungerer rigtigt godt som beslutningsspil, fart og løb. Stor bane. 16-18 spillere er perfekt. Lav evt øvelse uden retur inden",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "daeit8c0na",
@@ -1629,7 +1734,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "qirqbmqmpv",
@@ -1643,7 +1749,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "u1fkhwnivt",
@@ -1658,7 +1765,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Også gerne med 2 mod 2. Så skal de starte længere tilbage\n\nHar man to bander (en i hver side) er det også\nEn god øvelse ",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/u1fkhwnivt.jpg"
   },
   {
     "id": "2fvuzl8x62",
@@ -1673,7 +1781,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Variant: Lav en tilspiller der kan være bande",
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": "exercises/2fvuzl8x62.jpg"
   },
   {
     "id": "sxoqvtjztr",
@@ -1687,7 +1796,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "qmfq2rztj2",
@@ -1701,7 +1811,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/qmfq2rztj2.jpg"
   },
   {
     "id": "9nirj9sqfa",
@@ -1715,7 +1826,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.youtube.com/watch?v=bWS-E1jvyqs",
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "bargb82pgw",
@@ -1729,7 +1841,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.facebook.com/share/r/1ADB5TU578/?mibextid=wwXIfr",
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "0ruqu1ompu",
@@ -1744,7 +1857,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.facebook.com/share/v/187XM8Qfft/?mibextid=wwXIfr",
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "jg52lj6ofv",
@@ -1758,7 +1872,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "1508tu6dic",
@@ -1772,7 +1887,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Variant: Skud fra ny midt. Begge varianter kan laves med paradespillere",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "8rtbq5gwzt",
@@ -1786,7 +1902,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://godhaandbold.dk/?page_id=54",
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "uq9cln4i0n",
@@ -1800,7 +1917,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://godhaandbold.dk/?page_id=54",
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "9cie97nia0",
@@ -1814,7 +1932,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Kan også laves back, midt, back",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": "exercises/9cie97nia0.jpg"
   },
   {
     "id": "03vbs7ownu",
@@ -1828,7 +1947,8 @@ export const EXERCISES = [
     "stars": 3,
     "variants": "God til at lære at man skal begynde at løbe før man har bolden. Svær for nybegyndere. Variant: Spillerne krydser ikke, men løber på yderside af sigtekeglerne.",
     "link": "https://www.instagram.com/reel/DQrTj5tCJOp/?igsh=MTgzYmFuMDFlaW5oYQ==",
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "075ls77ci2",
@@ -1843,7 +1963,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Variant: Backs laver forløb",
     "link": "https://danskhaandbold.dk/ovelsesbank/ovelse?id=136",
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "68ujs23roh",
@@ -1860,7 +1981,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "xkzphowpgk",
@@ -1877,7 +1999,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "possp2ofgw",
@@ -1891,7 +2014,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "ancywvjbt8",
@@ -1905,7 +2029,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Lav gerne en fløjskudsbane med tre minimål; indspring højre, venstre og stående",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "8tv33455aq",
@@ -1919,7 +2044,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "m8x2lian02",
@@ -1934,7 +2060,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "olwne836bf",
@@ -1949,7 +2076,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "God øvelse. Fungerer godt med VB, M, HB - dog giver det ikke stress nok uden forsvar. Kan med fordel efterfølges af 3 mod 3 på et mål",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "srjqgte0qo",
@@ -1964,7 +2092,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "God til timing og grundspil uden det bliver for kedeligt. Når den sidder så fokuser på selve presset",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "j965o801vd",
@@ -1979,7 +2108,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "cm35mwu4wg",
@@ -1995,7 +2125,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Virker godt. Ikke for nybegyndere",
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": "exercises/cm35mwu4wg.jpg"
   },
   {
     "id": "ca5w0mqnf0",
@@ -2011,7 +2142,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "piii2czhuv",
@@ -2026,7 +2158,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Variant: Spil med 1 forsvar i hver side, eller 2 forsvarer der skifter side, så det essentielt bliver \"gode beslutninger\" på back/fløj",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "dci5m6lnbv",
@@ -2047,7 +2180,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "på den vis kan der øves afslutninger på stort mål i den anden ende",
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "mdq6xuq8ss",
@@ -2068,7 +2202,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "rbsgcwy31v",
@@ -2084,7 +2219,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "9pxjufr12x",
@@ -2100,7 +2236,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Enten i midtzone eller på back",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "elchmsv18y",
@@ -2116,7 +2253,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": "exercises/elchmsv18y.jpg"
   },
   {
     "id": "j1xhr28djw",
@@ -2132,7 +2270,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": "exercises/j1xhr28djw.jpg"
   },
   {
     "id": "mbg3wwbmxl",
@@ -2148,7 +2287,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "tjl0mz1x6k",
@@ -2164,7 +2304,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "vlqb3mqz0n",
@@ -2185,7 +2326,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "e2bcvwoz7w",
@@ -2201,7 +2343,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "1zie4yr5vm",
@@ -2220,7 +2363,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "09bfg44l0m",
@@ -2241,7 +2385,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "41tnv12fox",
@@ -2257,7 +2402,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "b9pr4xy87o",
@@ -2278,7 +2424,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "m7yvsddvtq",
@@ -2297,7 +2444,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "260qzjlvlc",
@@ -2318,7 +2466,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "f21q4dt7ju",
@@ -2334,7 +2483,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Skal laves med forsvar ellers giver det ikke noget",
     "link": "https://issuu.com/dhf_publikationer/docs/tr_ningsprogram_u11_uge_2_1_36489f85d63306?fr=sNTQ5OTgzNzE4MDc&utm_source=agillic&utm_medium=email&utm_campaign=Trænningsprogrammer+U11+Uge+52",
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "za5icqx1yh",
@@ -2348,7 +2498,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "a3saa4zrka",
@@ -2362,7 +2513,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "m35hvx63g1",
@@ -2376,7 +2528,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "pvssukrmk4",
@@ -2390,7 +2543,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "i4ulskrp2n",
@@ -2404,7 +2558,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "qf8amp50tq",
@@ -2418,7 +2573,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "hv1t7qgd9d",
@@ -2432,7 +2588,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "cd1lkkmvrv",
@@ -2446,7 +2603,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "kuk107vrcu",
@@ -2460,7 +2618,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "rhksro9ovs",
@@ -2474,7 +2633,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "8mvj4ctmfa",
@@ -2488,7 +2648,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "ccp5elfhcz",
@@ -2502,7 +2663,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "1uy8et4926",
@@ -2516,7 +2678,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.youtube.com/watch?v=hRkQN3IHjWs&list=PLNssDT7zACUVFlcVKx81QAsahz_MtLLTS",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "amkripafhl",
@@ -2530,7 +2693,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "n5gxvdelrb",
@@ -2544,7 +2708,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.youtube.com/watch?v=31H56oMMABU&list=PLNssDT7zACUVFlcVKx81QAsahz_MtLLTS&index=2",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "6i116z5gaa",
@@ -2558,7 +2723,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.youtube.com/watch?v=fjQXd6bwp5Y&list=PLNssDT7zACUVFlcVKx81QAsahz_MtLLTS&index=3",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "8upr7m1s7y",
@@ -2572,7 +2738,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "ljcuhhruur",
@@ -2587,7 +2754,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.youtube.com/watch?v=XVOW56N2xhA&list=PLNssDT7zACUVFlcVKx81QAsahz_MtLLTS&index=4",
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "wchr031rwkqmmlq2f7j",
@@ -2601,7 +2769,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "g0vq9dtd1zsmmlq48b4",
@@ -2615,7 +2784,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "pnlgnjc4jzmmlq6kvi",
@@ -2631,7 +2801,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "m8my02xg1ehmmlqa02m",
@@ -2647,7 +2818,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "41ja1clrt3gmmlqc40z",
@@ -2663,7 +2835,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "m19yeuhpg7dmmlxo17r",
@@ -2677,7 +2850,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": null
   },
   {
     "id": "7sfq1s8icgnmmomlis7",
@@ -2692,7 +2866,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Varier om der stås på et eller to ben. Varier hånd",
     "link": "https://www.instagram.com/reel/DTv9yxgEUhu/?igsh=NHNlMXQ1a3hramJh",
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "a1ewqvkgp7hmmomn6bh",
@@ -2707,7 +2882,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DTv9yxgEUhu/?igsh=NHNlMXQ1a3hramJh",
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "qrfnvtj3v4mmomo6cy",
@@ -2722,7 +2898,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DTv9yxgEUhu/?igsh=NHNlMXQ1a3hramJh",
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "pm44w0vpzkmms7z39p",
@@ -2736,7 +2913,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "sæt AK på. Svær for nybegyndere",
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": null
   },
   {
     "id": "mku7mao03asmmt68ybi",
@@ -2752,7 +2930,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Kan gerne køre i to retninger",
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": "exercises/mku7mao03asmmt68ybi.jpg"
   },
   {
     "id": "f58oauyrk6immuii50t",
@@ -2768,7 +2947,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/f58oauyrk6immuii50t.jpg"
   },
   {
     "id": "6gtxfpmv9fymn0vrk84",
@@ -2784,7 +2964,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": null
+    "default_mins": null,
+    "image_r2_key": null
   },
   {
     "id": "o8dqcrmiqebmn0vrk84",
@@ -2800,7 +2981,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": null
+    "default_mins": null,
+    "image_r2_key": null
   },
   {
     "id": "gw67fr10yyomn0w74sf",
@@ -2814,7 +2996,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "62cw73o61zemn0w74sf",
@@ -2828,7 +3011,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "yomyud1vtsgmn0w74sf",
@@ -2842,7 +3026,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "ng79zjpdpfsmn0w74sf",
@@ -2856,7 +3041,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "2ys65iyxzntmn0w74sf",
@@ -2870,7 +3056,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "k3mydcc18crmn0w74sf",
@@ -2884,7 +3071,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 4
+    "default_mins": 4,
+    "image_r2_key": null
   },
   {
     "id": "sxwqx2fdelbmn0w74sf",
@@ -2898,7 +3086,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DJ9PkajNFJU/?igsh=ZWNmZG9zd2doejE0",
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "69bvm0zaa16mn0x7ssa",
@@ -2913,7 +3102,8 @@ export const EXERCISES = [
     "stars": 3,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "exd3n1d6ejhmn2sd9kq",
@@ -2929,7 +3119,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": null
+    "default_mins": null,
+    "image_r2_key": null
   },
   {
     "id": "95b8i9isvnemn4un4v6",
@@ -2943,7 +3134,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Kan også køres 2 mod 2",
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": "exercises/95b8i9isvnemn4un4v6.jpg"
   },
   {
     "id": "cscraeyioihmn5wnfnk",
@@ -2959,7 +3151,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": "https://www.instagram.com/reel/DWLf6D2jZEZ/?igsh=MWEzaTI5bGNsZjU1dw==",
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   },
   {
     "id": "cup63ikgfzgmn5yhn8d",
@@ -2973,7 +3166,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 6
+    "default_mins": 6,
+    "image_r2_key": "exercises/cup63ikgfzgmn5yhn8d.jpg"
   },
   {
     "id": "3qev3aq518nmn7z3r48",
@@ -2989,7 +3183,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": null
+    "default_mins": null,
+    "image_r2_key": null
   },
   {
     "id": "5xyur0r6e27mng0m1lh",
@@ -3001,7 +3196,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/5xyur0r6e27mng0m1lh.jpg"
   },
   {
     "id": "jfe1pq8yhnkmng1fdef",
@@ -3015,7 +3211,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/jfe1pq8yhnkmng1fdef.jpg"
   },
   {
     "id": "b5lnkvi646tmng27li4",
@@ -3029,7 +3226,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/b5lnkvi646tmng27li4.jpg"
   },
   {
     "id": "tekrxizhz6nmng4pa8i",
@@ -3044,7 +3242,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Varier afstand mellem forsvar og angreb efter niveau.",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/tekrxizhz6nmng4pa8i.jpg"
   },
   {
     "id": "wtjcwjpvz0imng50g63",
@@ -3059,7 +3258,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Begge sider",
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/wtjcwjpvz0imng50g63.jpg"
   },
   {
     "id": "65ekltnwfglmng52i93",
@@ -3074,7 +3274,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": null
+    "default_mins": null,
+    "image_r2_key": "exercises/65ekltnwfglmng52i93.jpg"
   },
   {
     "id": "0vmmql7d43pmng5afrp",
@@ -3089,7 +3290,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": "exercises/0vmmql7d43pmng5afrp.jpg"
   },
   {
     "id": "pri603l2unmng5er27",
@@ -3105,7 +3307,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/pri603l2unmng5er27.jpg"
   },
   {
     "id": "3dhtjpva1mbmng5gosv",
@@ -3121,7 +3324,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 20
+    "default_mins": 20,
+    "image_r2_key": "exercises/3dhtjpva1mbmng5gosv.jpg"
   },
   {
     "id": "3obpet2zvl2mng5j4rf",
@@ -3136,7 +3340,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 15
+    "default_mins": 15,
+    "image_r2_key": "exercises/3obpet2zvl2mng5j4rf.jpg"
   },
   {
     "id": "wlac604m5u",
@@ -3150,7 +3355,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": "Land på forfoden!",
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "3yuhnxbid9",
@@ -3164,7 +3370,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Land på forfoden!",
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "uhu40pjncf",
@@ -3178,7 +3385,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "cmujkp8avz",
@@ -3192,7 +3400,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "xbig7wk2r5",
@@ -3206,7 +3415,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "do9tdqkbf4",
@@ -3220,7 +3430,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "v84gndxv5m",
@@ -3234,7 +3445,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "5r66lrftu8",
@@ -3248,7 +3460,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "yb1nvdybg6",
@@ -3262,7 +3475,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/p/DK_aq74Mdmn/",
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "40d39sf2cf",
@@ -3276,7 +3490,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": "https://www.instagram.com/p/DK_aq74Mdmn/",
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "5mlj8ae9gt",
@@ -3290,7 +3505,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "rq6g2camse",
@@ -3304,7 +3520,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "5hyxx0vhmx",
@@ -3319,7 +3536,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "ow1nbokp4x",
@@ -3334,7 +3552,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Land på forfoden!",
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "qifgo0du18",
@@ -3349,7 +3568,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "lk6z6gfvaz",
@@ -3364,7 +3584,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Land på forfoden! Evt efter nedhop fra boks",
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "y8qyfm66z3",
@@ -3379,7 +3600,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Land på forfoden! Evt efter nedhop fra boks",
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "1iml2wycme",
@@ -3394,7 +3616,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "6f631s6mx6",
@@ -3409,7 +3632,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": "https://www.instagram.com/p/DMEyzmLJTA5/",
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "bhz1612uy8",
@@ -3424,7 +3648,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "t9wbk2zwrj",
@@ -3439,7 +3664,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "7lstm9uhbx",
@@ -3454,7 +3680,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "bg3xw2bmw5",
@@ -3469,7 +3696,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "n88pypsfl3",
@@ -3484,7 +3712,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DMjA5JuM02b/?igsh=Z2p0bmoxZnZwd3Fv",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "0yot46nzlb",
@@ -3499,7 +3728,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "siddende på knæ kan både være mde front eller med siden til",
     "link": "https://www.instagram.com/reel/DMjA5JuM02b/?igsh=Z2p0bmoxZnZwd3Fv",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "1p3t6lraan",
@@ -3514,7 +3744,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Brug felter i valbyhallen eller stiger",
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "odwybfevc4",
@@ -3529,7 +3760,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Brug felter i valbyhallen eller stiger",
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "4kqoxrgfsf",
@@ -3544,7 +3776,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Brug felter i valbyhallen eller stiger",
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "hdwh81k1tl",
@@ -3559,7 +3792,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": "Brug felter i valbyhallen eller stiger",
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "rj9y724t9c",
@@ -3574,7 +3808,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/p/DK_aq74Mdmn/",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "nfgbeky6ih",
@@ -3590,7 +3825,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "egx3t3cplc",
@@ -3606,7 +3842,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": "Hurtigt og langt sidestep. Ok at lige finde balancen inden ophop",
     "link": "https://www.instagram.com/reel/DOzHcYcEk7z/?igsh=MnFyaTN4Y2xndjdy",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "kb6qwyzz31",
@@ -3622,7 +3859,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "ovulgpfoh6",
@@ -3637,7 +3875,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "g446tw1ea2",
@@ -3653,7 +3892,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/p/DKoRAn6tA7W/",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "y7bcw7qdc1",
@@ -3669,7 +3909,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "80cp9u32mo",
@@ -3685,7 +3926,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DMjA5JuM02b/?igsh=Z2p0bmoxZnZwd3Fv",
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "etrbo03qxl",
@@ -3700,7 +3942,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "o7gbsrtyzq",
@@ -3715,7 +3958,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "c19l9t6vqj",
@@ -3730,7 +3974,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "w1ubiex2fe",
@@ -3744,7 +3989,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "9divgq4zc4",
@@ -3758,7 +4004,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "a38jj92f4u",
@@ -3772,7 +4019,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "7k8f3zhb2k",
@@ -3786,7 +4034,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "d7s2le4aq3",
@@ -3800,7 +4049,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "bfspnwjhj8",
@@ -3814,7 +4064,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 4
+    "default_mins": 4,
+    "image_r2_key": null
   },
   {
     "id": "sz9vb1qk5p",
@@ -3831,7 +4082,8 @@ export const EXERCISES = [
     "stars": 1,
     "variants": "den er svær. med god.",
     "link": "https://www.instagram.com/reel/DKh5OWetYFF/?igsh=czZibzFvbGhzYnpz",
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "leijx9rl68",
@@ -3845,7 +4097,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DJ9PkajNFJU/?igsh=ZWNmZG9zd2doejE0",
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "ch0njll5k7",
@@ -3859,7 +4112,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "bgfv5dh7panmms5vyre",
@@ -3873,7 +4127,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "1qqjz3wgnfhmmlq0w72",
@@ -3888,7 +4143,8 @@ export const EXERCISES = [
     "stars": 3,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "qrfnvtj3v4mmomo6cy",
@@ -3903,7 +4159,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DTv9yxgEUhu/?igsh=NHNlMXQ1a3hramJh",
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "a1ewqvkgp7hmmomn6bh",
@@ -3918,7 +4175,8 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DTv9yxgEUhu/?igsh=NHNlMXQ1a3hramJh",
-    "default_mins": 2
+    "default_mins": 2,
+    "image_r2_key": null
   },
   {
     "id": "rzxw00v7xpmmw7p7f4",
@@ -3932,7 +4190,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 3
+    "default_mins": 3,
+    "image_r2_key": null
   },
   {
     "id": "cad8y01rpqdmmwe0jbf",
@@ -3947,7 +4206,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "fkyspx2tyrmmwfmeje",
@@ -3961,7 +4221,8 @@ export const EXERCISES = [
     "stars": 5,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "tjexxj1ur7mmwfoxpn",
@@ -3975,7 +4236,8 @@ export const EXERCISES = [
     "stars": 4,
     "variants": null,
     "link": null,
-    "default_mins": 5
+    "default_mins": 5,
+    "image_r2_key": null
   },
   {
     "id": "9f93ngvvg0bmnd62kiq",
@@ -3990,6 +4252,7 @@ export const EXERCISES = [
     "stars": 0,
     "variants": null,
     "link": "https://www.instagram.com/reel/DS3R8oWDj0D/?igsh=bmMyc3psY2drMTN4",
-    "default_mins": 10
+    "default_mins": 10,
+    "image_r2_key": null
   }
-] as const;
+];
