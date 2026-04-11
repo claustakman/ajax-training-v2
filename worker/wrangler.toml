@@ -1,0 +1,20 @@
+name = "ajax-traening-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ajax-traening"
+database_id = "ca1b0141-b8d7-48bb-bae1-494f0b9f8941"
+
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "ajax-traening-storage"
+
+[vars]
+ENVIRONMENT = "production"
+
+# Secrets (sættes via `wrangler secret put`):
+#   JWT_SECRET
+#   ANTHROPIC_API_KEY
+#   HS_TOKEN

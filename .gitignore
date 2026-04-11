@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+worker/node_modules/
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+worker/dist/
+
+# Wrangler local state
+worker/.wrangler/
+.wrangler/
+
+# Environment / secrets
+.dev.vars
+worker/.dev.vars
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# Logs
+*.log
