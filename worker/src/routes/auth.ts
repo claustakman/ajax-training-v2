@@ -130,3 +130,32 @@ authRoutes.post('/reset-password', requireAuth(), async (c) => {
 authRoutes.post('/logout', requireAuth(), async (c) => {
   return c.json({ ok: true });
 });
+
+// POST /api/auth/regenerate-invite — admin nulstiller password for eksisterende bruger
+authRoutes.post('/regenerate-invite', requireAuth('admin'), async (c) => {
+  const { user_id } = await c.req.json<{ user_id: string }>();
+  if (!user_id) return c.json({ error: 'user_id påkrævet' }, 400);
+
+  const user = await c.env.DB.prepare('SELECT id, name FROM users WHERE id = ?').bind(user_id).first();
+  if (!user) return c.json({ error: 'Bruger ikke fundet' }, 404);
+
+  const inviteToken = newId();
+  const inviteExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const placeholderHash = '$2a$10$PLACEHOLDER_RESET_REQUIRED';
+
+  await c.env.DB.prepare(
+    'UPDATE users SET invite_token = ?, invite_expires = ?, password_hash = ? WHERE id = ?'
+  ).bind(inviteToken, inviteExpires, placeholderHash, user_id).run();
+
+  return c.json({ ok: true, invite_token: inviteToken });
+});
+
+// GET /api/auth/invite-info/:token — hent navn fra invite-token (ingen auth)
+authRoutes.get('/invite-info/:token', async (c) => {
+  const token = c.req.param('token');
+  const user = await c.env.DB.prepare(
+    'SELECT name, email FROM users WHERE invite_token = ? AND invite_expires > ?'
+  ).bind(token, new Date().toISOString()).first();
+  if (!user) return c.json({ error: 'Ugyldigt eller udløbet link' }, 400);
+  return c.json({ name: user.name, email: user.email });
+});

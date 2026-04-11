@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import AcceptInvite from './pages/AcceptInvite';
 import Trainings from './pages/Trainings';
 import Aarshjul from './pages/Aarshjul';
 import Catalog from './pages/Catalog';
@@ -22,6 +23,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route
           path="/*"
           element={

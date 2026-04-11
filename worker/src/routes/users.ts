@@ -6,12 +6,30 @@ type HonoEnv = { Bindings: Env } & AuthContext;
 
 export const userRoutes = new Hono<HonoEnv>();
 
-// GET /api/users
+// GET /api/users — inkluderer teams per bruger
 userRoutes.get('/', requireAuth('admin'), async (c) => {
   const users = await c.env.DB.prepare(
     'SELECT id, name, email, role, last_seen, created_at FROM users ORDER BY name'
   ).all();
-  return c.json(users.results);
+
+  // Hent alle user_teams + teams i ét kald og merge
+  const allUserTeams = await c.env.DB.prepare(
+    'SELECT ut.user_id, t.id, t.name, t.age_group, t.season FROM user_teams ut JOIN teams t ON t.id = ut.team_id'
+  ).all();
+
+  const teamsByUser: Record<string, unknown[]> = {};
+  for (const row of allUserTeams.results) {
+    const uid = row.user_id as string;
+    if (!teamsByUser[uid]) teamsByUser[uid] = [];
+    teamsByUser[uid].push({ id: row.id, name: row.name, age_group: row.age_group, season: row.season });
+  }
+
+  const result = users.results.map(u => ({
+    ...u,
+    teams: teamsByUser[u.id as string] ?? [],
+  }));
+
+  return c.json(result);
 });
 
 // GET /api/users/:id
@@ -32,15 +50,22 @@ userRoutes.get('/:id', requireAuth(), async (c) => {
 // PATCH /api/users/:id
 userRoutes.patch('/:id', requireAuth('admin'), async (c) => {
   const id = c.req.param('id');
-  const { role } = await c.req.json<{ role: string }>();
-  if (!role) return c.json({ error: 'role påkrævet' }, 400);
-  await c.env.DB.prepare('UPDATE users SET role = ? WHERE id = ?').bind(role, id).run();
+  const body = await c.req.json<{ role?: string; name?: string }>();
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  if (body.role) { updates.push('role = ?'); values.push(body.role); }
+  if (body.name) { updates.push('name = ?'); values.push(body.name); }
+  if (updates.length === 0) return c.json({ error: 'Ingen felter at opdatere' }, 400);
+  values.push(id);
+  await c.env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...values).run();
   return c.json({ ok: true });
 });
 
 // DELETE /api/users/:id
 userRoutes.delete('/:id', requireAuth('admin'), async (c) => {
   const id = c.req.param('id');
+  const { sub } = c.get('user');
+  if (id === sub) return c.json({ error: 'Du kan ikke slette dig selv' }, 400);
   await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
   return c.json({ ok: true });
 });
