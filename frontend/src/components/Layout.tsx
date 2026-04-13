@@ -151,22 +151,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {hasRole(user, 'admin', currentTeamRole) && (
               <MenuItem to="/admin" onClick={() => setMenuOpen(false)}>Admin</MenuItem>
             )}
-            {/* Hold-switcher i hamburger-menu (mobil) */}
-            {multipleTeams && (
+            {/* Hold-switcher i hamburger-menu */}
+            {user && user.teams.length > 0 && (
               <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0' }}>
                 <div style={{ padding: '4px 16px', fontSize: 12, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase' }}>
-                  Skift hold
+                  {multipleTeams ? 'Skift hold' : 'Aktivt hold'}
                 </div>
-                {user!.teams.map(t => (
+                {user.teams.map(t => (
                   <button
                     key={t.id}
                     onClick={() => handleTeamSwitch(t)}
+                    disabled={!multipleTeams}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       width: '100%', textAlign: 'left',
                       padding: '10px 16px', background: t.id === currentTeamId ? 'var(--accent-light)' : 'none',
                       color: t.id === currentTeamId ? 'var(--accent)' : 'var(--text)',
-                      fontSize: 14,
+                      fontSize: 14, cursor: multipleTeams ? 'pointer' : 'default',
                     }}
                   >
                     <span>{t.name}</span>
