@@ -117,10 +117,11 @@ Appen skal ligne forzachang-appen visuelt. Lys baggrund, rød Ajax-accent.
 ```
 
 ### Navigation (identisk mønster som forzachang)
-- **Topbar** (desktop): Logo + 3 faste tabs + hamburger-menu til højre
+- **Topbar** (desktop): Logo + 3 faste tabs + hold-switcher (hvis > 1 hold) + hamburger-menu til højre
 - **Bundnav** (mobil): 3 faste ikoner + Mere-knap (☰)
 - **3 faste tabs/ikoner:** Træning · Årshjul · Katalog
-- **Hamburger/Mere-panel:** Tavle · Profil · Admin *(kun trainer+)* · Skift hold *(hvis flere hold)* · Log ud
+- **Hamburger/Mere-panel:** Tavle · Profil · Brugere *(kun team_manager+)* · Admin *(kun admin)* · Skift hold *(hvis > 1 hold)* · Log ud
+- Hold-switcher i header viser aktivt hold med dropdown. Viser hold-specifik rolle ved siden af hvert hold-navn.
 - Topbar har 3px rød bundkant (`border-bottom: 3px solid var(--accent)`)
 - Aktiv tab har rød understregning
 - Bundnav: `paddingBottom: env(safe-area-inset-bottom)` for iPhone safe area
@@ -136,12 +137,34 @@ Appen skal ligne forzachang-appen visuelt. Lys baggrund, rød Ajax-accent.
 
 ## Roller
 
-| Rolle               | Rettigheder                                                                              |
-|---------------------|------------------------------------------------------------------------------------------|
-| `guest`             | Kan se træninger og katalog for tildelte hold — ingen redigering                         |
-| `trainer`           | Alt ovenstående + oprette/redigere træninger, øvelser, bruge AI-forslag, opslagstavle    |
-| `team_manager`      | Alt trainer + redigere årshjul, administrere eget hold (brugere, indstillinger)          |
-| `admin`             | Alt + oprette/slette hold, tildele roller til alle brugere, se alle hold                 |
+Roller er **hold-specifikke** — en bruger kan have forskellig rolle på forskellige hold.
+Undtagelse: `admin` er global og slår altid igennem uanset aktivt hold.
+
+| Rolle               | Rettigheder                                                                                         |
+|---------------------|-----------------------------------------------------------------------------------------------------|
+| `guest`             | View-only: kan se træninger og katalog for tildelte hold. Ingen redigering. Ingen Admin-tab.        |
+| `trainer`           | CRUD træninger og katalog. Holdsport-import. Se årshjul. Opslagstavle.                              |
+| `team_manager`      | Alt trainer + redigere årshjul + styre brugere for eget hold (`/brugere`-siden)                    |
+| `admin`             | Global rolle. CRUD hold (`/admin`). Se alle hold. Tildele alle roller.                              |
+
+### Adgangskontrol pr. side
+
+| Side            | Gæst | Træner | Årgangansv. | Admin |
+|-----------------|------|--------|-------------|-------|
+| Træning (view)  | ✓    | ✓      | ✓           | ✓     |
+| Træning (CRUD)  | —    | ✓      | ✓           | ✓     |
+| Årshjul (view)  | —    | ✓      | ✓           | ✓     |
+| Årshjul (rediger)| —   | —      | ✓           | ✓     |
+| Katalog (view)  | ✓    | ✓      | ✓           | ✓     |
+| Katalog (CRUD)  | —    | ✓      | ✓           | ✓     |
+| Tavle           | ✓    | ✓      | ✓           | ✓     |
+| Brugere (`/brugere`) | — | —   | ✓           | ✓     |
+| Admin (`/admin`)| —    | —      | —           | ✓     |
+
+### Hold-roller i `user_teams`
+`user_teams`-tabellen har en `role`-kolonne (`guest | trainer | team_manager`).
+`users.role` bruges kun til at markere global `admin`-status.
+`currentTeamRole` udledes i frontend fra det aktive holds `user_teams.role` (eller `'admin'` hvis global admin).
 
 ---
 
@@ -178,6 +201,7 @@ CREATE TABLE users (
 CREATE TABLE user_teams (
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   team_id    TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  role       TEXT NOT NULL DEFAULT 'trainer',   -- guest | trainer | team_manager (admin er global på users.role)
   PRIMARY KEY (user_id, team_id)
 );
 ```
@@ -296,14 +320,14 @@ CREATE TABLE templates (
 ## Worker API — Routes
 
 ### Auth (`/api/auth`)
-| Method | Path                        | Rolle  | Beskrivelse                                  |
-|--------|-----------------------------|--------|----------------------------------------------|
-| POST   | `/api/auth/login`           | —      | Body: `{email, password}` → JWT              |
-| POST   | `/api/auth/logout`          | auth   | Invalidér token (client-side primært)        |
-| POST   | `/api/auth/invite`          | admin  | Opret invitationslink til ny bruger          |
-| POST   | `/api/auth/accept-invite`   | —      | Acceptér invitation, sæt password            |
-| POST   | `/api/auth/reset-password`  | auth   | Skift password (kræver gammelt password)     |
-| GET    | `/api/auth/me`              | auth   | Returnér aktuel bruger + hold                |
+| Method | Path                        | Rolle        | Beskrivelse                                                        |
+|--------|-----------------------------|--------------|---------------------------------------------------------------------|
+| POST   | `/api/auth/login`           | —            | Body: `{email, password}` → JWT + teams med hold-roller            |
+| POST   | `/api/auth/logout`          | auth         | Invalidér token (client-side primært)                              |
+| POST   | `/api/auth/invite`          | team_manager | Opret invite. team_manager angiver `team_id`, maks rolle: trainer  |
+| POST   | `/api/auth/accept-invite`   | —            | Acceptér invitation, sæt password                                  |
+| POST   | `/api/auth/reset-password`  | auth         | Skift password (kræver gammelt password)                           |
+| GET    | `/api/auth/me`              | auth         | Returnér aktuel bruger + hold med hold-roller                      |
 
 ### Teams (`/api/teams`)
 | Method | Path              | Rolle       | Beskrivelse           |
@@ -314,14 +338,15 @@ CREATE TABLE templates (
 | DELETE | `/api/teams/:id`  | admin       | Slet hold             |
 
 ### Users (`/api/users`)
-| Method | Path                        | Rolle       | Beskrivelse                        |
-|--------|-----------------------------|-------------|------------------------------------|
-| GET    | `/api/users`                | admin       | List alle brugere                  |
-| GET    | `/api/users/:id`            | auth        | Hent bruger (kun sig selv eller admin) |
-| PATCH  | `/api/users/:id`            | admin       | Opdater rolle, holdtildeling       |
-| DELETE | `/api/users/:id`            | admin       | Slet bruger                        |
-| POST   | `/api/users/:id/teams`      | team_manager| Tilføj bruger til hold             |
-| DELETE | `/api/users/:id/teams/:tid` | team_manager| Fjern bruger fra hold              |
+| Method | Path                          | Rolle        | Beskrivelse                                                     |
+|--------|-------------------------------|--------------|------------------------------------------------------------------|
+| GET    | `/api/users`                  | team_manager | Admin: alle brugere. team_manager: `?team_id=X` påkrævet       |
+| GET    | `/api/users/:id`              | auth         | Hent bruger (kun sig selv eller admin)                          |
+| PATCH  | `/api/users/:id`              | admin        | Opdater global rolle, navn                                      |
+| DELETE | `/api/users/:id`              | admin        | Slet bruger                                                     |
+| POST   | `/api/users/:id/teams`        | team_manager | Tilføj bruger til hold med rolle                                |
+| PATCH  | `/api/users/:id/teams/:tid`   | admin        | Opdater brugerens rolle på et hold                              |
+| DELETE | `/api/users/:id/teams/:tid`   | team_manager | Fjern bruger fra hold                                           |
 
 ### Trainings (`/api/trainings`)
 | Method | Path                    | Rolle   | Beskrivelse                             |
@@ -535,12 +560,14 @@ Anthropic API-nøgle: `wrangler secret put ANTHROPIC_API_KEY`
 - Redigerbart for `team_manager`+
 
 ### `Catalog.tsx` (`/katalog`)
-- Haltræning + Fysisk (subtabs)
+- Tabs: Hal · Keeper · Fysisk
+- Keeper-øvelser gemmes som `catalog='hal'` med tag `keeper` — Keeper-tab filtrerer på dette tag
 - Søgning, tag-filter, **aldersgruppe-filter** (U9/U11/U13/U15/U17/U19)
 - Stjerne-filter
 - Øvelseskort med billede (R2), beskrivelse, tags, aldersgrupper, defaultMins
 - CSV import/export (kun CSV — ingen Excel-afhængigheder)
 - Upload billede til R2
+- Opret-editor: vælg Hal/Keeper/Fysisk → keeper sætter automatisk `catalog='hal'` + `tags=['keeper',…]`
 
 ### `Board.tsx` (`/tavle`)
 - Opslagstavle for `currentTeamId`
@@ -554,11 +581,17 @@ Anthropic API-nøgle: `wrangler secret put ANTHROPIC_API_KEY`
 - Skift password
 - Seneste login
 
+### `Brugere.tsx` (`/brugere`)
+Kun `team_manager+`. Viser brugere for det aktive hold.
+- Invitér ny bruger til holdet (genererer link, maks rolle: trainer)
+- Rediger hold-rolle (guest/træner/årgangsansvarlig)
+- Fjern bruger fra hold
+- Nulstil adgangskode
+
 ### `Admin.tsx` (`/admin`)
-Kun `admin`. Tabs:
-- **Brugere**: liste, opret (via invitation), rediger rolle/hold, slet
-- **Hold**: opret hold (navn, aldersgruppe, sæson), slet hold
-- **Indstillinger**: Holdsport Worker-URL/token, AI Worker-URL
+Kun `admin`. Viser alle hold med CRUD.
+- Opret hold (navn, aldersgruppe, sæson)
+- Slet hold (sletter også tilknyttede træninger og data)
 
 ---
 

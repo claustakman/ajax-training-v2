@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth, hasRole } from '../lib/auth';
+import { useAuth, hasRole, ROLE_LABELS } from '../lib/auth';
+import type { Team } from '../lib/auth';
 
 const NAV_ITEMS = [
   { to: '/',          label: 'Træning',  icon: '📋' },
@@ -9,11 +10,19 @@ const NAV_ITEMS = [
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { user, logout, currentTeamId, setCurrentTeam } = useAuth();
+  const { user, logout, currentTeamId, setCurrentTeam, currentTeamRole } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [teamPickerOpen, setTeamPickerOpen] = useState(false);
 
   const currentTeam = user?.teams.find(t => t.id === currentTeamId);
+  const multipleTeams = (user?.teams.length ?? 0) > 1;
+
+  function handleTeamSwitch(team: Team) {
+    setCurrentTeam(team.id);
+    setTeamPickerOpen(false);
+    setMenuOpen(false);
+  }
 
   function handleLogout() {
     logout();
@@ -55,11 +64,58 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Hold-navn (desktop) */}
+        {/* Hold-viser / switcher (desktop) */}
         {currentTeam && (
-          <span style={{ fontSize: 13, color: 'var(--text2)', marginRight: 8 }}>
-            {currentTeam.name}
-          </span>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => multipleTeams ? setTeamPickerOpen(o => !o) : undefined}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 8,
+                background: 'var(--accent-light)',
+                color: 'var(--accent)',
+                fontSize: 13, fontWeight: 600,
+                cursor: multipleTeams ? 'pointer' : 'default',
+              }}
+              aria-label={multipleTeams ? 'Skift hold' : undefined}
+            >
+              {currentTeam.name}
+              {multipleTeams && <span style={{ fontSize: 10, opacity: 0.7 }}>▼</span>}
+            </button>
+
+            {/* Hold-picker dropdown */}
+            {teamPickerOpen && multipleTeams && (
+              <>
+                <div onClick={() => setTeamPickerOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 150 }} />
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 200,
+                  background: 'var(--bg-card)', borderRadius: 12,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)', minWidth: 220, overflow: 'hidden',
+                }}>
+                  <div style={{ padding: '8px 16px 4px', fontSize: 11, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Skift hold
+                  </div>
+                  {user!.teams.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleTeamSwitch(t)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        width: '100%', textAlign: 'left',
+                        padding: '10px 16px',
+                        background: t.id === currentTeamId ? 'var(--accent-light)' : 'none',
+                        color: t.id === currentTeamId ? 'var(--accent)' : 'var(--text)',
+                        fontSize: 14,
+                      }}
+                    >
+                      <span>{t.name}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text3)' }}>{ROLE_LABELS[t.role] ?? t.role}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {/* Hamburger */}
@@ -89,26 +145,32 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           }}>
             <MenuItem to="/tavle" onClick={() => setMenuOpen(false)}>Tavle</MenuItem>
             <MenuItem to="/profil" onClick={() => setMenuOpen(false)}>Profil</MenuItem>
-            {hasRole(user, 'admin') && (
+            {hasRole(user, 'team_manager', currentTeamRole) && (
+              <MenuItem to="/brugere" onClick={() => setMenuOpen(false)}>Brugere</MenuItem>
+            )}
+            {hasRole(user, 'admin', currentTeamRole) && (
               <MenuItem to="/admin" onClick={() => setMenuOpen(false)}>Admin</MenuItem>
             )}
-            {user && user.teams.length > 1 && (
+            {/* Hold-switcher i hamburger-menu (mobil) */}
+            {multipleTeams && (
               <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0' }}>
                 <div style={{ padding: '4px 16px', fontSize: 12, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase' }}>
                   Skift hold
                 </div>
-                {user.teams.map(t => (
+                {user!.teams.map(t => (
                   <button
                     key={t.id}
-                    onClick={() => { setCurrentTeam(t.id); setMenuOpen(false); }}
+                    onClick={() => handleTeamSwitch(t)}
                     style={{
-                      display: 'block', width: '100%', textAlign: 'left',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      width: '100%', textAlign: 'left',
                       padding: '10px 16px', background: t.id === currentTeamId ? 'var(--accent-light)' : 'none',
                       color: t.id === currentTeamId ? 'var(--accent)' : 'var(--text)',
                       fontSize: 14,
                     }}
                   >
-                    {t.name}
+                    <span>{t.name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>{ROLE_LABELS[t.role] ?? t.role}</span>
                   </button>
                 ))}
               </div>

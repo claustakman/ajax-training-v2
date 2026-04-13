@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS user_teams (
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   team_id    TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  role       TEXT NOT NULL DEFAULT 'trainer',   -- guest | trainer | team_manager (admin er global)
   PRIMARY KEY (user_id, team_id)
 );
 

@@ -61,8 +61,8 @@ async function resizeImage(file: File): Promise<Blob> {
 // ─── Hoved-komponent ────────────────────────────────────────────────────────
 
 export default function Catalog() {
-  const { user } = useAuth();
-  const canEdit = hasRole(user, 'trainer');
+  const { user, currentTeamRole } = useAuth();
+  const canEdit = hasRole(user, 'trainer', currentTeamRole);
 
   const [tab, setTab] = useState<'hal' | 'fys' | 'keeper'>('hal');
   const [search, setSearch] = useState('');
@@ -408,16 +408,34 @@ function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
         {error && <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 8, padding: '10px 12px', color: 'var(--red)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Katalog */}
+          {/* Katalog / type */}
           <div>
             <Label>Katalog</Label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {(['hal', 'fys'] as const).map(c => (
-                <button key={c} onClick={() => set('catalog', c)}
-                  style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, background: form.catalog === c ? 'var(--accent)' : 'var(--bg-input)', color: form.catalog === c ? '#fff' : 'var(--text2)', border: 'none' }}>
-                  {c === 'hal' ? '🤾 Hal' : '💪 Fysisk'}
-                </button>
-              ))}
+              {([
+                ['hal', '🤾 Hal'],
+                ['keeper', '🧤 Keeper'],
+                ['fys', '💪 Fysisk'],
+              ] as const).map(([c, label]) => {
+                // "keeper" er ikke et egentligt katalog — det er hal + keeper-tag
+                const isActive = c === 'keeper'
+                  ? form.catalog === 'hal' && form.tags.includes('keeper')
+                  : form.catalog === c && !form.tags.includes('keeper');
+                function handleClick() {
+                  if (c === 'keeper') {
+                    set('catalog', 'hal');
+                    setForm(f => ({ ...f, catalog: 'hal', tags: f.tags.includes('keeper') ? f.tags : ['keeper', ...f.tags] }));
+                  } else {
+                    setForm(f => ({ ...f, catalog: c, tags: f.tags.filter(t => t !== 'keeper') }));
+                  }
+                }
+                return (
+                  <button key={c} onClick={handleClick}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, background: isActive ? 'var(--accent)' : 'var(--bg-input)', color: isActive ? '#fff' : 'var(--text2)', border: 'none' }}>
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

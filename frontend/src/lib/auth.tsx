@@ -6,13 +6,14 @@ export interface Team {
   name: string;
   age_group: string;
   season: string;
+  role: 'guest' | 'trainer' | 'team_manager';  // hold-specifik rolle
 }
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: 'guest' | 'trainer' | 'team_manager' | 'admin';
+  role: 'guest' | 'trainer' | 'team_manager' | 'admin';  // global rolle (kun 'admin' er meningsfuld)
   teams: Team[];
   last_seen?: string | null;
 }
@@ -29,6 +30,8 @@ interface AuthContextValue extends AuthState {
   logout: () => void;
   setCurrentTeam: (teamId: string) => void;
   refreshUser: () => Promise<void>;
+  /** Rollen for det aktive hold. Admin returnerer 'admin'. */
+  currentTeamRole: 'guest' | 'trainer' | 'team_manager' | 'admin' | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -82,8 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(s => ({ ...s, user: freshUser }));
   }, [state.token]);
 
+  // Udled aktiv hold-rolle
+  const currentTeamRole = (() => {
+    if (!state.user) return null;
+    if (state.user.role === 'admin') return 'admin';
+    if (!state.currentTeamId) return null;
+    const team = state.user.teams.find(t => t.id === state.currentTeamId);
+    return team?.role ?? null;
+  })();
+
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithToken, logout, setCurrentTeam, refreshUser }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithToken, logout, setCurrentTeam, refreshUser, currentTeamRole }}>
       {children}
     </AuthContext.Provider>
   );
@@ -99,9 +111,16 @@ const ROLE_LEVEL: Record<string, number> = {
   guest: 1, trainer: 2, team_manager: 3, admin: 4,
 };
 
-export function hasRole(user: AuthUser | null, minRole: string): boolean {
+/**
+ * Tjek om brugeren har mindst `minRole` i den givne kontekst.
+ * Brug `effectiveRole` (currentTeamRole) fremfor user.role for hold-scoped checks.
+ * Admin er global og slår altid igennem.
+ */
+export function hasRole(user: AuthUser | null, minRole: string, effectiveRole?: string | null): boolean {
   if (!user) return false;
-  return (ROLE_LEVEL[user.role] ?? 0) >= (ROLE_LEVEL[minRole] ?? 0);
+  if (user.role === 'admin') return true;
+  const role = effectiveRole ?? user.role;
+  return (ROLE_LEVEL[role] ?? 0) >= (ROLE_LEVEL[minRole] ?? 0);
 }
 
 export const ROLE_LABELS: Record<string, string> = {

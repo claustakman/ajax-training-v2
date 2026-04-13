@@ -28,9 +28,9 @@ authRoutes.post('/login', async (c) => {
   await c.env.DB.prepare('UPDATE users SET last_seen = ? WHERE id = ?')
     .bind(new Date().toISOString(), user.id as string).run();
 
-  // Hent holdtildelinger
+  // Hent holdtildelinger med hold-specifik rolle
   const teams = await c.env.DB.prepare(
-    'SELECT t.id, t.name, t.age_group, t.season FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
+    'SELECT t.id, t.name, t.age_group, t.season, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
   ).bind(user.id as string).all();
 
   return c.json({
@@ -39,8 +39,10 @@ authRoutes.post('/login', async (c) => {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role,
-      teams: teams.results,
+      role: user.role,   // global rolle — kun 'admin' er meningsfuld her
+      teams: teams.results.map((t: Record<string, unknown>) => ({
+        id: t.id, name: t.name, age_group: t.age_group, season: t.season, role: t.team_role,
+      })),
     },
   });
 });
@@ -53,16 +55,35 @@ authRoutes.get('/me', requireAuth(), async (c) => {
   if (!user) return c.json({ error: 'Ikke fundet' }, 404);
 
   const teams = await c.env.DB.prepare(
-    'SELECT t.id, t.name, t.age_group, t.season FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
+    'SELECT t.id, t.name, t.age_group, t.season, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
   ).bind(sub).all();
 
-  return c.json({ ...user, teams: teams.results });
+  return c.json({
+    ...user,
+    teams: teams.results.map((t: Record<string, unknown>) => ({
+      id: t.id, name: t.name, age_group: t.age_group, season: t.season, role: t.team_role,
+    })),
+  });
 });
 
-// POST /api/auth/invite — admin opretter invite-token og returnerer link
-authRoutes.post('/invite', requireAuth('admin'), async (c) => {
-  const { email, name, role = 'trainer' } = await c.req.json<{ email: string; name: string; role?: string }>();
+// POST /api/auth/invite — admin eller team_manager opretter invite-token
+// team_manager skal angive team_id og kan kun invitere til eget hold (maks rolle: trainer)
+authRoutes.post('/invite', requireAuth('team_manager'), async (c) => {
+  const { sub, role: callerRole } = c.get('user');
+  const body = await c.req.json<{ email: string; name: string; role?: string; team_id?: string }>();
+  const { email, name, team_id } = body;
+  let { role = 'trainer' } = body;
   if (!email || !name) return c.json({ error: 'email og name påkrævet' }, 400);
+
+  if (callerRole !== 'admin') {
+    // team_manager: skal angive team_id, skal være team_manager på holdet, og kan maks tildele trainer
+    if (!team_id) return c.json({ error: 'team_id påkrævet' }, 400);
+    const membership = await c.env.DB.prepare(
+      'SELECT role FROM user_teams WHERE user_id = ? AND team_id = ?'
+    ).bind(sub, team_id).first<{ role: string }>();
+    if (!membership || membership.role !== 'team_manager') return c.json({ error: 'Forbidden' }, 403);
+    if (role === 'admin' || role === 'team_manager') role = 'trainer'; // cap
+  }
 
   const existing = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?')
     .bind(email.toLowerCase().trim()).first();
@@ -75,7 +96,13 @@ authRoutes.post('/invite', requireAuth('admin'), async (c) => {
 
   await c.env.DB.prepare(
     'INSERT INTO users (id, name, email, password_hash, role, invite_token, invite_expires) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).bind(id, name, email.toLowerCase().trim(), placeholderHash, role, inviteToken, inviteExpires).run();
+  ).bind(id, name, email.toLowerCase().trim(), placeholderHash, 'guest', inviteToken, inviteExpires).run();
+
+  // Tilknyt til hold med den ønskede hold-rolle
+  if (team_id) {
+    await c.env.DB.prepare('INSERT OR IGNORE INTO user_teams (user_id, team_id, role) VALUES (?, ?, ?)')
+      .bind(id, team_id, role).run();
+  }
 
   return c.json({ ok: true, invite_token: inviteToken, user_id: id });
 });
@@ -101,12 +128,17 @@ authRoutes.post('/accept-invite', async (c) => {
   );
 
   const teams = await c.env.DB.prepare(
-    'SELECT t.id, t.name, t.age_group, t.season FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
+    'SELECT t.id, t.name, t.age_group, t.season, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
   ).bind(user.id as string).all();
 
   return c.json({
     token: jwt,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, teams: teams.results },
+    user: {
+      id: user.id, name: user.name, email: user.email, role: user.role,
+      teams: teams.results.map((t: Record<string, unknown>) => ({
+        id: t.id, name: t.name, age_group: t.age_group, season: t.season, role: t.team_role,
+      })),
+    },
   });
 });
 

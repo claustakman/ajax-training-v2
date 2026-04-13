@@ -9,6 +9,7 @@ import Catalog from './pages/Catalog';
 import Board from './pages/Board';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import Brugere from './pages/Brugere';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -35,6 +36,7 @@ export default function App() {
                   <Route path="/katalog" element={<Catalog />} />
                   <Route path="/tavle" element={<Board />} />
                   <Route path="/profil" element={<Profile />} />
+                  <Route path="/brugere" element={<Brugere />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
