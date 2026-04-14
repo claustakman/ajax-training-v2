@@ -2,9 +2,8 @@
 
 App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold, rollebaseret adgang, AI-forslag.
 
-**Live URL:** https://ajax-traening.pages.dev *(sættes op ved første deploy)*
+**Live URL:** https://ajax-traening.pages.dev
 **GitHub:** https://github.com/claustakman/ajax-traening
-**v1 (legacy):** https://claustakman.github.io/Ajax-training/
 
 ---
 
@@ -14,8 +13,8 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 |-----------|----------------------------------|------------------------------------|
 | Frontend  | React + Vite → Cloudflare Pages  | Samme som forzachang               |
 | API       | Cloudflare Workers (TypeScript)  | REST, JWT-auth                     |
-| Database  | Cloudflare D1 (SQLite)           | Erstatter KV fra v1                |
-| Storage   | Cloudflare R2                    | Øvelsesbilleder (var base64 i v1)  |
+| Database  | Cloudflare D1 (SQLite)           | Relationsmodel, versionstyrede migrationer |
+| Storage   | Cloudflare R2                    | Øvelsesbilleder                    |
 | Email     | Resend                           | Invitationsmail (fase 2+)          |
 | CI/CD     | GitHub Actions                   | Auto-deploy + DB-migration ved push|
 
@@ -43,7 +42,7 @@ ajax-traening/
 │   │       ├── quarters.ts     # CRUD årshjul (team-scoped)
 │   │       ├── section_types.ts # CRUD sektionstyper (global eller team-scoped)
 │   │       ├── board.ts        # Opslagstavle: opslag, kommentarer (team-scoped)
-│   │       ├── holdsport.ts    # Proxy til Holdsport API (bevaret fra v1)
+│   │       ├── holdsport.ts    # Proxy til Holdsport API
 │   │       └── ai.ts           # Proxy til Anthropic API for AI-træningsforslag
 │   └── wrangler.toml
 ├── frontend/
@@ -67,8 +66,6 @@ ajax-traening/
 │   │       └── Admin.tsx       # Brugere, hold, indstillinger (under hamburger, kun admin)
 │   ├── vite.config.ts
 │   └── tailwind.config.ts      # Bruges IKKE — CSS-variabler og custom CSS i stedet
-├── scripts/
-│   └── migrate_from_kv.ts      # Engangs-script: henter v1 KV-data → indsætter i D1
 ├── CLAUDE.md
 └── .github/workflows/
     ├── deploy.yml              # Push til main → build frontend + deploy worker + run migrations
@@ -384,7 +381,7 @@ CREATE TABLE templates (
 | GET    | `/api/board/:id/comments`     | auth    | List kommentarer til opslag          |
 | POST   | `/api/board/:id/comments`     | auth    | Tilføj kommentar                     |
 
-### Holdsport (`/api/holdsport`) — bevaret fra v1
+### Holdsport (`/api/holdsport`)
 | Method | Path                    | Rolle   | Beskrivelse                            |
 |--------|-------------------------|---------|----------------------------------------|
 | GET    | `/api/holdsport/activities` | trainer | Proxy til Holdsport API med dato-range |
@@ -417,7 +414,7 @@ CREATE TABLE templates (
 
 ---
 
-## AI-forslag (vigtig logik — bevaret og forbedret fra v1)
+## AI-forslag
 
 ### Hele træningen (`runAISuggest`)
 1. Temaer hentes **kun** fra `training.themes` (aktivt valgte på træningen)
@@ -453,43 +450,11 @@ fysisk       → tags: [styrke, plyometrik]   → farve: #f59e0b   required: tru
 
 ---
 
-## Migration fra v1 (KV → D1)
-
-Script: `scripts/migrate_from_kv.ts`
-
-Scriptet køres én gang manuelt med `npx tsx scripts/migrate_from_kv.ts`.
-
-### Hvad migreres
-| KV-nøgle       | Destination                                      |
-|----------------|--------------------------------------------------|
-| `hal`          | `exercises` (catalog='hal')                      |
-| `fys`          | `exercises` (catalog='fys')                      |
-| `trainings`    | `trainings` (alle → team_id = default hold)      |
-| `quarters`     | `quarters` (alle → team_id = default hold)       |
-| `users`        | `users` (PIN-felt ignoreres, password sættes til resettoken) |
-| `templates`    | `templates`                                      |
-| `sectionTypes` | `section_types`                                  |
-
-### Øvelsesbilleder
-Øvelser med `image` (base64) i KV → uploades til R2, `image_r2_key` og `image_url` sættes.
-Scriptet logger alle øvelser med billeder og bekræfter upload.
-
-### Migrationsrækkefølge
-1. Opret default hold: `{ name: "Ajax U11 2025/2026", age_group: "U11", season: "2025/2026" }`
-2. Migrer øvelser (hal + fys) — bevar eksisterende IDs
-3. Migrer træninger → sæt `team_id` til default hold
-4. Migrer årshjul → sæt `team_id` til default hold
-5. Migrer brugere — PIN fjernes, invite-token sættes til UUID (reset ved første login)
-6. Migrer templates
-7. Migrer sectionTypes
-
----
-
 ## Holdsport-integration
 
 Worker: `routes/holdsport.ts` — proxy til Holdsport API.
 
-Bevaret uændret fra v1. Vigtigt: Worker-URL og token gemmes i `localStorage` og sendes som headers til proxy.
+Worker-URL og token gemmes i `localStorage` og sendes som headers til proxy.
 
 Funktionalitet:
 - Hent aktiviteter fra dato-range
@@ -548,7 +513,7 @@ Anthropic API-nøgle: `wrangler secret put ANTHROPIC_API_KEY`
 
 ### `Trainings.tsx` (`/`)
 - Liste over kommende træninger for `currentTeamId` (ikke arkiverede)
-- Kalender-datovisning (identisk stil som v1: dato-boks med dag/måned/ugedag)
+- Kalender-datovisning (dato-boks med dag/måned/ugedag)
 - Klik → åbn træning i editor
 - Editor: Oplysninger (dato, tid, sted, trænere, temaer) + Sektioner
 - AI-forslag: hele træning + per sektion
@@ -565,7 +530,6 @@ Anthropic API-nøgle: `wrangler secret put ANTHROPIC_API_KEY`
 - Søgning, tag-filter, **aldersgruppe-filter** (U9/U11/U13/U15/U17/U19)
 - Stjerne-filter
 - Øvelseskort med billede (R2), beskrivelse, tags, aldersgrupper, defaultMins
-- CSV import/export (kun CSV — ingen Excel-afhængigheder)
 - Upload billede til R2
 - Opret-editor: vælg Hal/Keeper/Fysisk → keeper sætter automatisk `catalog='hal'` + `tags=['keeper',…]`
 
@@ -677,31 +641,3 @@ Push til `main` → GitHub Actions:
 2. `npm run build` i `frontend/`
 3. Deploy til Cloudflare Pages
 
----
-
-## Hvad der er fjernet fra v1
-
-| Fjernet              | Erstattet af                               |
-|----------------------|--------------------------------------------|
-| Cloudflare KV        | D1 SQLite                                  |
-| Single-file HTML/JS  | React + Vite komponentstruktur             |
-| PIN-login + lås/ulåst| JWT + email/password                       |
-| Excel/XLSX import    | CSV import kun                             |
-| XLSX CDN-bibliotek   | Ingen ekstern dependency til tabeller      |
-| base64-billeder i KV | R2-storage med public URL                  |
-| Inline `innerHTML` render | React komponenter                     |
-| `bind()` efter render | React event handlers                      |
-
----
-
-## Hvad der er bevaret fra v1
-
-- Al AI-logik (position-baseret sektionstype-matching)
-- Holdsport-integration (Worker-proxy)
-- Øvelseskatalog med alle eksisterende øvelser (migreret)
-- Sektionstyper med tag-mapping
-- Parallelle grupper i sektioner
-- Årshjul-struktur (kvartaler med temaer)
-- Skabeloner
-- Ajax rød som accent-farve (`#C8102E`)
-- Barlow Condensed + DM Sans typografi

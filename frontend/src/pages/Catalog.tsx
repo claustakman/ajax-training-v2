@@ -1,5 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
-import { EXERCISES } from '../lib/exerciseData';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 
@@ -71,13 +70,19 @@ export default function Catalog() {
   const [starsOnly, setStarsOnly] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  // Lokal state — starter med CSV-data, muteres ved CRUD
-  const [exercises, setExercises] = useState<Exercise[]>(
-    () => (EXERCISES as unknown as Exercise[])
-  );
+  const [exercises, setExercises] = useState<Exercise[]>([]);
 
   const [editingEx, setEditingEx] = useState<Exercise | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    api.get<Exercise[]>('/api/exercises')
+      .then(data => setExercises(data))
+      .catch(() => {/* behold tom liste ved fejl */})
+      .finally(() => setLoading(false));
+  }, []);
 
   const tags = tab === 'hal' ? HAL_TAGS : tab === 'fys' ? FYS_TAGS : KEEPER_TAGS;
 
@@ -194,7 +199,12 @@ export default function Catalog() {
 
       {/* Liste */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.length === 0 && (
+        {loading && (
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 32, textAlign: 'center', color: 'var(--text3)' }}>
+            Henter øvelser…
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
           <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 32, textAlign: 'center', color: 'var(--text3)' }}>
             Ingen øvelser matcher søgningen
           </div>
