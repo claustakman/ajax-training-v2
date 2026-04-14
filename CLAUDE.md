@@ -263,15 +263,25 @@ CREATE TABLE quarters (
 ### `section_types`
 ```sql
 CREATE TABLE section_types (
-  id       TEXT PRIMARY KEY,
-  label    TEXT NOT NULL,
-  color    TEXT NOT NULL,
-  cls      TEXT NOT NULL,
-  tags     TEXT NOT NULL DEFAULT '[]',   -- JSON array
-  required INTEGER DEFAULT 0,
-  sort_order INTEGER DEFAULT 0
+  rowid      INTEGER PRIMARY KEY AUTOINCREMENT,
+  id         TEXT NOT NULL,
+  label      TEXT NOT NULL,
+  color      TEXT NOT NULL,
+  cls        TEXT NOT NULL,
+  tags       TEXT NOT NULL DEFAULT '[]',    -- JSON array
+  themes     TEXT NOT NULL DEFAULT '[]',    -- JSON array — holdspecifikt
+  required   INTEGER DEFAULT 0,
+  sort_order INTEGER DEFAULT 0,
+  team_id    TEXT REFERENCES teams(id) ON DELETE CASCADE  -- NULL = global default
 );
+-- UNIQUE INDEX: section_types_id_team ON (id, COALESCE(team_id, ''))
 ```
+
+**Regler:**
+- Globale defaults har `team_id = NULL` — redigeres aldrig af brugere
+- Når et hold oprettes, kopieres globale defaults til holdet (med `themes = '[]'`)
+- Hold redigerer kun egne rækker (`team_id = holdets id`)
+- Temaer er holdspecifikke og sættes ikke ved kopiering
 
 ### `board_posts` (opslagstavle)
 ```sql
@@ -435,18 +445,20 @@ AI returnerer konsekvent `"type": "fysisk"` uanset instruktion. Løsningen er at
 
 ## Sektionstyper (defaults)
 
-Disse er seed-data i `database/schema.sql`:
+Globale defaults i `database/schema.sql` (team_id = NULL). Kopieres til hvert hold ved oprettelse (temaer = []).
 
 ```
-opvarmning   → tags: [opvarmning]           → farve: #22c55e
+opvarmning   → tags: [opvarmning]            → farve: #22c55e
 afleveringer → tags: [afleveringer, teknik]  → farve: #3b82f6
 kontra       → tags: [kontra, spil]          → farve: #C8102E
-teknik       → tags: [teknik]               → farve: #8b5cf6
-spil         → tags: [spil]                 → farve: #06b6d4
-keeper       → tags: [keeper]               → farve: #ec4899
-forsvar      → tags: [forsvar]              → farve: #f97316
-fysisk       → tags: [styrke, plyometrik]   → farve: #f59e0b   required: true
+teknik       → tags: [teknik]                → farve: #8b5cf6
+spil         → tags: [spil]                  → farve: #06b6d4
+keeper       → tags: [keeper]                → farve: #ec4899
+forsvar      → tags: [forsvar]               → farve: #f97316
+fysisk       → tags: [styrke, plyometrik]    → farve: #f59e0b   required: true
 ```
+
+Temaer er holdspecifikke og sættes i Holdindstillinger (ikke i globale defaults).
 
 ---
 

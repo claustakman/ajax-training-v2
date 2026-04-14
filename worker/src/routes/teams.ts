@@ -7,6 +7,23 @@ type HonoEnv = { Bindings: Env } & AuthContext;
 
 export const teamRoutes = new Hono<HonoEnv>();
 
+// Kopier globale sektionstyper til et nyt hold (uden temaer)
+async function copyGlobalSectionTypesToTeam(db: D1Database, teamId: string) {
+  const globals = await db.prepare(
+    'SELECT * FROM section_types WHERE team_id IS NULL ORDER BY sort_order'
+  ).all<Record<string, unknown>>();
+
+  for (const st of globals.results) {
+    await db.prepare(`
+      INSERT OR IGNORE INTO section_types (id, label, color, cls, tags, themes, required, sort_order, team_id)
+      VALUES (?, ?, ?, ?, ?, '[]', ?, ?, ?)
+    `).bind(
+      st.id, st.label, st.color, st.cls ?? st.id,
+      st.tags, st.required ?? 0, st.sort_order ?? 99, teamId
+    ).run();
+  }
+}
+
 // GET /api/teams
 teamRoutes.get('/', requireAuth(), async (c) => {
   const { sub, role } = c.get('user');
@@ -28,6 +45,10 @@ teamRoutes.post('/', requireAuth('admin'), async (c) => {
   const id = newId();
   await c.env.DB.prepare('INSERT INTO teams (id, name, age_group, season) VALUES (?, ?, ?, ?)')
     .bind(id, name, age_group, season).run();
+
+  // Kopiér globale sektionstyper til det nye hold (temaer sættes ikke)
+  await copyGlobalSectionTypesToTeam(c.env.DB, id);
+
   return c.json({ id, name, age_group, season }, 201);
 });
 
