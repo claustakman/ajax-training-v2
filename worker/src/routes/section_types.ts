@@ -14,29 +14,20 @@ function parse(r: Record<string, unknown>) {
 }
 
 // GET /api/section-types?team_id=X
-// Returns merged list: team overrides + global defaults for types without team override.
 sectionTypeRoutes.get('/', requireAuth(), async (c) => {
   const teamId = c.req.query('team_id');
 
   if (teamId) {
-    // Fetch both team-specific and global rows
-    const [teamRows, globalRows] = await Promise.all([
-      c.env.DB.prepare('SELECT * FROM section_types WHERE team_id = ? ORDER BY sort_order').bind(teamId).all(),
-      c.env.DB.prepare('SELECT * FROM section_types WHERE team_id IS NULL ORDER BY sort_order').all(),
-    ]);
+    const teamRows = await c.env.DB.prepare(
+      'SELECT * FROM section_types WHERE team_id = ? ORDER BY sort_order'
+    ).bind(teamId).all();
 
-    const teamResults = teamRows.results.map(r => parse(r as Record<string, unknown>));
-    const globalResults = globalRows.results.map(r => parse(r as Record<string, unknown>));
-
-    if (teamResults.length > 0) {
-      // Team has its own rows — use them, no fallback needed
-      return c.json(teamResults);
+    if (teamRows.results.length > 0) {
+      return c.json(teamRows.results.map(r => parse(r as Record<string, unknown>)));
     }
-
-    // No team rows yet — return globals
-    return c.json(globalResults);
   }
 
+  // No team rows (or no team_id) — return globals
   const rows = await c.env.DB.prepare(
     'SELECT * FROM section_types WHERE team_id IS NULL ORDER BY sort_order'
   ).all();
@@ -55,7 +46,7 @@ sectionTypeRoutes.post('/', requireAuth('team_manager'), async (c) => {
     .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
     .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   const existing = await c.env.DB.prepare(
-    'SELECT id FROM section_types WHERE id = ? AND team_id = ?'
+    "SELECT id FROM section_types WHERE id = ? AND COALESCE(team_id,'') = ?"
   ).bind(baseId, body.team_id).first();
   const id = existing ? `${baseId}_${newId().slice(0, 6)}` : baseId;
 
@@ -76,8 +67,8 @@ sectionTypeRoutes.post('/', requireAuth('team_manager'), async (c) => {
   return c.json({ id }, 201);
 });
 
-// PATCH /api/section-types/:id?team_id=X — opdater sektionstype (team_manager+)
-// Always upserts a team-specific row (never touches global defaults).
+// PATCH /api/section-types/:id?team_id=X
+// Upserts a team-specific row. Never touches global defaults.
 sectionTypeRoutes.patch('/:id', requireAuth('team_manager'), async (c) => {
   const id = c.req.param('id');
   const teamId = c.req.query('team_id');
@@ -95,43 +86,25 @@ sectionTypeRoutes.patch('/:id', requireAuth('team_manager'), async (c) => {
 
   if (!current) return c.json({ error: 'Sektionstype ikke fundet' }, 404);
 
-  // Merge current with incoming changes
   const merged = { ...current, ...body };
+  const tagsStr = typeof merged.tags === 'string' ? merged.tags : JSON.stringify(merged.tags ?? []);
+  const themesStr = typeof merged.themes === 'string' ? merged.themes : JSON.stringify(merged.themes ?? []);
 
-  // Check if team row already exists
-  const teamRowExists = await c.env.DB.prepare(
-    'SELECT id FROM section_types WHERE id = ? AND team_id = ?'
-  ).bind(id, teamId).first();
-
-  if (teamRowExists) {
-    await c.env.DB.prepare(`
-      UPDATE section_types SET label=?, color=?, tags=?, themes=?, required=?, sort_order=?
-      WHERE id = ? AND team_id = ?
-    `).bind(
-      merged.label,
-      merged.color ?? '#3b82f6',
-      typeof merged.tags === 'string' ? merged.tags : JSON.stringify(merged.tags ?? []),
-      typeof merged.themes === 'string' ? merged.themes : JSON.stringify(merged.themes ?? []),
-      merged.required ? 1 : 0,
-      merged.sort_order ?? 99,
-      id, teamId
-    ).run();
-  } else {
-    await c.env.DB.prepare(`
-      INSERT INTO section_types (id, label, color, cls, tags, themes, required, sort_order, team_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      id,
-      merged.label,
-      merged.color ?? '#3b82f6',
-      id,
-      typeof merged.tags === 'string' ? merged.tags : JSON.stringify(merged.tags ?? []),
-      typeof merged.themes === 'string' ? merged.themes : JSON.stringify(merged.themes ?? []),
-      merged.required ? 1 : 0,
-      merged.sort_order ?? 99,
-      teamId
-    ).run();
-  }
+  // INSERT OR REPLACE uses the UNIQUE index on (id, COALESCE(team_id,''))
+  await c.env.DB.prepare(`
+    INSERT OR REPLACE INTO section_types (id, label, color, cls, tags, themes, required, sort_order, team_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    merged.label,
+    merged.color ?? '#3b82f6',
+    id,
+    tagsStr,
+    themesStr,
+    merged.required ? 1 : 0,
+    merged.sort_order ?? 99,
+    teamId
+  ).run();
 
   return c.json({ ok: true });
 });
@@ -146,13 +119,12 @@ sectionTypeRoutes.delete('/:id', requireAuth('team_manager'), async (c) => {
   return c.json({ ok: true });
 });
 
-// PUT /api/section-types/reorder — reorder sektionstyper for et hold (team_manager+)
+// PUT /api/section-types/reorder (team_manager+)
 sectionTypeRoutes.put('/reorder', requireAuth('team_manager'), async (c) => {
   const { team_id, order } = await c.req.json<{ team_id: string; order: string[] }>();
   if (!team_id || !Array.isArray(order)) return c.json({ error: 'team_id og order påkrævet' }, 400);
   for (let i = 0; i < order.length; i++) {
     const id = order[i];
-    // Fetch current (team or global) to upsert with new sort_order
     const current = await c.env.DB.prepare(
       'SELECT * FROM section_types WHERE id = ? AND team_id = ?'
     ).bind(id, team_id).first<Record<string, unknown>>()
@@ -160,23 +132,15 @@ sectionTypeRoutes.put('/reorder', requireAuth('team_manager'), async (c) => {
         'SELECT * FROM section_types WHERE id = ? AND team_id IS NULL'
       ).bind(id).first<Record<string, unknown>>();
     if (!current) continue;
-    const teamRowExists = await c.env.DB.prepare(
-      'SELECT id FROM section_types WHERE id = ? AND team_id = ?'
-    ).bind(id, team_id).first();
-    if (teamRowExists) {
-      await c.env.DB.prepare(
-        'UPDATE section_types SET sort_order = ? WHERE id = ? AND team_id = ?'
-      ).bind(i + 1, id, team_id).run();
-    } else {
-      await c.env.DB.prepare(`
-        INSERT INTO section_types (id, label, color, cls, tags, themes, required, sort_order, team_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        id, current.label, current.color ?? '#3b82f6', id,
-        current.tags, current.themes,
-        current.required ?? 0, i + 1, team_id
-      ).run();
-    }
+
+    await c.env.DB.prepare(`
+      INSERT OR REPLACE INTO section_types (id, label, color, cls, tags, themes, required, sort_order, team_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      id, current.label, current.color ?? '#3b82f6', id,
+      current.tags, current.themes,
+      current.required ?? 0, i + 1, team_id
+    ).run();
   }
   return c.json({ ok: true });
 });
