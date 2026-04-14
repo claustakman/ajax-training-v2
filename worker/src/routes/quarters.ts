@@ -24,10 +24,11 @@ quarterRoutes.get('/', requireAuth(), async (c) => {
 quarterRoutes.put('/:id', requireAuth('team_manager'), async (c) => {
   const id = c.req.param('id');
   const { team_id, quarter, themes } = await c.req.json<{ team_id: string; quarter: number; themes: string[] }>();
+  const resolvedId = id === 'new' ? newId() : id;
   await c.env.DB.prepare(`
     INSERT INTO quarters (id, team_id, quarter, themes)
     VALUES (?, ?, ?, ?)
     ON CONFLICT(team_id, quarter) DO UPDATE SET themes = excluded.themes
-  `).bind(id === 'new' ? newId() : id, team_id, quarter, JSON.stringify(themes ?? [])).run();
-  return c.json({ ok: true });
+  `).bind(resolvedId, team_id, quarter, JSON.stringify(themes ?? [])).run();
+  return c.json({ ok: true, id: resolvedId });
 });

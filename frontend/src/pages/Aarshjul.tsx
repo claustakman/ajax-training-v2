@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 
@@ -35,8 +35,13 @@ export default function Aarshjul() {
   );
   const [loading, setLoading] = useState(true);
 
-  // debounce refs per quarter
+  // Keep a ref that always reflects the latest quarters state — avoids stale closures in debounce
+  const quartersRef = useRef<QuarterState[]>(quarters);
+  useEffect(() => { quartersRef.current = quarters; }, [quarters]);
+
   const debounceRefs = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const currentTeamIdRef = useRef(currentTeamId);
+  useEffect(() => { currentTeamIdRef.current = currentTeamId; }, [currentTeamId]);
 
   useEffect(() => {
     if (!currentTeamId) return;
@@ -57,50 +62,55 @@ export default function Aarshjul() {
       .finally(() => setLoading(false));
   }, [currentTeamId]);
 
-  const saveQuarter = useCallback(async (q: QuarterState, themes: string[]) => {
-    if (!currentTeamId) return;
-    setQuarters(prev => prev.map(p => p.quarter === q.quarter ? { ...p, saving: true } : p));
+  // Save quarter — always reads latest state from ref so dbId is never stale
+  async function saveQuarter(quarterNum: number, themes: string[]) {
+    const teamId = currentTeamIdRef.current;
+    if (!teamId) return;
+
+    // Read the latest dbId from ref
+    const q = quartersRef.current.find(p => p.quarter === quarterNum);
+    if (!q) return;
+
+    setQuarters(prev => prev.map(p => p.quarter === quarterNum ? { ...p, saving: true } : p));
     try {
-      await api.put(`/api/quarters/${q.dbId ?? 'new'}`, {
-        team_id: currentTeamId,
-        quarter: q.quarter,
-        themes,
-      });
-    } catch {/* ignore */} finally {
-      setQuarters(prev => prev.map(p => p.quarter === q.quarter ? { ...p, saving: false } : p));
+      const result = await api.put<{ ok: boolean; id: string }>(
+        `/api/quarters/${q.dbId ?? 'new'}`,
+        { team_id: teamId, quarter: quarterNum, themes }
+      );
+      // Update dbId so future saves use UPDATE not INSERT
+      setQuarters(prev => prev.map(p =>
+        p.quarter === quarterNum ? { ...p, saving: false, dbId: result.id } : p
+      ));
+    } catch {
+      setQuarters(prev => prev.map(p => p.quarter === quarterNum ? { ...p, saving: false } : p));
     }
-  }, [currentTeamId]);
+  }
 
   function updateThemes(quarterNum: number, themes: string[]) {
-    let currentQ: QuarterState | undefined;
-    setQuarters(prev => {
-      currentQ = prev.find(p => p.quarter === quarterNum);
-      return prev.map(p => p.quarter === quarterNum ? { ...p, themes } : p);
-    });
-    if (!currentQ) return;
-    const qSnap = currentQ;
+    setQuarters(prev => prev.map(p => p.quarter === quarterNum ? { ...p, themes } : p));
+
     const existing = debounceRefs.current.get(quarterNum);
     if (existing) clearTimeout(existing);
     const timer = setTimeout(() => {
-      saveQuarter(qSnap, themes);
+      saveQuarter(quarterNum, themes);
     }, 800);
     debounceRefs.current.set(quarterNum, timer);
   }
 
   function addTheme(quarterNum: number) {
-    const q = quarters.find(p => p.quarter === quarterNum);
+    const q = quartersRef.current.find(p => p.quarter === quarterNum);
     if (!q) return;
     updateThemes(quarterNum, [...q.themes, '']);
   }
 
   function updateTheme(quarterNum: number, idx: number, value: string) {
-    const q = quarters.find(p => p.quarter === quarterNum);
+    const q = quartersRef.current.find(p => p.quarter === quarterNum);
     if (!q) return;
     updateThemes(quarterNum, q.themes.map((t, i) => i === idx ? value : t));
   }
 
   function removeTheme(quarterNum: number, idx: number) {
-    const q = quarters.find(p => p.quarter === quarterNum);
+    const q = quartersRef.current.find(p => p.quarter === quarterNum);
     if (!q) return;
     updateThemes(quarterNum, q.themes.filter((_, i) => i !== idx));
   }
