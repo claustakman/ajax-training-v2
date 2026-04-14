@@ -11,12 +11,12 @@ interface QuarterDB {
 
 // Static quarter config — label/months/color/season are not stored in DB
 const QUARTER_CONFIG = [
-  { quarter: 1, label: 'Q1', months: 'Jan – Mar', color: '#f59e0b', season: 'Forår' },
-  { quarter: 2, label: 'Q2a', months: 'Maj – Jun', color: '#22c55e', season: 'Sæsonstart' },
-  { quarter: 3, label: 'Q3', months: 'Aug – Sep', color: '#3b82f6', season: 'Efterår' },
-  { quarter: 4, label: 'Q4', months: 'Okt – Dec', color: '#8b5cf6', season: 'Vinter' },
-  { quarter: 5, label: 'Q5', months: 'Apr', color: '#ec4899', season: 'Overgangsperiode' },
-  { quarter: 6, label: 'Q2b', months: 'Maj – Jun', color: '#22c55e', season: 'Næste sæsonstart' },
+  { quarter: 1, label: 'Q2', months: 'Maj – Jun', color: '#22c55e', season: 'Sæsonstart' },
+  { quarter: 2, label: 'Q3', months: 'Aug – Sep', color: '#3b82f6', season: 'Efterår' },
+  { quarter: 3, label: 'Q4', months: 'Okt – Dec', color: '#8b5cf6', season: 'Vinter' },
+  { quarter: 4, label: 'Q1', months: 'Jan – Mar', color: '#f59e0b', season: 'Forår' },
+  { quarter: 5, label: 'Overgang', months: 'Apr', color: '#ec4899', season: 'Overgangsperiode' },
+  { quarter: 6, label: 'Q2', months: 'Maj – Jun', color: '#22c55e', season: 'Næste sæsonstart' },
 ];
 
 interface QuarterState {
