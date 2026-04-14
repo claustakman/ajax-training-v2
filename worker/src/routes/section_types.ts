@@ -14,23 +14,29 @@ function parse(r: Record<string, unknown>) {
 }
 
 // GET /api/section-types?team_id=X
-// Returns global defaults merged with team overrides.
-// If team has its own rows, those are returned; otherwise global (team_id=NULL) rows.
+// Returns merged list: team overrides + global defaults for types without team override.
 sectionTypeRoutes.get('/', requireAuth(), async (c) => {
   const teamId = c.req.query('team_id');
 
   if (teamId) {
-    // Team-specific: fetch team rows first, fall back to global if none
-    const teamRows = await c.env.DB.prepare(
-      'SELECT * FROM section_types WHERE team_id = ? ORDER BY sort_order'
-    ).bind(teamId).all();
+    // Fetch both team-specific and global rows
+    const [teamRows, globalRows] = await Promise.all([
+      c.env.DB.prepare('SELECT * FROM section_types WHERE team_id = ? ORDER BY sort_order').bind(teamId).all(),
+      c.env.DB.prepare('SELECT * FROM section_types WHERE team_id IS NULL ORDER BY sort_order').all(),
+    ]);
 
-    if (teamRows.results.length > 0) {
-      return c.json(teamRows.results.map(r => parse(r as Record<string, unknown>)));
+    const teamResults = teamRows.results.map(r => parse(r as Record<string, unknown>));
+    const globalResults = globalRows.results.map(r => parse(r as Record<string, unknown>));
+
+    if (teamResults.length > 0) {
+      // Team has its own rows — use them, no fallback needed
+      return c.json(teamResults);
     }
+
+    // No team rows yet — return globals
+    return c.json(globalResults);
   }
 
-  // Global defaults (no team_id)
   const rows = await c.env.DB.prepare(
     'SELECT * FROM section_types WHERE team_id IS NULL ORDER BY sort_order'
   ).all();
@@ -45,11 +51,9 @@ sectionTypeRoutes.post('/', requireAuth('team_manager'), async (c) => {
   }>();
   if (!body.label || !body.team_id) return c.json({ error: 'label og team_id påkrævet' }, 400);
 
-  // Auto-generate id from label (slugify)
   const baseId = body.label.toLowerCase()
     .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
     .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  // Check uniqueness for this team
   const existing = await c.env.DB.prepare(
     'SELECT id FROM section_types WHERE id = ? AND team_id = ?'
   ).bind(baseId, body.team_id).first();
@@ -61,7 +65,7 @@ sectionTypeRoutes.post('/', requireAuth('team_manager'), async (c) => {
   `).bind(
     id, body.label,
     body.color ?? '#3b82f6',
-    id, // cls = id
+    id,
     JSON.stringify(body.tags ?? []),
     JSON.stringify(body.themes ?? []),
     body.required ? 1 : 0,
@@ -72,12 +76,49 @@ sectionTypeRoutes.post('/', requireAuth('team_manager'), async (c) => {
   return c.json({ id }, 201);
 });
 
-// PATCH /api/section-types/:id — opdater sektionstype (team_manager+)
+// PATCH /api/section-types/:id?team_id=X — opdater sektionstype (team_manager+)
+// If the type is global (team_id=NULL), upsert a team-specific copy instead of modifying global.
 sectionTypeRoutes.patch('/:id', requireAuth('team_manager'), async (c) => {
   const id = c.req.param('id');
   const teamId = c.req.query('team_id');
   const body = await c.req.json<Record<string, unknown>>();
 
+  if (!teamId) return c.json({ error: 'team_id påkrævet' }, 400);
+
+  // Check if a team-specific row already exists
+  const existing = await c.env.DB.prepare(
+    'SELECT id FROM section_types WHERE id = ? AND team_id = ?'
+  ).bind(id, teamId).first();
+
+  if (!existing) {
+    // No team row — fetch the global row and clone it with the edits applied
+    const global = await c.env.DB.prepare(
+      'SELECT * FROM section_types WHERE id = ? AND team_id IS NULL'
+    ).bind(id).first<Record<string, unknown>>();
+
+    if (!global) return c.json({ error: 'Sektionstype ikke fundet' }, 404);
+
+    // Merge global with updates from body
+    const merged = { ...global, ...body };
+    await c.env.DB.prepare(`
+      INSERT INTO section_types (id, label, color, cls, tags, themes, required, sort_order, team_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      id,
+      merged.label,
+      merged.color ?? '#3b82f6',
+      id,
+      typeof merged.tags === 'string' ? merged.tags : JSON.stringify(merged.tags ?? []),
+      typeof merged.themes === 'string' ? merged.themes : JSON.stringify(merged.themes ?? []),
+      merged.required ? 1 : 0,
+      merged.sort_order ?? 99,
+      teamId
+    ).run();
+
+    return c.json({ ok: true });
+  }
+
+  // Team row exists — update it
   const allowed = ['label', 'color', 'tags', 'themes', 'required', 'sort_order'];
   const updates: string[] = [];
   const values: unknown[] = [];
@@ -90,18 +131,11 @@ sectionTypeRoutes.patch('/:id', requireAuth('team_manager'), async (c) => {
     }
   }
   if (updates.length === 0) return c.json({ error: 'Ingen felter' }, 400);
+  values.push(id, teamId);
+  await c.env.DB.prepare(
+    `UPDATE section_types SET ${updates.join(', ')} WHERE id = ? AND team_id = ?`
+  ).bind(...values).run();
 
-  if (teamId) {
-    values.push(id, teamId);
-    await c.env.DB.prepare(
-      `UPDATE section_types SET ${updates.join(', ')} WHERE id = ? AND team_id = ?`
-    ).bind(...values).run();
-  } else {
-    values.push(id);
-    await c.env.DB.prepare(
-      `UPDATE section_types SET ${updates.join(', ')} WHERE id = ? AND team_id IS NULL`
-    ).bind(...values).run();
-  }
   return c.json({ ok: true });
 });
 
@@ -109,18 +143,13 @@ sectionTypeRoutes.patch('/:id', requireAuth('team_manager'), async (c) => {
 sectionTypeRoutes.delete('/:id', requireAuth('team_manager'), async (c) => {
   const id = c.req.param('id');
   const teamId = c.req.query('team_id');
-  if (teamId) {
-    await c.env.DB.prepare('DELETE FROM section_types WHERE id = ? AND team_id = ?')
-      .bind(id, teamId).run();
-  } else {
-    await c.env.DB.prepare('DELETE FROM section_types WHERE id = ? AND team_id IS NULL')
-      .bind(id).run();
-  }
+  if (!teamId) return c.json({ error: 'team_id påkrævet' }, 400);
+  await c.env.DB.prepare('DELETE FROM section_types WHERE id = ? AND team_id = ?')
+    .bind(id, teamId).run();
   return c.json({ ok: true });
 });
 
 // PUT /api/section-types/reorder — reorder sektionstyper for et hold (team_manager+)
-// Body: { team_id: string, order: string[] } (array of ids in new order)
 sectionTypeRoutes.put('/reorder', requireAuth('team_manager'), async (c) => {
   const { team_id, order } = await c.req.json<{ team_id: string; order: string[] }>();
   if (!team_id || !Array.isArray(order)) return c.json({ error: 'team_id og order påkrævet' }, 400);
