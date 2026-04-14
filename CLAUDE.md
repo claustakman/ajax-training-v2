@@ -230,24 +230,31 @@ CREATE TABLE trainings (
 ### `exercises`
 ```sql
 CREATE TABLE exercises (
-  id             TEXT PRIMARY KEY,
-  name           TEXT NOT NULL,
-  description    TEXT,
-  catalog        TEXT NOT NULL DEFAULT 'hal',  -- "hal" | "fys"
-  category       TEXT,
-  tags           TEXT NOT NULL DEFAULT '[]',   -- JSON array
-  age_groups     TEXT NOT NULL DEFAULT '[]',   -- JSON array: ["U9","U11","U13"...]
-  stars          INTEGER DEFAULT 0,
-  variants       TEXT,
-  link           TEXT,
-  default_mins   INTEGER,
-  image_r2_key   TEXT,                         -- R2-nøgle til billede (NULL = intet billede)
-  image_url      TEXT,                         -- Public R2 URL
-  created_by     TEXT REFERENCES users(id),
-  created_at     TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+  id               TEXT PRIMARY KEY,
+  name             TEXT NOT NULL,
+  description      TEXT,
+  catalog          TEXT NOT NULL DEFAULT 'hal',  -- "hal" | "fys"
+  category         TEXT,
+  tags             TEXT NOT NULL DEFAULT '[]',   -- JSON array
+  age_groups       TEXT NOT NULL DEFAULT '[]',   -- JSON array: ["U9","U11","U13"...]
+  stars            INTEGER DEFAULT 0,
+  variants         TEXT,
+  link             TEXT,
+  default_mins     INTEGER,
+  image_r2_key     TEXT,                         -- R2-nøgle til billede (NULL = intet billede)
+  image_url        TEXT,                         -- Public R2 URL
+  created_by       TEXT REFERENCES users(id),
+  created_by_email TEXT,                         -- Email på opretter (denormaliseret for visning)
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
+
+**Adgangskontrol på øvelser:**
+- Kun admin og den bruger der har oprettet øvelsen kan redigere den
+- `created_by_email` vises i detaljevisning (ikke i listen)
+- Eksisterende øvelser (seed) har admin som opretter
+- Sortering: navn A–Å (default), nyeste først, ældste først
 
 ### `quarters` (årshjul)
 ```sql

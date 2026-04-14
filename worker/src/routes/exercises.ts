@@ -53,9 +53,12 @@ exerciseRoutes.post('/', requireAuth('trainer'), async (c) => {
   const id = newId();
   const { sub } = c.get('user');
   const now = new Date().toISOString();
+  // Hent brugerens email til created_by_email
+  const userRow = await c.env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(sub).first<{ email: string }>();
+  const createdByEmail = userRow?.email ?? null;
   await c.env.DB.prepare(`
-    INSERT INTO exercises (id, name, description, catalog, category, tags, age_groups, stars, variants, link, default_mins, created_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO exercises (id, name, description, catalog, category, tags, age_groups, stars, variants, link, default_mins, created_by, created_by_email, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id, body.name, body.description ?? null,
     body.catalog ?? 'hal', body.category ?? null,
@@ -63,7 +66,7 @@ exerciseRoutes.post('/', requireAuth('trainer'), async (c) => {
     JSON.stringify(body.age_groups ?? []),
     body.stars ?? 0,
     body.variants ?? null, body.link ?? null,
-    body.default_mins ?? null, sub, now, now
+    body.default_mins ?? null, sub, createdByEmail, now, now
   ).run();
   return c.json({ id }, 201);
 });

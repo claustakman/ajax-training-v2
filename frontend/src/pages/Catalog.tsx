@@ -16,6 +16,9 @@ export interface Exercise {
   link: string | null;
   default_mins: number | null;
   image_r2_key: string | null;
+  created_by: string | null;
+  created_by_email: string | null;
+  created_at: string | null;
 }
 
 const HAL_TAGS = [
@@ -28,13 +31,14 @@ const KEEPER_TAGS = ['keeper', 'teknik', 'aflevering', 'skud', 'forsvar'];
 const AGE_GROUPS = ['U9', 'U11', 'U13', 'U15', 'U17', 'U19'];
 const ALL_TAGS = [...new Set([...HAL_TAGS, ...FYS_TAGS, ...KEEPER_TAGS])];
 
+type SortOrder = 'newest' | 'oldest' | 'name';
+
 function imageUrl(ex: Exercise) {
   if (!ex.image_r2_key) return null;
   const key = encodeURIComponent(ex.image_r2_key);
   return `${API_URL}/api/exercises/${encodeURIComponent(ex.id)}/image?key=${key}`;
 }
 
-// Resize billede client-side til max 800px JPEG 0.75
 async function resizeImage(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -57,21 +61,28 @@ async function resizeImage(file: File): Promise<Blob> {
   });
 }
 
+function formatDate(iso: string | null) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 // ─── Hoved-komponent ────────────────────────────────────────────────────────
 
 export default function Catalog() {
   const { user, currentTeamRole } = useAuth();
   const canEdit = hasRole(user, 'trainer', currentTeamRole);
+  const isAdmin = user?.role === 'admin';
 
   const [tab, setTab] = useState<'hal' | 'fys' | 'keeper'>('hal');
   const [search, setSearch] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedAge, setSelectedAge] = useState('');
   const [starsOnly, setStarsOnly] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('name');
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
-
   const [editingEx, setEditingEx] = useState<Exercise | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -80,19 +91,19 @@ export default function Catalog() {
     setLoading(true);
     api.get<Exercise[]>('/api/exercises')
       .then(data => setExercises(data))
-      .catch(() => {/* behold tom liste ved fejl */})
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const tags = tab === 'hal' ? HAL_TAGS : tab === 'fys' ? FYS_TAGS : KEEPER_TAGS;
 
   const filtered = useMemo(() => {
-    return exercises.filter(ex => {
+    let list = exercises.filter(ex => {
       if (tab === 'keeper') {
         if (!ex.tags.includes('keeper')) return false;
       } else {
         if (ex.catalog !== tab) return false;
-        if (ex.tags.includes('keeper')) return false; // keeper-øvelser vises kun i keeper-tab
+        if (ex.tags.includes('keeper')) return false;
       }
       if (search) {
         const q = search.toLowerCase();
@@ -107,7 +118,13 @@ export default function Catalog() {
       if (starsOnly && ex.stars === 0) return false;
       return true;
     });
-  }, [exercises, tab, search, selectedTags, selectedAge, starsOnly]);
+
+    if (sortOrder === 'newest') list = list.slice().sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    else if (sortOrder === 'oldest') list = list.slice().sort((a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? ''));
+    else list = list.slice().sort((a, b) => a.name.localeCompare(b.name, 'da'));
+
+    return list;
+  }, [exercises, tab, search, selectedTags, selectedAge, starsOnly, sortOrder]);
 
   function toggleTag(tag: string) {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
@@ -115,6 +132,13 @@ export default function Catalog() {
 
   function clearFilters() {
     setSearch(''); setSelectedTags([]); setSelectedAge(''); setStarsOnly(false);
+  }
+
+  function canEditExercise(ex: Exercise) {
+    if (isAdmin) return true;
+    if (!canEdit) return false;
+    // Kun opretter eller admin kan rette
+    return ex.created_by === user?.id;
   }
 
   function handleSaved(ex: Exercise) {
@@ -146,7 +170,7 @@ export default function Catalog() {
           <span style={{ fontSize: 13, color: 'var(--text3)' }}>{filtered.length} øvelser</span>
           {canEdit && (
             <button
-              onClick={() => { setIsCreating(true); setEditingEx({ id: '', name: '', description: '', catalog: tab === 'keeper' ? 'hal' : tab, tags: tab === 'keeper' ? ['keeper'] : [], age_groups: [], stars: 0, variants: null, link: null, default_mins: null, image_r2_key: null }); }}
+              onClick={() => { setIsCreating(true); setEditingEx({ id: '', name: '', description: '', catalog: tab === 'keeper' ? 'hal' : tab, tags: tab === 'keeper' ? ['keeper'] : [], age_groups: [], stars: 0, variants: null, link: null, default_mins: null, image_r2_key: null, created_by: user?.id ?? null, created_by_email: user?.email ?? null, created_at: null }); }}
               style={{ padding: '7px 14px', background: 'var(--accent)', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 13 }}
             >
               + Ny øvelse
@@ -179,7 +203,7 @@ export default function Catalog() {
         ))}
       </div>
 
-      {/* Aldersgruppe + stjerner */}
+      {/* Filtre + sortering */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <select value={selectedAge} onChange={e => setSelectedAge(e.target.value)}
           style={{ padding: '0 12px', height: 36, borderRadius: 8, fontSize: 14, background: 'var(--bg-card)', border: '1px solid var(--border2)', color: selectedAge ? 'var(--text)' : 'var(--text3)' }}>
@@ -190,6 +214,12 @@ export default function Catalog() {
           style={{ height: 36, padding: '0 12px', borderRadius: 8, fontSize: 14, background: starsOnly ? 'var(--accent-light)' : 'var(--bg-card)', color: starsOnly ? 'var(--accent)' : 'var(--text2)', border: `1px solid ${starsOnly ? 'var(--accent)' : 'var(--border2)'}` }}>
           ⭐ Favoritter
         </button>
+        <select value={sortOrder} onChange={e => setSortOrder(e.target.value as SortOrder)}
+          style={{ padding: '0 12px', height: 36, borderRadius: 8, fontSize: 14, background: 'var(--bg-card)', border: '1px solid var(--border2)', color: 'var(--text2)' }}>
+          <option value="name">Navn A–Å</option>
+          <option value="newest">Nyeste først</option>
+          <option value="oldest">Ældste først</option>
+        </select>
         {hasFilters && (
           <button onClick={clearFilters} style={{ height: 36, padding: '0 12px', borderRadius: 8, fontSize: 13, background: 'none', color: 'var(--text3)', border: '1px solid var(--border)' }}>
             Ryd filtre
@@ -213,7 +243,7 @@ export default function Catalog() {
           <ExerciseCard key={ex.id} ex={ex}
             isExpanded={expanded === ex.id}
             onToggle={() => setExpanded(prev => prev === ex.id ? null : ex.id)}
-            canEdit={canEdit}
+            canEdit={canEditExercise(ex)}
             onEdit={() => { setEditingEx(ex); setIsCreating(false); }}
           />
         ))}
@@ -243,10 +273,12 @@ function ExerciseCard({ ex, isExpanded, onToggle, canEdit, onEdit }: {
   return (
     <div style={{ background: 'var(--bg-card)', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
       <button onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 16px', background: 'none', textAlign: 'left' }}>
-        {ex.stars > 0 && <span style={{ fontSize: 14, flexShrink: 0 }}>{'⭐'.repeat(Math.min(ex.stars, 5))}</span>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 4 }}>{ex.name}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+            {ex.stars > 0 && (
+              <span style={{ fontSize: 11, color: 'var(--yellow)', letterSpacing: 1 }}>{'★'.repeat(Math.min(ex.stars, 5))}</span>
+            )}
             {ex.tags.slice(0, 4).map(tag => (
               <span key={tag} style={{ padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: 'var(--bg-input)', color: 'var(--text2)' }}>{tag}</span>
             ))}
@@ -263,7 +295,6 @@ function ExerciseCard({ ex, isExpanded, onToggle, canEdit, onEdit }: {
 
       {isExpanded && (
         <div style={{ borderTop: '1px solid var(--border)' }}>
-          {/* Stort billede */}
           {imgUrl && (
             <img src={imgUrl} alt={ex.name} style={{ width: '100%', maxHeight: 260, objectFit: 'contain', background: '#f8f8f8' }} />
           )}
@@ -283,6 +314,21 @@ function ExerciseCard({ ex, isExpanded, onToggle, canEdit, onEdit }: {
                 🔗 Se video/øvelse
               </a>
             )}
+            {/* Oprettet af + dato */}
+            <div style={{ display: 'flex', gap: 16, marginBottom: canEdit ? 12 : 0, flexWrap: 'wrap' }}>
+              {ex.created_by_email && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 2 }}>Oprettet af</div>
+                  <div style={{ fontSize: 13, color: 'var(--text2)' }}>{ex.created_by_email}</div>
+                </div>
+              )}
+              {ex.created_at && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 2 }}>Oprettet</div>
+                  <div style={{ fontSize: 13, color: 'var(--text2)' }}>{formatDate(ex.created_at)}</div>
+                </div>
+              )}
+            </div>
             {canEdit && (
               <button onClick={e => { e.stopPropagation(); onEdit(); }}
                 style={{ padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, background: 'var(--bg-input)', color: 'var(--text2)', border: '1px solid var(--border2)' }}>
@@ -369,7 +415,6 @@ function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
         });
       }
 
-      // Upload billede hvis nyt
       if (imgBlob && savedId) {
         const fd = new FormData();
         fd.append('image', imgBlob, 'image.jpg');
@@ -427,7 +472,6 @@ function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
                 ['keeper', '🧤 Keeper'],
                 ['fys', '💪 Fysisk'],
               ] as const).map(([c, label]) => {
-                // "keeper" er ikke et egentligt katalog — det er hal + keeper-tag
                 const isActive = c === 'keeper'
                   ? form.catalog === 'hal' && form.tags.includes('keeper')
                   : form.catalog === c && !form.tags.includes('keeper');
