@@ -43,21 +43,8 @@ export default function TeamSettings() {
       api.get<SectionType[]>(`/api/section-types?team_id=${currentTeamId}`),
       api.get<string[]>('/api/exercises/tags').catch(() => []),
       api.get<Array<{ themes: string[] }>>(`/api/quarters?team_id=${currentTeamId}`),
-    ]).then(async ([st, tags, quarters]) => {
-      // If we got global defaults (team_id=null), copy them to this team so all edits are team-scoped
-      const isGlobal = st.length > 0 && st[0].team_id === null;
-      if (isGlobal) {
-        const copies = await Promise.all(st.map((s, i) =>
-          api.post<{ id: string }>('/api/section-types', {
-            label: s.label, color: s.color, tags: s.tags, themes: s.themes,
-            required: s.required === 1, sort_order: i + 1, team_id: currentTeamId,
-          }).then(r => ({ ...s, id: r.id, team_id: currentTeamId }))
-          .catch(() => ({ ...s, team_id: currentTeamId }))
-        ));
-        setSectionTypes(copies);
-      } else {
-        setSectionTypes(st);
-      }
+    ]).then(([st, tags, quarters]) => {
+      setSectionTypes(st);
       setAllTags([...new Set(tags)].sort());
       const themes = new Set<string>();
       for (const q of quarters) for (const t of q.themes) if (t) themes.add(t);
