@@ -14,14 +14,6 @@ interface SectionType {
   team_id: string | null;
 }
 
-// Komplet liste af kendte tags på tværs af hal- og fys-katalog
-const KNOWN_TAGS = [
-  // Hal
-  'opvarmning', 'afleveringer', 'teknik', 'kontra', 'spil',
-  'keeper', 'forsvar', '1v1', '2v1', 'skud', 'angreb', 'positionsspil',
-  // Fys
-  'styrke', 'plyometrik', 'eksplosion', 'hurtighed', 'finter', 'udholdenhed', 'mobilitet',
-];
 
 const PRESET_COLORS = [
   '#22c55e', '#3b82f6', '#C8102E', '#8b5cf6',
@@ -66,8 +58,7 @@ export default function TeamSettings() {
       } else {
         setSectionTypes(st);
       }
-      const merged = [...new Set([...KNOWN_TAGS, ...tags])].sort();
-      setAllTags(merged);
+      setAllTags([...new Set(tags)].sort());
       const themes = new Set<string>();
       for (const q of quarters) for (const t of q.themes) if (t) themes.add(t);
       setQuarterThemes([...themes].sort());
