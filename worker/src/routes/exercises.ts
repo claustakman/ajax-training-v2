@@ -18,6 +18,18 @@ function parseExercise(row: Record<string, unknown>) {
   return row;
 }
 
+// GET /api/exercises/tags — alle unikke tags fra katalog
+exerciseRoutes.get('/tags', requireAuth(), async (c) => {
+  const rows = await c.env.DB.prepare('SELECT tags FROM exercises').all();
+  const tagSet = new Set<string>();
+  for (const row of rows.results) {
+    let tags: string[] = [];
+    try { tags = JSON.parse(row.tags as string); } catch { tags = []; }
+    for (const t of tags) tagSet.add(t);
+  }
+  return c.json([...tagSet].sort());
+});
+
 // GET /api/exercises?catalog=hal&age_group=U11
 exerciseRoutes.get('/', requireAuth(), async (c) => {
   const catalog = c.req.query('catalog');
@@ -90,7 +102,6 @@ exerciseRoutes.delete('/:id', requireAuth('trainer'), async (c) => {
 // GET /api/exercises/:id/image?key=exercises/foo.jpg — server billede fra R2
 exerciseRoutes.get('/:id/image', async (c) => {
   const id = c.req.param('id');
-  // Brug ?key= hvis sendt (frontend kender nøglen fra exerciseData), ellers DB, ellers default
   const keyParam = c.req.query('key');
   let key = keyParam ?? `exercises/${id}.jpg`;
   if (!keyParam) {
@@ -120,7 +131,6 @@ exerciseRoutes.post('/:id/image', requireAuth('trainer'), async (c) => {
     httpMetadata: { contentType: 'image/jpeg' },
   });
 
-  // Public URL — opdater til dit R2 custom domain eller .r2.dev URL
   const imageUrl = `https://pub-ajax-traening-storage.r2.dev/${key}`;
   await c.env.DB.prepare('UPDATE exercises SET image_r2_key = ?, image_url = ?, updated_at = ? WHERE id = ?')
     .bind(key, imageUrl, new Date().toISOString(), id).run();

@@ -10,6 +10,7 @@ import Board from './pages/Board';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Brugere from './pages/Brugere';
+import TeamSettings from './pages/TeamSettings';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -37,6 +38,7 @@ export default function App() {
                   <Route path="/tavle" element={<Board />} />
                   <Route path="/profil" element={<Profile />} />
                   <Route path="/brugere" element={<Brugere />} />
+                  <Route path="/holdindstillinger" element={<TeamSettings />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
