@@ -17,31 +17,29 @@ function SaveIndicator({ state }: { state: SaveState }) {
     error:  { label: '✗ Fejl',   color: 'var(--red)' },
   };
   const { label, color } = map[state];
-  return (
-    <span style={{ fontSize: 13, color, transition: 'color 0.3s' }}>{label}</span>
-  );
+  return <span style={{ fontSize: 13, color, transition: 'color 0.3s' }}>{label}</span>;
 }
 
-// ─── Chip (tema, temavalg) ────────────────────────────────────────────────────
+// ─── Chip ────────────────────────────────────────────────────────────────────
 function Chip({ label, onRemove }: { label: string; onRemove?: () => void }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       background: 'var(--accent-light)', color: 'var(--accent)',
-      borderRadius: 20, padding: '2px 10px', fontSize: 13, fontWeight: 500,
+      borderRadius: 20, padding: '3px 10px', fontSize: 13, fontWeight: 500,
     }}>
       {label}
       {onRemove && (
         <button onClick={onRemove} style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--accent)', padding: 0, lineHeight: 1, fontSize: 14,
+          color: 'var(--accent)', padding: 0, lineHeight: 1, fontSize: 15,
         }}>×</button>
       )}
     </span>
   );
 }
 
-// ─── Input-felt ───────────────────────────────────────────────────────────────
+// ─── Label-felt wrapper ───────────────────────────────────────────────────────
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -64,14 +62,134 @@ const textareaStyle: React.CSSProperties = {
   minHeight: 80, resize: 'vertical', fontFamily: 'inherit',
 };
 
-// ─── Stjerner ────────────────────────────────────────────────────────────────
+// ─── Bruger-dropdown ──────────────────────────────────────────────────────────
+// Viser en <select> med holdets brugere. Returnerer valgt name (ikke id).
+function UserSelect({
+  value,
+  onChange,
+  members,
+  placeholder,
+  disabled,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+  members: { id: string; name: string }[];
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      disabled={disabled}
+      style={{ ...inputStyle, appearance: 'auto' }}
+    >
+      <option value="">{placeholder}</option>
+      {members.map(m => (
+        <option key={m.id} value={m.name}>{m.name}</option>
+      ))}
+    </select>
+  );
+}
+
+// ─── Bruger-multi-valg (chips + dropdown) ────────────────────────────────────
+function UserMultiSelect({
+  selected,
+  onChange,
+  members,
+  disabled,
+}: {
+  selected: string[];
+  onChange: (names: string[]) => void;
+  members: { id: string; name: string }[];
+  disabled?: boolean;
+}) {
+  const available = members.filter(m => !selected.includes(m.name));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {selected.map(name => (
+          <Chip
+            key={name}
+            label={name}
+            onRemove={disabled ? undefined : () => onChange(selected.filter(n => n !== name))}
+          />
+        ))}
+      </div>
+      {!disabled && available.length > 0 && (
+        <select
+          value=""
+          onChange={e => {
+            if (e.target.value) onChange([...selected, e.target.value]);
+          }}
+          style={{ ...inputStyle, color: selected.length > 0 ? 'var(--text2)' : 'var(--text)' }}
+        >
+          <option value="">+ Tilføj træner…</option>
+          {available.map(m => (
+            <option key={m.id} value={m.name}>{m.name}</option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
+
+// ─── Tema-valg (chips fra årshjul) ───────────────────────────────────────────
+function ThemeSelect({
+  selected,
+  onChange,
+  allThemes,
+  disabled,
+}: {
+  selected: string[];
+  onChange: (themes: string[]) => void;
+  allThemes: string[];
+  disabled?: boolean;
+}) {
+  const available = allThemes.filter(t => !selected.includes(t));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {selected.map(th => (
+          <Chip
+            key={th}
+            label={th}
+            onRemove={disabled ? undefined : () => onChange(selected.filter(t => t !== th))}
+          />
+        ))}
+      </div>
+      {!disabled && available.length > 0 && (
+        <select
+          value=""
+          onChange={e => {
+            if (e.target.value) onChange([...selected, e.target.value]);
+          }}
+          style={{ ...inputStyle }}
+        >
+          <option value="">+ Vælg tema…</option>
+          {available.map(th => (
+            <option key={th} value={th}>{th}</option>
+          ))}
+        </select>
+      )}
+      {!disabled && allThemes.length === 0 && (
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--text3)' }}>
+          Ingen temaer i årshjulet endnu.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Stjerne-vurdering ────────────────────────────────────────────────────────
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <div style={{ display: 'flex', gap: 4 }}>
       {[1, 2, 3, 4, 5].map(n => (
         <button key={n} onClick={() => onChange(value === n ? 0 : n)} style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: 22, padding: 0, color: n <= value ? '#f59e0b' : 'var(--border2)',
+          fontSize: 22, padding: 0,
+          color: n <= value ? '#f59e0b' : 'var(--border2)',
           lineHeight: 1,
         }}>★</button>
       ))}
@@ -133,9 +251,10 @@ function TemplateModal({
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
         </div>
 
-        {/* Gem nuværende */}
         <div style={{ marginBottom: 20 }}>
-          <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: 'var(--text2)' }}>Gem nuværende sektioner som skabelon</p>
+          <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: 'var(--text2)' }}>
+            Gem nuværende sektioner som skabelon
+          </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               value={saveName}
@@ -152,13 +271,10 @@ function TemplateModal({
                 borderRadius: 8, padding: '0 16px', fontSize: 14, cursor: 'pointer',
                 opacity: saving || !saveName.trim() ? 0.5 : 1,
               }}
-            >
-              {saving ? '…' : 'Gem'}
-            </button>
+            >{saving ? '…' : 'Gem'}</button>
           </div>
         </div>
 
-        {/* Liste */}
         {loading ? (
           <p style={{ color: 'var(--text3)', fontSize: 14 }}>Indlæser…</p>
         ) : templates.length === 0 ? (
@@ -211,8 +327,10 @@ export default function TrainingEditor() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [headerOpen, setHeaderOpen] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [themeInput, setThemeInput] = useState('');
-  const [trainerInput, setTrainerInput] = useState('');
+
+  // Data fra API
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([]);
+  const [allThemes, setAllThemes] = useState<string[]>([]);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trainingRef = useRef<Training | null>(null);
@@ -220,15 +338,24 @@ export default function TrainingEditor() {
 
   const isNew = id === 'ny';
 
+  // ── Hent hold-data (members + årshjul-temaer) ─────────────────────────────
+  useEffect(() => {
+    if (!currentTeamId) return;
+    api.fetchTeamMembers(currentTeamId).then(setTeamMembers).catch(() => {});
+    api.fetchQuarters(currentTeamId).then(quarters => {
+      // Samle alle unikke temaer fra alle kvartaler
+      const themes = Array.from(new Set(quarters.flatMap(q => q.themes ?? [])));
+      setAllThemes(themes);
+    }).catch(() => {});
+  }, [currentTeamId]);
+
   // ── Indlæs træning ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (isNew) {
-      const now = new Date();
-      const dateStr = now.toISOString().slice(0, 10);
-      const blank: Training = {
+      const dateStr = new Date().toISOString().slice(0, 10);
+      setTraining({
         id: '',
         team_id: currentTeamId ?? '',
-        title: '',
         date: dateStr,
         start_time: '',
         end_time: '',
@@ -244,8 +371,7 @@ export default function TrainingEditor() {
         archived: false,
         created_at: '',
         updated_at: '',
-      };
-      setTraining(blank);
+      });
       setLoading(false);
     } else if (id) {
       api.fetchTraining(id)
@@ -265,14 +391,11 @@ export default function TrainingEditor() {
       if (!t) return;
       try {
         if (!t.id) {
-          // Ny træning — POST
           const created = await api.createTraining({ ...t, team_id: currentTeamId ?? '' });
           trainingRef.current = created;
           setTraining(created);
-          // Skift URL til det faktiske id uden at reloade
           window.history.replaceState(null, '', `/traininger/${created.id}`);
         } else {
-          // Opdater eksisterende
           await api.updateTraining(t.id, t);
         }
         setSaveState('saved');
@@ -284,14 +407,10 @@ export default function TrainingEditor() {
   }, [canEdit, currentTeamId]);
 
   function update(patch: Partial<Training>) {
-    setTraining(prev => {
-      if (!prev) return prev;
-      return { ...prev, ...patch };
-    });
+    setTraining(prev => prev ? { ...prev, ...patch } : prev);
     scheduleSave();
   }
 
-  // ── Øjeblikkelig gem (fx ved sletning / arkivering) ────────────────────────
   async function saveNow(patch: Partial<Training>) {
     if (!training) return;
     const t = { ...training, ...patch };
@@ -326,11 +445,8 @@ export default function TrainingEditor() {
   }
 
   if (loading) {
-    return (
-      <div style={{ padding: 24, color: 'var(--text3)', fontSize: 15 }}>Indlæser træning…</div>
-    );
+    return <div style={{ padding: 24, color: 'var(--text3)', fontSize: 15 }}>Indlæser træning…</div>;
   }
-
   if (!training) return null;
 
   const dur = durMin(training.start_time, training.end_time);
@@ -339,20 +455,17 @@ export default function TrainingEditor() {
     <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
       {/* ── Toolbar ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        marginBottom: 16, flexWrap: 'wrap',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <button
           onClick={() => navigate('/')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text2)', fontSize: 14, padding: '6px 0', display: 'flex', alignItems: 'center', gap: 4,
+            color: 'var(--text2)', fontSize: 14, padding: '6px 0',
+            display: 'flex', alignItems: 'center', gap: 4,
           }}
         >← Tilbage</button>
 
         <div style={{ flex: 1 }} />
-
         <SaveIndicator state={saveState} />
 
         {canEdit && (
@@ -390,7 +503,7 @@ export default function TrainingEditor() {
         boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
         marginBottom: 20, overflow: 'hidden',
       }}>
-        {/* Kort-header: titel + toggle */}
+        {/* Klikbar header-bar */}
         <div
           style={{
             display: 'flex', alignItems: 'center', gap: 12,
@@ -400,30 +513,16 @@ export default function TrainingEditor() {
           onClick={() => setHeaderOpen(o => !o)}
         >
           <div style={{ flex: 1 }}>
-            {canEdit ? (
-              <input
-                value={training.title ?? ''}
-                onChange={e => update({ title: e.target.value })}
-                onClick={e => e.stopPropagation()}
-                placeholder="Træningens titel…"
-                style={{
-                  ...inputStyle,
-                  background: 'transparent', border: 'none',
-                  fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-heading)',
-                  padding: 0, minHeight: 'auto',
-                }}
-              />
-            ) : (
-              <h1 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
-                {training.title || 'Uden titel'}
-              </h1>
-            )}
-            {training.date && (
+            <h1 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
+              {training.date ? fmtDateLong(training.date) : 'Ny træning'}
+            </h1>
+            {(training.start_time || dur || training.location) && (
               <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
-                {fmtDateLong(training.date)}
-                {training.start_time && ` · ${training.start_time}`}
-                {training.end_time && `–${training.end_time}`}
-                {dur && ` (${dur} min)`}
+                {[
+                  training.start_time && (training.end_time ? `${training.start_time}–${training.end_time}` : training.start_time),
+                  dur && `${dur} min`,
+                  training.location,
+                ].filter(Boolean).join(' · ')}
               </div>
             )}
           </div>
@@ -433,45 +532,45 @@ export default function TrainingEditor() {
         </div>
 
         {headerOpen && (
-          <div style={{ padding: '20px' }}>
-            {/* ── 3-kolonne grid ── */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 20, marginBottom: 20,
-            }}>
+          <div style={{ padding: 20 }}>
+            {/* Dato + tid — stacked på mobil */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
 
-              {/* Kolonne 1: Tid & sted */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <Field label="Dato">
+              {/* Dato */}
+              <Field label="Dato">
+                <input
+                  type="date"
+                  value={training.date ?? ''}
+                  onChange={e => update({ date: e.target.value })}
+                  disabled={!canEdit}
+                  style={inputStyle}
+                />
+              </Field>
+
+              {/* Start + Slut side om side */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <Field label="Start">
                   <input
-                    type="date"
-                    value={training.date ?? ''}
-                    onChange={e => update({ date: e.target.value })}
+                    type="time"
+                    value={training.start_time ?? ''}
+                    onChange={e => update({ start_time: e.target.value })}
                     disabled={!canEdit}
                     style={inputStyle}
                   />
                 </Field>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <Field label="Start">
-                    <input
-                      type="time"
-                      value={training.start_time ?? ''}
-                      onChange={e => update({ start_time: e.target.value })}
-                      disabled={!canEdit}
-                      style={inputStyle}
-                    />
-                  </Field>
-                  <Field label="Slut">
-                    <input
-                      type="time"
-                      value={training.end_time ?? ''}
-                      onChange={e => update({ end_time: e.target.value })}
-                      disabled={!canEdit}
-                      style={inputStyle}
-                    />
-                  </Field>
-                </div>
+                <Field label="Slut">
+                  <input
+                    type="time"
+                    value={training.end_time ?? ''}
+                    onChange={e => update({ end_time: e.target.value })}
+                    disabled={!canEdit}
+                    style={inputStyle}
+                  />
+                </Field>
+              </div>
+
+              {/* Sted + antal side om side på bredere skærme */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
                 <Field label="Sted">
                   <input
                     value={training.location ?? ''}
@@ -494,93 +593,74 @@ export default function TrainingEditor() {
                 </Field>
               </div>
 
-              {/* Kolonne 2: Trænere & temaer */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <Field label="Cheftræner">
-                  <input
-                    value={training.lead_trainer ?? ''}
-                    onChange={e => update({ lead_trainer: e.target.value })}
-                    disabled={!canEdit}
-                    placeholder="Navn…"
-                    style={inputStyle}
-                  />
-                </Field>
-                <Field label="Øvrige trænere">
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-                    {(training.trainers ?? []).map(tr => (
-                      <Chip key={tr} label={tr} onRemove={canEdit ? () => update({ trainers: training.trainers.filter(x => x !== tr) }) : undefined} />
-                    ))}
-                  </div>
-                  {canEdit && (
-                    <input
-                      value={trainerInput}
-                      onChange={e => setTrainerInput(e.target.value)}
-                      onKeyDown={e => {
-                        if ((e.key === 'Enter' || e.key === ',') && trainerInput.trim()) {
-                          e.preventDefault();
-                          const name = trainerInput.trim();
-                          if (!training.trainers.includes(name)) {
-                            update({ trainers: [...training.trainers, name] });
-                          }
-                          setTrainerInput('');
-                        }
-                      }}
-                      placeholder="Tilføj navn + Enter…"
-                      style={inputStyle}
-                    />
-                  )}
-                </Field>
-                <Field label="Temaer">
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-                    {(training.themes ?? []).map(th => (
-                      <Chip key={th} label={th} onRemove={canEdit ? () => update({ themes: training.themes.filter(x => x !== th) }) : undefined} />
-                    ))}
-                  </div>
-                  {canEdit && (
-                    <input
-                      value={themeInput}
-                      onChange={e => setThemeInput(e.target.value)}
-                      onKeyDown={e => {
-                        if ((e.key === 'Enter' || e.key === ',') && themeInput.trim()) {
-                          e.preventDefault();
-                          const th = themeInput.trim();
-                          if (!training.themes.includes(th)) {
-                            update({ themes: [...training.themes, th] });
-                          }
-                          setThemeInput('');
-                        }
-                      }}
-                      placeholder="Tilføj tema + Enter…"
-                      style={inputStyle}
-                    />
-                  )}
-                </Field>
-              </div>
+              {/* Divider */}
+              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
 
-              {/* Kolonne 3: Fokus, noter, vurdering */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <Field label="Fokuspunkter">
-                  <textarea
-                    value={training.focus_points ?? ''}
-                    onChange={e => update({ focus_points: e.target.value })}
-                    disabled={!canEdit}
-                    placeholder="Hvad vil vi opnå i dag?…"
-                    style={textareaStyle}
+              {/* Ansvarlig */}
+              <Field label="Ansvarlig">
+                {canEdit ? (
+                  <UserSelect
+                    value={training.lead_trainer ?? ''}
+                    onChange={name => update({ lead_trainer: name })}
+                    members={teamMembers}
+                    placeholder="Vælg ansvarlig…"
                   />
-                </Field>
-                <Field label="Noter">
-                  <textarea
-                    value={training.notes ?? ''}
-                    onChange={e => update({ notes: e.target.value })}
-                    disabled={!canEdit}
-                    placeholder="Supplerende noter…"
-                    style={textareaStyle}
-                  />
-                </Field>
-                <Field label="Vurdering">
-                  <StarRating value={training.stars} onChange={v => update({ stars: v })} />
-                </Field>
-              </div>
+                ) : (
+                  <div style={{ ...inputStyle, color: training.lead_trainer ? 'var(--text)' : 'var(--text3)' }}>
+                    {training.lead_trainer || '—'}
+                  </div>
+                )}
+              </Field>
+
+              {/* Øvrige trænere */}
+              <Field label="Øvrige trænere">
+                <UserMultiSelect
+                  selected={training.trainers ?? []}
+                  onChange={names => update({ trainers: names })}
+                  members={teamMembers}
+                  disabled={!canEdit}
+                />
+              </Field>
+
+              {/* Divider */}
+              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+
+              {/* Temaer */}
+              <Field label="Temaer">
+                <ThemeSelect
+                  selected={training.themes ?? []}
+                  onChange={themes => update({ themes })}
+                  allThemes={allThemes}
+                  disabled={!canEdit}
+                />
+              </Field>
+
+              {/* Fokuspunkter */}
+              <Field label="Fokuspunkter">
+                <textarea
+                  value={training.focus_points ?? ''}
+                  onChange={e => update({ focus_points: e.target.value })}
+                  disabled={!canEdit}
+                  placeholder="Hvad vil vi opnå i dag?…"
+                  style={textareaStyle}
+                />
+              </Field>
+
+              {/* Noter */}
+              <Field label="Noter">
+                <textarea
+                  value={training.notes ?? ''}
+                  onChange={e => update({ notes: e.target.value })}
+                  disabled={!canEdit}
+                  placeholder="Supplerende noter…"
+                  style={textareaStyle}
+                />
+              </Field>
+
+              {/* Vurdering */}
+              <Field label="Vurdering">
+                <StarRating value={training.stars} onChange={v => update({ stars: v })} />
+              </Field>
             </div>
           </div>
         )}

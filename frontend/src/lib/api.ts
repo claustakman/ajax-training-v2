@@ -40,6 +40,14 @@ export const api = {
     request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 
+  // ── Hold-medlemmer (til ansvarlig/træner-valg) ────────────────────────────
+  fetchTeamMembers: (teamId: string) =>
+    request<{ id: string; name: string }[]>(`/api/users/team-members?team_id=${teamId}`),
+
+  // ── Kvartaler (til tema-valg) ──────────────────────────────────────────────
+  fetchQuarters: (teamId: string) =>
+    request<{ id: string; quarter: number; themes: string[] }[]>(`/api/quarters?team_id=${teamId}`),
+
   // ── Træninger ──────────────────────────────────────────────────────────────
   fetchTrainings: (teamId: string, archived?: 0 | 1) => {
     const q = archived !== undefined ? `&archived=${archived}` : '';

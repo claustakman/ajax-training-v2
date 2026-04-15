@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training } from '../lib/types';
-import { fmtDay, fmtMon, fmtWday, durMin, totalMins } from '../lib/dateUtils';
+import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin, totalMins } from '../lib/dateUtils';
 
 // ─── Skeleton-kort ────────────────────────────────────────────────────────────
 function SkeletonCard() {
@@ -85,7 +85,7 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
           fontWeight: 600, fontSize: 15, color: 'var(--text)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          {training.title || 'Uden titel'}
+          {training.date ? fmtWdayFull(training.date) + ' træning' : 'Træning'}
         </div>
         {meta.length > 0 && (
           <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>

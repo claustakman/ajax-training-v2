@@ -6,6 +6,18 @@ type HonoEnv = { Bindings: Env } & AuthContext;
 
 export const userRoutes = new Hono<HonoEnv>();
 
+// GET /api/users/team-members?team_id=X — alle autentificerede brugere på holdet (til valg af ansvarlig/trænere)
+userRoutes.get('/team-members', requireAuth(), async (c) => {
+  const teamId = c.req.query('team_id');
+  if (!teamId) return c.json({ error: 'team_id påkrævet' }, 400);
+  const rows = await c.env.DB.prepare(
+    `SELECT u.id, u.name FROM users u
+     JOIN user_teams ut ON ut.user_id = u.id
+     WHERE ut.team_id = ? ORDER BY u.name`
+  ).bind(teamId).all<{ id: string; name: string }>();
+  return c.json(rows.results);
+});
+
 // GET /api/users — inkluderer teams per bruger
 // Admin: returnerer alle brugere
 // team_manager: ?team_id=X påkrævet — returnerer kun brugere på det hold
