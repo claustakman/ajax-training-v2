@@ -409,26 +409,24 @@ export default function TrainingEditor() {
             {/* Dato + tid — stacked på mobil */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
 
-              {/* Dato */}
-              <Field label="Dato">
-                <input
-                  type="date"
-                  value={training.date ?? ''}
-                  onChange={e => update({ date: e.target.value })}
-                  disabled={!canEdit}
-                  style={inputStyle}
-                />
-              </Field>
-
-              {/* Start + Slut side om side */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {/* Dato · Start · Slut — tre kolonner, smallere på mobil */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
+                <Field label="Dato">
+                  <input
+                    type="date"
+                    value={training.date ?? ''}
+                    onChange={e => update({ date: e.target.value })}
+                    disabled={!canEdit}
+                    style={{ ...inputStyle, fontSize: 14, padding: '8px 6px', minWidth: 0 }}
+                  />
+                </Field>
                 <Field label="Start">
                   <input
                     type="time"
                     value={training.start_time ?? ''}
                     onChange={e => update({ start_time: e.target.value })}
                     disabled={!canEdit}
-                    style={inputStyle}
+                    style={{ ...inputStyle, fontSize: 14, padding: '8px 6px', minWidth: 0 }}
                   />
                 </Field>
                 <Field label="Slut">
@@ -437,7 +435,7 @@ export default function TrainingEditor() {
                     value={training.end_time ?? ''}
                     onChange={e => update({ end_time: e.target.value })}
                     disabled={!canEdit}
-                    style={inputStyle}
+                    style={{ ...inputStyle, fontSize: 14, padding: '8px 6px', minWidth: 0 }}
                   />
                 </Field>
               </div>

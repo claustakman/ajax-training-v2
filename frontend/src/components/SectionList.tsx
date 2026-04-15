@@ -685,7 +685,7 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
           </span>
         )}
 
-        {/* Ikke collapsed: controls */}
+        {/* Ikke collapsed: mins + gruppe + slet (kun disse i headeren) */}
         {!collapsed && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }} onClick={e => e.stopPropagation()}>
             {/* Minutter */}
@@ -714,21 +714,10 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
               </select>
             )}
 
-            {/* AI-knap per sektion (disabled, Session 5) */}
-            <button
-              disabled
-              title="AI-forslag (Session 5)"
-              style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', opacity: 0.4, cursor: 'not-allowed', padding: '3px 9px', fontSize: 13 }}
-            >✨</button>
-
-            {/* + Øvelse */}
-            <button
-              onClick={() => setShowPicker(true)}
-              style={{ ...btnGhost, borderColor: color, color, padding: '3px 10px', fontSize: 13, fontWeight: 600 }}
-            >+ Øvelse</button>
-
             {/* Slet sektion */}
-            <button onClick={onRemove} style={{ ...btnGhost, padding: '3px 8px', color: 'var(--red)', fontSize: 15 }}>✕</button>
+            {canEdit && (
+              <button onClick={onRemove} style={{ ...btnGhost, padding: '3px 8px', color: 'var(--red)', fontSize: 15 }}>✕</button>
+            )}
           </div>
         )}
       </div>
@@ -747,6 +736,21 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
           )}
           {!canEdit && section.note && (
             <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>{section.note}</p>
+          )}
+
+          {/* AI + Øvelse knapper under detaljer */}
+          {canEdit && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <button
+                disabled
+                title="AI-forslag til denne sektion (Session 5)"
+                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', opacity: 0.4, cursor: 'not-allowed', padding: '5px 12px', fontSize: 13, flex: 1 }}
+              >✨ AI-forslag</button>
+              <button
+                onClick={() => setShowPicker(true)}
+                style={{ ...btnGhost, borderColor: color, color, padding: '5px 14px', fontSize: 13, fontWeight: 600, flex: 1 }}
+              >+ Øvelse</button>
+            </div>
           )}
 
           {exList.length === 0 ? (
