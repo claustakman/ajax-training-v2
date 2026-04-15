@@ -48,6 +48,26 @@ export interface Template {
   created_at: string
 }
 
+export interface Exercise {
+  id: string
+  name: string
+  description?: string
+  catalog: 'hal' | 'fys'
+  category?: string
+  tags: string[]
+  age_groups: string[]
+  stars: number
+  variants?: string
+  link?: string
+  default_mins?: number
+  image_url?: string
+  image_r2_key?: string
+  created_by?: string
+  created_by_email?: string
+  created_at: string
+  updated_at: string
+}
+
 export interface SectionType {
   id: string
   label: string

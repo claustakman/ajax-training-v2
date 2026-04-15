@@ -66,6 +66,16 @@ export const api = {
     request<Template>('/api/templates', { method: 'POST', body: JSON.stringify(data) }),
   deleteTemplate: (id: string) => request<{ deleted: boolean }>(`/api/templates/${id}`, { method: 'DELETE' }),
 
+  // ── Sektionstyper ─────────────────────────────────────────────────────────
+  fetchSectionTypes: (teamId: string) =>
+    request<import('./types').SectionType[]>(`/api/section-types?team_id=${teamId}`),
+
+  // ── Øvelser ────────────────────────────────────────────────────────────────
+  fetchExercises: (params?: { catalog?: string; age_group?: string }) => {
+    const q = new URLSearchParams(params as Record<string, string> ?? {}).toString();
+    return request<import('./types').Exercise[]>(`/api/exercises${q ? '?' + q : ''}`);
+  },
+
   // Multipart upload (billeder)
   upload: async <T>(path: string, formData: FormData): Promise<T> => {
     const token = localStorage.getItem('ajax_token');

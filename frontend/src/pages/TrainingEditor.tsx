@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import type { Training, Template } from '../lib/types';
+import type { Training } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
+import { SectionList } from '../components/SectionList';
 
 // ─── Status-indikator ────────────────────────────────────────────────────────
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -197,124 +198,6 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-// ─── Skabelon-modal ────────────────────────────────────────────────────────────
-function TemplateModal({
-  teamId,
-  currentSections,
-  onLoad,
-  onClose,
-}: {
-  teamId: string;
-  currentSections: Training['sections'];
-  onLoad: (sections: Training['sections']) => void;
-  onClose: () => void;
-}) {
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saveName, setSaveName] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    api.fetchTemplates(teamId).then(setTemplates).finally(() => setLoading(false));
-  }, [teamId]);
-
-  async function handleSave() {
-    if (!saveName.trim()) return;
-    setSaving(true);
-    try {
-      const t = await api.createTemplate({ name: saveName.trim(), sections: currentSections, team_id: teamId });
-      setTemplates(prev => [t, ...prev]);
-      setSaveName('');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(id: string) {
-    await api.deleteTemplate(id);
-    setTemplates(prev => prev.filter(t => t.id !== id));
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16,
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Skabeloner</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
-        </div>
-
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: 'var(--text2)' }}>
-            Gem nuværende sektioner som skabelon
-          </p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              value={saveName}
-              onChange={e => setSaveName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSave()}
-              placeholder="Skabelon-navn…"
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <button
-              onClick={handleSave}
-              disabled={saving || !saveName.trim()}
-              style={{
-                background: 'var(--accent)', color: '#fff', border: 'none',
-                borderRadius: 8, padding: '0 16px', fontSize: 14, cursor: 'pointer',
-                opacity: saving || !saveName.trim() ? 0.5 : 1,
-              }}
-            >{saving ? '…' : 'Gem'}</button>
-          </div>
-        </div>
-
-        {loading ? (
-          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Indlæser…</p>
-        ) : templates.length === 0 ? (
-          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Ingen skabeloner endnu.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {templates.map(t => (
-              <div key={t.id} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 10,
-              }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t.sections?.length ?? 0} sektioner</div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => { onLoad(t.sections); onClose(); }}
-                    style={{
-                      background: 'var(--accent)', color: '#fff', border: 'none',
-                      borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer',
-                    }}
-                  >Indlæs</button>
-                  <button
-                    onClick={() => handleDelete(t.id)}
-                    style={{
-                      background: 'var(--bg-card)', color: 'var(--red)', border: '1px solid var(--border)',
-                      borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer',
-                    }}
-                  >Slet</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ─── Hoved-komponent ───────────────────────────────────────────────────────────
 export default function TrainingEditor() {
   const { id } = useParams<{ id: string }>();
@@ -326,8 +209,6 @@ export default function TrainingEditor() {
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [headerOpen, setHeaderOpen] = useState(true);
-  const [showTemplates, setShowTemplates] = useState(false);
-
   // Data fra API
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([]);
   const [allThemes, setAllThemes] = useState<string[]>([]);
@@ -470,14 +351,6 @@ export default function TrainingEditor() {
 
         {canEdit && (
           <>
-            <button
-              onClick={() => setShowTemplates(true)}
-              style={{
-                background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
-              }}
-            >📋 Skabeloner</button>
-
             <button
               onClick={handleArchive}
               style={{
@@ -666,24 +539,13 @@ export default function TrainingEditor() {
         )}
       </div>
 
-      {/* ── Sektioner placeholder ── */}
-      <div style={{
-        background: 'var(--bg-card)', borderRadius: 14,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-        padding: 24, color: 'var(--text3)', fontSize: 14, textAlign: 'center',
-      }}>
-        Sektioner bygges i Session 3.
-      </div>
+      {/* ── Sektioner & øvelser ── */}
+      <SectionList
+        training={training}
+        canEdit={canEdit}
+        onUpdate={update}
+      />
 
-      {/* ── Skabelon-modal ── */}
-      {showTemplates && currentTeamId && (
-        <TemplateModal
-          teamId={currentTeamId}
-          currentSections={training.sections}
-          onLoad={sections => update({ sections })}
-          onClose={() => setShowTemplates(false)}
-        />
-      )}
     </div>
   );
 }
