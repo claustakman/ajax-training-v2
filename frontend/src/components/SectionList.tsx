@@ -1,26 +1,40 @@
 /**
- * SectionList — håndterer sektioner og øvelser i trænings-editoren.
- *
- * Eksporterer: SectionList (hoved-komponent)
+ * SectionList — sektioner og øvelser i trænings-editoren.
+ * Session 3 — fuldt implementeret.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import type { Section, SectionExercise, SectionType, Exercise, Training } from '../lib/types';
 
 // ─── Hjælpefunktioner ────────────────────────────────────────────────────────
 
 function uid() {
-  return Math.random().toString(36).slice(2, 10);
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 function hexToRgb(hex: string): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
+  const h = (hex ?? '#888').replace('#', '').padEnd(6, '0');
+  const r = parseInt(h.slice(0, 2), 16) || 0;
+  const g = parseInt(h.slice(2, 4), 16) || 0;
+  const b = parseInt(h.slice(4, 6), 16) || 0;
   return `${r},${g},${b}`;
 }
+
+// ─── Gruppe-farver ───────────────────────────────────────────────────────────
+
+const GROUP_COLORS: Record<string, { bg: string; text: string }> = {
+  A: { bg: '#f59e0b', text: '#78350f' },
+  B: { bg: '#8b5cf6', text: '#2e1065' },
+  C: { bg: '#06b6d4', text: '#164e63' },
+  D: { bg: '#ec4899', text: '#500724' },
+  E: { bg: '#22c55e', text: '#14532d' },
+  F: { bg: '#f97316', text: '#431407' },
+};
+
+const GROUP_OPTIONS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 // ─── Fælles styles ───────────────────────────────────────────────────────────
 
@@ -38,21 +52,16 @@ const btnGhost: React.CSSProperties = {
 
 // ─── DurationBar ─────────────────────────────────────────────────────────────
 
-function DurationBar({
-  sections,
-  training,
-}: {
+function DurationBar({ sections, training }: {
   sections: Section[];
   training: Pick<Training, 'start_time' | 'end_time'>;
 }) {
   if (!training.start_time || !training.end_time) return null;
-
   const [sh, sm] = training.start_time.split(':').map(Number);
   const [eh, em] = training.end_time.split(':').map(Number);
   const totalAvail = (eh * 60 + em) - (sh * 60 + sm);
   if (totalAvail <= 0) return null;
 
-  // Tæl kun én gruppe
   const seen = new Set<string>();
   let planned = 0;
   for (const s of sections) {
@@ -62,7 +71,6 @@ function DurationBar({
       planned += s.mins;
     }
   }
-
   const over = planned > totalAvail;
   const nearFull = planned / totalAvail > 0.9;
   const planColor = over ? 'var(--red)' : nearFull ? 'var(--yellow)' : 'var(--green)';
@@ -76,22 +84,82 @@ function DurationBar({
       <span>Varighed: <strong>{totalAvail} min</strong></span>
       <span>·</span>
       <span>Planlagt: <strong style={{ color: planColor }}>{planned} min</strong></span>
-      {over && (
-        <span style={{ color: 'var(--red)', fontWeight: 600 }}>
-          ⚠ {planned - totalAvail} min over
-        </span>
-      )}
+      {over && <span style={{ color: 'var(--red)', fontWeight: 600 }}>⚠ {planned - totalAvail} min over</span>}
+    </div>
+  );
+}
+
+// ─── ExerciseDetailModal ──────────────────────────────────────────────────────
+
+function ExerciseDetailModal({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 500,
+      background: 'rgba(0,0,0,0.45)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: 16,
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
+        width: '100%', maxWidth: 500, maxHeight: '85vh', overflowY: 'auto',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 24, fontWeight: 700, flex: 1, paddingRight: 12 }}>
+            {ex.name}
+          </h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', flexShrink: 0 }}>×</button>
+        </div>
+
+        {ex.image_url && (
+          <img
+            src={ex.image_url} alt={ex.name}
+            style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 14 }}
+          />
+        )}
+
+        {/* Tags */}
+        {ex.tags?.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+            {ex.tags.map(t => (
+              <span key={t} style={{
+                fontSize: 12, background: 'var(--bg-input)', border: '1px solid var(--border)',
+                borderRadius: 20, padding: '2px 9px', color: 'var(--text2)',
+              }}>{t}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Metadata */}
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 14, fontSize: 13, color: 'var(--text2)' }}>
+          {ex.default_mins && <span>⏱ {ex.default_mins} min</span>}
+          {ex.stars > 0 && <span style={{ color: '#f59e0b' }}>{'★'.repeat(ex.stars)}</span>}
+          {ex.age_groups?.length > 0 && <span>👤 {ex.age_groups.join(', ')}</span>}
+        </div>
+
+        {ex.description && (
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text)', margin: '0 0 12px', whiteSpace: 'pre-wrap' }}>
+            {ex.description}
+          </p>
+        )}
+        {ex.variants && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Varianter</div>
+            <p style={{ fontSize: 14, color: 'var(--text)', margin: 0, whiteSpace: 'pre-wrap' }}>{ex.variants}</p>
+          </div>
+        )}
+        {ex.link && (
+          <a href={ex.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: 'var(--accent)' }}>
+            🔗 Se link
+          </a>
+        )}
+      </div>
     </div>
   );
 }
 
 // ─── AddSectionModal ─────────────────────────────────────────────────────────
 
-function AddSectionModal({
-  sectionTypes,
-  onAdd,
-  onClose,
-}: {
+function AddSectionModal({ sectionTypes, onAdd, onClose }: {
   sectionTypes: SectionType[];
   onAdd: (type: SectionType) => void;
   onClose: () => void;
@@ -122,16 +190,14 @@ function AddSectionModal({
                 borderRadius: 8, padding: '12px 14px', cursor: 'pointer',
                 textAlign: 'left', transition: 'background 0.12s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = `rgba(${hexToRgb(st.color)},0.08)`)}
+              onMouseEnter={e => (e.currentTarget.style.background = `rgba(${hexToRgb(st.color)},0.09)`)}
               onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-card)')}
             >
               <span style={{
                 fontFamily: 'var(--font-heading)', fontSize: 14, fontWeight: 700,
                 color: st.color, display: 'block',
               }}>{st.label}</span>
-              {st.required === 1 && (
-                <span style={{ fontSize: 11, color: 'var(--text3)' }}>Krævet</span>
-              )}
+              {st.required === 1 && <span style={{ fontSize: 11, color: 'var(--text3)' }}>Krævet</span>}
             </button>
           ))}
         </div>
@@ -140,15 +206,53 @@ function AddSectionModal({
   );
 }
 
+// ─── FreeExerciseModal ────────────────────────────────────────────────────────
+
+function FreeExerciseModal({ onAdd, onClose }: {
+  onAdd: (name: string) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState('');
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 500,
+      background: 'rgba(0,0,0,0.45)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: 16,
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
+        width: '100%', maxWidth: 380,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-heading)', fontSize: 20 }}>Fri øvelse</h2>
+        <input
+          autoFocus
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && name.trim()) { onAdd(name.trim()); onClose(); } }}
+          placeholder="Navn på øvelse…"
+          style={{ ...inputSm, fontSize: 15, marginBottom: 14, minHeight: 42 }}
+        />
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
+          <button
+            onClick={() => { if (name.trim()) { onAdd(name.trim()); onClose(); } }}
+            disabled={!name.trim()}
+            style={{
+              background: 'var(--accent)', color: '#fff', border: 'none',
+              borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
+              opacity: name.trim() ? 1 : 0.4,
+            }}
+          >Tilføj</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── ExercisePicker ──────────────────────────────────────────────────────────
 
-function ExercisePicker({
-  sectionType,
-  exercises,
-  alreadyAdded,
-  onPick,
-  onClose,
-}: {
+function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose }: {
   sectionType: SectionType;
   exercises: Exercise[];
   alreadyAdded: string[];
@@ -156,166 +260,268 @@ function ExercisePicker({
   onClose: () => void;
 }) {
   const [search, setSearch] = useState('');
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [showFree, setShowFree] = useState(false);
 
-  // Filtrer på sektiontype-tags og søgetekst
   const stTags = sectionType.tags ?? [];
-  const filtered = exercises.filter(ex => {
-    const matchTag = stTags.length === 0 || stTags.some(t => (ex.tags ?? []).includes(t));
+
+  // Byg tag-liste fra øvelser der matcher sektionstype
+  const relevantExercises = exercises.filter(ex =>
+    stTags.length === 0 || stTags.some(t => (ex.tags ?? []).includes(t))
+  );
+  const allTags = Array.from(new Set(relevantExercises.flatMap(ex => ex.tags ?? []))).sort();
+
+  const filtered = relevantExercises.filter(ex => {
     const matchSearch = !search || ex.name.toLowerCase().includes(search.toLowerCase());
-    return matchTag && matchSearch;
-  });
+    const matchTags = activeTags.length === 0 || activeTags.every(t => (ex.tags ?? []).includes(t));
+    return matchSearch && matchTags;
+  }).slice(0, 80);
+
+  function toggleTag(tag: string) {
+    setActiveTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 400,
-      background: 'rgba(0,0,0,0.45)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
-    }} onClick={onClose}>
+    <>
       <div style={{
-        background: 'var(--bg-card)', borderRadius: 16, padding: 20,
-        width: '100%', maxWidth: 540, maxHeight: '85vh',
-        display: 'flex', flexDirection: 'column',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20, color: sectionType.color }}>
-            Øvelser — {sectionType.label}
-          </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
-        </div>
+        position: 'fixed', inset: 0, zIndex: 400,
+        background: 'rgba(0,0,0,0.45)', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', padding: 16,
+      }} onClick={onClose}>
+        <div style={{
+          background: 'var(--bg-card)', borderRadius: 16, padding: 20,
+          width: '100%', maxWidth: 540, maxHeight: '88vh',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        }} onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20, color: sectionType.color }}>
+              {sectionType.label}
+            </h2>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
+          </div>
 
-        <input
-          autoFocus
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Søg øvelse…"
-          style={{
-            ...inputSm, marginBottom: 12, fontSize: 15, padding: '8px 12px', minHeight: 40,
-          }}
-        />
+          {/* Søg */}
+          <input
+            autoFocus
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Søg øvelse…"
+            style={{ ...inputSm, marginBottom: 8, fontSize: 15, padding: '8px 12px', minHeight: 40 }}
+          />
 
-        <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {filtered.length === 0 ? (
-            <p style={{ color: 'var(--text3)', fontSize: 14, textAlign: 'center', margin: '24px 0' }}>
-              Ingen øvelser fundet.
-            </p>
-          ) : filtered.map(ex => {
-            const added = alreadyAdded.includes(ex.id);
-            return (
-              <div
-                key={ex.id}
-                onClick={() => !added && onPick(ex)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '9px 12px', borderRadius: 9,
-                  background: added ? 'var(--bg-input)' : 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  cursor: added ? 'default' : 'pointer',
-                  opacity: added ? 0.55 : 1,
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={e => { if (!added) e.currentTarget.style.background = 'var(--bg-input)'; }}
-                onMouseLeave={e => { if (!added) e.currentTarget.style.background = 'var(--bg-card)'; }}
-              >
-                {ex.image_url && (
-                  <img src={ex.image_url} alt={ex.name} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {ex.name}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                    {ex.default_mins ? `${ex.default_mins} min` : ''}
-                    {ex.stars > 0 ? ` · ${'★'.repeat(ex.stars)}` : ''}
-                  </div>
-                </div>
-                {added ? (
-                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>Tilføjet</span>
-                ) : (
-                  <span style={{ fontSize: 20, color: sectionType.color, fontWeight: 700, lineHeight: 1 }}>+</span>
-                )}
-              </div>
-            );
-          })}
+          {/* Tag-filter pills */}
+          {allTags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
+              {allTags.map(tag => {
+                const active = activeTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    style={{
+                      fontSize: 12, borderRadius: 20, padding: '3px 10px', border: 'none',
+                      cursor: 'pointer', fontWeight: active ? 600 : 400,
+                      background: active ? sectionType.color : 'var(--bg-input)',
+                      color: active ? '#fff' : 'var(--text2)',
+                      transition: 'background 0.12s',
+                    }}
+                  >{tag}</button>
+                );
+              })}
+            </div>
+          )}
 
-          {/* Fri øvelse */}
-          <div
-            onClick={() => onPick({ id: '', name: '' } as Exercise)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '9px 12px', borderRadius: 9,
-              background: 'var(--bg-card)', border: '1px dashed var(--border2)',
-              cursor: 'pointer', marginTop: 4,
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-input)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-card)')}
-          >
-            <span style={{ fontSize: 20, color: 'var(--text3)' }}>✏️</span>
-            <span style={{ fontSize: 14, color: 'var(--text2)', fontStyle: 'italic' }}>Fri øvelse…</span>
+          {/* Liste */}
+          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {filtered.length === 0 && (
+              <p style={{ color: 'var(--text3)', fontSize: 14, textAlign: 'center', margin: '20px 0' }}>
+                Ingen øvelser fundet.
+              </p>
+            )}
+            {filtered.map(ex => {
+              const added = alreadyAdded.includes(ex.id);
+              return (
+                <ExercisePickerRow
+                  key={ex.id}
+                  ex={ex}
+                  added={added}
+                  accentColor={sectionType.color}
+                  onPick={() => { if (!added) onPick(ex); }}
+                />
+              );
+            })}
+
+            {/* Fri øvelse */}
+            <div
+              onClick={() => setShowFree(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '9px 12px', borderRadius: 9,
+                background: 'var(--bg-card)', border: '1px dashed var(--border2)',
+                cursor: 'pointer', marginTop: 4,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-input)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-card)')}
+            >
+              <span style={{ fontSize: 18 }}>✏️</span>
+              <span style={{ fontSize: 14, color: 'var(--text2)', fontStyle: 'italic' }}>+ Fri øvelse…</span>
+            </div>
           </div>
         </div>
       </div>
+
+      {showFree && (
+        <FreeExerciseModal
+          onAdd={name => {
+            // Syntetiser en "fri øvelse" exercise og send til parent
+            onPick({ id: '', name, default_mins: 5 } as Exercise);
+            setShowFree(false);
+          }}
+          onClose={() => setShowFree(false)}
+        />
+      )}
+    </>
+  );
+}
+
+// Hjælpe-komponent til picker-rækker (inkl. foldbar beskrivelse)
+function ExercisePickerRow({ ex, added, accentColor, onPick }: {
+  ex: Exercise; added: boolean; accentColor: string; onPick: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div style={{
+      borderRadius: 9, border: '1px solid var(--border)',
+      background: added ? 'var(--bg-input)' : 'var(--bg-card)',
+      opacity: added ? 0.6 : 1,
+      overflow: 'hidden',
+    }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: added ? 'default' : 'pointer' }}
+        onClick={onPick}
+      >
+        {ex.image_url && (
+          <img src={ex.image_url} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 5, flexShrink: 0 }} />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {ex.name}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+            {(ex.tags ?? []).slice(0, 4).map(t => (
+              <span key={t} style={{
+                fontSize: 11, background: 'var(--bg-input)', border: '1px solid var(--border)',
+                borderRadius: 20, padding: '1px 7px', color: 'var(--text2)',
+              }}>{t}</span>
+            ))}
+            {ex.default_mins && <span style={{ fontSize: 11, color: 'var(--text3)' }}>{ex.default_mins} min</span>}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          {ex.description && (
+            <button
+              onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text3)', padding: '0 4px' }}
+            >{expanded ? '▾' : '▸'}</button>
+          )}
+          {added
+            ? <span style={{ fontSize: 12, color: 'var(--text3)' }}>Tilføjet</span>
+            : <span style={{ fontSize: 18, color: accentColor, fontWeight: 700, lineHeight: 1 }}>+</span>
+          }
+        </div>
+      </div>
+      {expanded && ex.description && (
+        <div style={{ padding: '0 12px 10px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, borderTop: '1px solid var(--border)' }}>
+          {ex.description}
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── SectionExerciseRow ───────────────────────────────────────────────────────
+// ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function SectionExerciseRow({
-  ex,
-  sectionColor,
-  canEdit,
-  onUpdate,
-  onRemove,
-  onMoveUp,
-  onMoveDown,
-  isFirst,
-  isLast,
+function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
+  onToggleDone, onMoveUp, onMoveDown, onDelete, onClickName, onUpdate,
 }: {
   ex: SectionExercise;
+  exerciseDef: Exercise | undefined;
   sectionColor: string;
   canEdit: boolean;
-  onUpdate: (patch: Partial<SectionExercise>) => void;
-  onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   isFirst: boolean;
   isLast: boolean;
+  onToggleDone: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onDelete: () => void;
+  onClickName: () => void;
+  onUpdate: (patch: Partial<SectionExercise>) => void;
 }) {
   const isFree = !ex.id;
+  const displayName = ex.customName || exerciseDef?.name || ex.id || '—';
+  const tags = exerciseDef?.tags ?? [];
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '6px 8px', borderRadius: 8,
-      background: ex.done ? `rgba(${hexToRgb(sectionColor)},0.06)` : 'transparent',
-      transition: 'background 0.15s',
+      display: 'flex', alignItems: 'flex-start', gap: 8,
+      padding: '8px 10px', borderRadius: 6,
+      background: 'var(--bg-input)', border: '1px solid var(--border)',
+      marginBottom: 5,
+      opacity: ex.done ? 0.5 : 1,
+      transition: 'opacity 0.15s',
     }}>
-      {/* Afkrydsning */}
-      <input
-        type="checkbox"
-        checked={!!ex.done}
-        onChange={e => onUpdate({ done: e.target.checked })}
-        style={{ width: 18, height: 18, accentColor: sectionColor, flexShrink: 0, cursor: 'pointer' }}
-      />
+      {/* Cirkel-afkrydsning */}
+      <button
+        onClick={onToggleDone}
+        style={{
+          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+          border: ex.done ? 'none' : '2px solid var(--border2)',
+          background: ex.done ? 'var(--accent)' : 'transparent',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 13, color: '#fff', marginTop: 1,
+          transition: 'background 0.15s, border-color 0.15s',
+        }}
+        aria-label="Afkryds øvelse"
+      >{ex.done ? '✓' : ''}</button>
 
-      {/* Navn */}
+      {/* Op/ned */}
+      {canEdit && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+          <button onClick={onMoveUp} disabled={isFirst} style={{ ...btnGhost, padding: '1px 5px', fontSize: 11, opacity: isFirst ? 0.25 : 1 }}>▲</button>
+          <button onClick={onMoveDown} disabled={isLast} style={{ ...btnGhost, padding: '1px 5px', fontSize: 11, opacity: isLast ? 0.25 : 1 }}>▼</button>
+        </div>
+      )}
+
+      {/* Navn + tags */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {isFree && canEdit ? (
           <input
             value={ex.customName ?? ''}
             onChange={e => onUpdate({ customName: e.target.value })}
             placeholder="Fri øvelse…"
-            style={{ ...inputSm, fontSize: 14 }}
+            style={{ ...inputSm, fontSize: 14, textDecoration: ex.done ? 'line-through' : 'none' }}
           />
         ) : (
-          <span style={{
-            fontSize: 14, fontWeight: 500,
-            textDecoration: ex.done ? 'line-through' : 'none',
-            color: ex.done ? 'var(--text3)' : 'var(--text)',
-          }}>
-            {ex.customName || ex.id || '—'}
-          </span>
+          <span
+            onClick={!isFree ? onClickName : undefined}
+            style={{
+              fontSize: 14, fontWeight: 500,
+              textDecoration: ex.done ? 'line-through' : (!isFree ? 'underline dotted' : 'none'),
+              color: ex.done ? 'var(--text3)' : 'var(--text)',
+              cursor: !isFree ? 'pointer' : 'default',
+            }}
+          >{displayName}</span>
+        )}
+        {tags.length > 0 && !ex.done && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+            {tags.slice(0, 4).map(t => (
+              <span key={t} style={{
+                fontSize: 11, background: 'var(--bg-input)', border: '1px solid var(--border)',
+                borderRadius: 20, padding: '1px 7px', color: 'var(--text2)',
+              }}>{t}</span>
+            ))}
+          </div>
         )}
       </div>
 
@@ -327,44 +533,29 @@ function SectionExerciseRow({
             value={ex.mins || ''}
             onChange={e => onUpdate({ mins: Number(e.target.value) || 0 })}
             min={1}
-            style={{ ...inputSm, width: 52, textAlign: 'center', padding: '4px 6px' }}
+            style={{ ...inputSm, width: 50, textAlign: 'center', padding: '3px 5px', fontSize: 14 }}
           />
         ) : (
-          <span style={{ fontSize: 13, color: 'var(--text2)', minWidth: 34, textAlign: 'right' }}>
-            {ex.mins} min
-          </span>
+          <span style={{ fontSize: 13, color: 'var(--text2)' }}>{ex.mins}</span>
         )}
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>min</span>
       </div>
 
-      {/* Flyt + slet */}
+      {/* Slet */}
       {canEdit && (
-        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-          <button onClick={onMoveUp} disabled={isFirst} style={{ ...btnGhost, padding: '3px 7px', opacity: isFirst ? 0.3 : 1 }}>↑</button>
-          <button onClick={onMoveDown} disabled={isLast} style={{ ...btnGhost, padding: '3px 7px', opacity: isLast ? 0.3 : 1 }}>↓</button>
-          <button onClick={onRemove} style={{ ...btnGhost, padding: '3px 7px', color: 'var(--red)' }}>×</button>
-        </div>
+        <button
+          onClick={onDelete}
+          style={{ ...btnGhost, padding: '3px 7px', color: 'var(--red)', flexShrink: 0, fontSize: 14 }}
+        >×</button>
       )}
     </div>
   );
 }
 
-// ─── ExerciseNameResolver ────────────────────────────────────────────────────
-// Slår navn op for en øvelses-id (bruger exercise-cachen fra parent)
-
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
-function SectionBlock({
-  section,
-  sectionType,
-  sectionIndex,
-  totalSections,
-  exercises,
-  canEdit,
-  onUpdate,
-  onRemove,
-  onMoveUp,
-  onMoveDown,
+function SectionBlock({ section, sectionType, sectionIndex, totalSections, exercises, canEdit,
+  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone,
 }: {
   section: Section;
   sectionType: SectionType | undefined;
@@ -376,33 +567,34 @@ function SectionBlock({
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onToggleDone: (exerciseIdx: number) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
+  const [detailEx, setDetailEx] = useState<Exercise | null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
   const color = sectionType?.color ?? '#6b6b6b';
   const label = sectionType?.label ?? section.type;
+  const exList = section.exercises ?? [];
+  const doneCount = exList.filter(e => e.done).length;
+  const total = exList.length;
+  const allDone = total > 0 && doneCount === total;
 
-  const secMins = section.mins;
-  const usedMins = (section.exercises ?? []).reduce((s, e) => s + (e.mins || 0), 0);
-  const remaining = secMins - usedMins;
-  const overMins = usedMins > secMins;
-
-  const alreadyAddedIds = (section.exercises ?? []).filter(e => !!e.id).map(e => e.id!);
+  // Gruppe-badge farver
+  const groupStyle = section.group ? (GROUP_COLORS[section.group] ?? { bg: '#888', text: '#fff' }) : null;
 
   function updateExercise(idx: number, patch: Partial<SectionExercise>) {
-    const exs = [...(section.exercises ?? [])];
+    const exs = [...exList];
     exs[idx] = { ...exs[idx], ...patch };
     onUpdate({ exercises: exs });
   }
 
   function removeExercise(idx: number) {
-    const exs = (section.exercises ?? []).filter((_, i) => i !== idx);
-    onUpdate({ exercises: exs });
+    onUpdate({ exercises: exList.filter((_, i) => i !== idx) });
   }
 
   function moveExercise(idx: number, dir: -1 | 1) {
-    const exs = [...(section.exercises ?? [])];
+    const exs = [...exList];
     const other = idx + dir;
     if (other < 0 || other >= exs.length) return;
     [exs[idx], exs[other]] = [exs[other], exs[idx]];
@@ -410,86 +602,141 @@ function SectionBlock({
   }
 
   function addExercise(ex: Exercise) {
+    const usedMins = exList.reduce((s, e) => s + (e.mins || 0), 0);
+    const remaining = section.mins - usedMins;
     const isFree = !ex.id;
     const newEx: SectionExercise = {
       id: isFree ? undefined : ex.id,
-      customName: isFree ? '' : ex.name,
-      mins: ex.default_mins ?? Math.max(1, Math.round(remaining / Math.max(1, 1))),
+      customName: isFree ? ex.name : undefined,
+      mins: ex.default_mins ?? Math.max(1, Math.min(remaining, 10)),
       done: false,
     };
-    onUpdate({ exercises: [...(section.exercises ?? []), newEx] });
+    onUpdate({ exercises: [...exList, newEx] });
   }
+
+  const alreadyAddedIds = exList.filter(e => !!e.id).map(e => e.id!);
 
   return (
     <div style={{
       borderLeft: `4px solid ${color}`,
-      background: 'var(--bg-card)', borderRadius: '0 10px 10px 0',
-      marginBottom: 10, overflow: 'hidden',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      border: `1px solid var(--border)`,
+      borderLeft: `4px solid ${color}`,
+      borderRadius: 8, marginBottom: 10, overflow: 'hidden',
     }}>
-      {/* Sektion-header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '10px 14px',
-        background: `rgba(${hexToRgb(color)},0.05)`,
-        borderBottom: collapsed ? 'none' : '1px solid var(--border)',
-        cursor: 'pointer',
-      }} onClick={() => setCollapsed(c => !c)}>
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '9px 13px', background: 'var(--bg-input)',
+          cursor: 'pointer',
+          borderBottom: collapsed ? 'none' : '1px solid var(--border)',
+        }}
+        onClick={() => setCollapsed(c => !c)}
+      >
+        {/* Flyt op/ned */}
+        {canEdit && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+            <button onClick={onMoveUp} disabled={sectionIndex === 1}
+              style={{ ...btnGhost, padding: '1px 5px', fontSize: 11, opacity: sectionIndex === 1 ? 0.25 : 1, lineHeight: 1 }}>▲</button>
+            <button onClick={onMoveDown} disabled={sectionIndex === totalSections}
+              style={{ ...btnGhost, padding: '1px 5px', fontSize: 11, opacity: sectionIndex === totalSections ? 0.25 : 1, lineHeight: 1 }}>▼</button>
+          </div>
+        )}
+
+        {/* Chevron */}
+        <span style={{
+          fontSize: 13, color: 'var(--text3)', flexShrink: 0,
+          transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s', display: 'inline-block',
+        }}>▾</span>
+
         {/* Label */}
         <span style={{
-          fontFamily: 'var(--font-heading)', fontSize: 15, fontWeight: 700,
+          fontFamily: 'var(--font-heading)', fontSize: 13, fontWeight: 700,
+          letterSpacing: '0.07em', textTransform: 'uppercase',
           color, flexShrink: 0,
         }}>
           {sectionIndex}. {label}
         </span>
 
-        {/* Gruppe-badge */}
-        {section.group && (
+        {/* Afkrydsnings-progress */}
+        {total > 0 && (
           <span style={{
-            fontSize: 11, fontWeight: 700, background: color, color: '#fff',
-            borderRadius: 4, padding: '1px 6px', flexShrink: 0,
+            fontSize: 12, flexShrink: 0,
+            color: allDone ? 'var(--green)' : 'var(--text3)',
+            fontWeight: allDone ? 700 : 400,
+          }}>
+            {allDone ? '✓ Færdig' : `${doneCount}/${total}`}
+          </span>
+        )}
+
+        {/* Gruppe-badge */}
+        {section.group && groupStyle && (
+          <span style={{
+            fontSize: 11, fontWeight: 700,
+            background: groupStyle.bg, color: groupStyle.text,
+            borderRadius: 4, padding: '1px 7px', flexShrink: 0,
           }}>Gruppe {section.group}</span>
         )}
 
-        {/* Minutter-input */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }} onClick={e => e.stopPropagation()}>
-          {canEdit ? (
-            <input
-              type="number"
-              value={secMins || ''}
-              onChange={e => onUpdate({ mins: Number(e.target.value) || 0 })}
-              min={1}
-              style={{ ...inputSm, width: 52, textAlign: 'center', padding: '3px 6px' }}
-            />
-          ) : (
-            <span style={{ fontSize: 13, fontWeight: 600, color }}>{secMins}</span>
-          )}
-          <span style={{ fontSize: 12, color: 'var(--text2)' }}>min</span>
-          {!collapsed && (
-            <span style={{
-              fontSize: 12,
-              color: overMins ? 'var(--red)' : 'var(--text3)',
-              marginLeft: 4,
-            }}>
-              ({usedMins}/{secMins})
-            </span>
-          )}
-        </div>
-
-        {/* Flyt + slet */}
-        {canEdit && (
-          <div style={{ display: 'flex', gap: 2 }} onClick={e => e.stopPropagation()}>
-            <button onClick={onMoveUp} disabled={sectionIndex === 1} style={{ ...btnGhost, padding: '2px 7px', opacity: sectionIndex === 1 ? 0.3 : 1 }}>↑</button>
-            <button onClick={onMoveDown} disabled={sectionIndex === totalSections} style={{ ...btnGhost, padding: '2px 7px', opacity: sectionIndex === totalSections ? 0.3 : 1 }}>↓</button>
-            <button onClick={onRemove} style={{ ...btnGhost, padding: '2px 7px', color: 'var(--red)' }}>×</button>
-          </div>
+        {/* Collapsed: vis antal + tid */}
+        {collapsed && (
+          <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto', flexShrink: 0 }}>
+            {total > 0 ? `${total} øv · ` : ''}{section.mins} min
+          </span>
         )}
 
-        <span style={{ fontSize: 14, color: 'var(--text3)', marginLeft: 4 }}>{collapsed ? '▼' : '▲'}</span>
+        {/* Ikke collapsed: controls */}
+        {!collapsed && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }} onClick={e => e.stopPropagation()}>
+            {/* Minutter */}
+            {canEdit ? (
+              <input
+                type="number"
+                value={section.mins || ''}
+                onChange={e => onUpdate({ mins: Number(e.target.value) || 0 })}
+                min={1} max={240}
+                style={{ ...inputSm, width: 52, textAlign: 'center', padding: '3px 6px', fontSize: 15, fontWeight: 700 }}
+              />
+            ) : (
+              <span style={{ fontSize: 14, fontWeight: 700, color }}>{section.mins}</span>
+            )}
+            <span style={{ fontSize: 12, color: 'var(--text2)' }}>min</span>
+
+            {/* Gruppe-select */}
+            {canEdit && (
+              <select
+                value={section.group ?? ''}
+                onChange={e => onUpdate({ group: e.target.value || undefined })}
+                style={{ ...inputSm, width: 'auto', fontSize: 11, padding: '3px 6px', minHeight: 'auto' }}
+              >
+                <option value="">Gruppe –</option>
+                {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            )}
+
+            {/* AI-knap per sektion (disabled, Session 5) */}
+            <button
+              disabled
+              title="AI-forslag (Session 5)"
+              style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', opacity: 0.4, cursor: 'not-allowed', padding: '3px 9px', fontSize: 13 }}
+            >✨</button>
+
+            {/* + Øvelse */}
+            <button
+              onClick={() => setShowPicker(true)}
+              style={{ ...btnGhost, borderColor: color, color, padding: '3px 10px', fontSize: 13, fontWeight: 600 }}
+            >+ Øvelse</button>
+
+            {/* Slet sektion */}
+            <button onClick={onRemove} style={{ ...btnGhost, padding: '3px 8px', color: 'var(--red)', fontSize: 15 }}>✕</button>
+          </div>
+        )}
       </div>
 
+      {/* Body */}
       {!collapsed && (
-        <div style={{ padding: '8px 12px 12px' }}>
+        <div style={{ padding: '10px 12px 12px', background: 'var(--bg-card)' }}>
           {/* Note */}
           {canEdit && (
             <input
@@ -497,53 +744,34 @@ function SectionBlock({
               onChange={e => onUpdate({ note: e.target.value })}
               placeholder="Note til sektionen…"
               style={{ ...inputSm, marginBottom: 8, fontSize: 13 }}
-              onClick={e => e.stopPropagation()}
             />
           )}
           {!canEdit && section.note && (
             <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>{section.note}</p>
           )}
 
-          {/* Øvelser */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {(section.exercises ?? []).length === 0 ? (
-              <p style={{ fontSize: 13, color: 'var(--text3)', margin: '4px 0 8px', textAlign: 'center' }}>
-                Ingen øvelser — klik "+ Øvelse"
-              </p>
-            ) : (
-              (section.exercises ?? []).map((ex, idx) => {
-                // Resolve name from exercise cache
-                const exData = exercises.find(e => e.id === ex.id);
-                const displayEx = { ...ex, customName: ex.customName || exData?.name || ex.id || '' };
-                return (
-                  <SectionExerciseRow
-                    key={idx}
-                    ex={displayEx}
-                    sectionColor={color}
-                    canEdit={canEdit}
-                    onUpdate={patch => updateExercise(idx, patch)}
-                    onRemove={() => removeExercise(idx)}
-                    onMoveUp={() => moveExercise(idx, -1)}
-                    onMoveDown={() => moveExercise(idx, 1)}
-                    isFirst={idx === 0}
-                    isLast={idx === (section.exercises ?? []).length - 1}
-                  />
-                );
-              })
-            )}
-          </div>
-
-          {/* + Øvelse */}
-          {canEdit && (
-            <button
-              onClick={() => setShowPicker(true)}
-              style={{
-                ...btnGhost, marginTop: 8,
-                borderColor: color, color,
-                width: '100%', padding: '6px 0',
-              }}
-            >+ Øvelse</button>
-          )}
+          {exList.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--text3)', margin: '4px 0', textAlign: 'center' }}>Ingen øvelser</p>
+          ) : exList.map((ex, idx) => {
+            const exDef = exercises.find(e => e.id === ex.id);
+            return (
+              <ExerciseRow
+                key={idx}
+                ex={ex}
+                exerciseDef={exDef}
+                sectionColor={color}
+                canEdit={canEdit}
+                isFirst={idx === 0}
+                isLast={idx === exList.length - 1}
+                onToggleDone={() => onToggleDone(idx)}
+                onMoveUp={() => moveExercise(idx, -1)}
+                onMoveDown={() => moveExercise(idx, 1)}
+                onDelete={() => removeExercise(idx)}
+                onClickName={() => exDef && setDetailEx(exDef)}
+                onUpdate={patch => updateExercise(idx, patch)}
+              />
+            );
+          })}
         </div>
       )}
 
@@ -553,22 +781,25 @@ function SectionBlock({
           sectionType={sectionType}
           exercises={exercises}
           alreadyAdded={alreadyAddedIds}
-          onPick={ex => { addExercise(ex); setShowPicker(false); }}
+          onPick={ex => {
+            addExercise(ex);
+            setShowPicker(false);
+          }}
           onClose={() => setShowPicker(false)}
         />
       )}
+
+      {/* Øvelse-detalje modal */}
+      {detailEx && <ExerciseDetailModal ex={detailEx} onClose={() => setDetailEx(null)} />}
     </div>
   );
 }
 
 // ─── LoadTemplateModal ────────────────────────────────────────────────────────
 
-function LoadTemplateModal({
-  teamId,
-  onLoad,
-  onClose,
-}: {
+function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
   teamId: string;
+  hasSections: boolean;
   onLoad: (sections: Section[]) => void;
   onClose: () => void;
 }) {
@@ -578,6 +809,17 @@ function LoadTemplateModal({
   useEffect(() => {
     api.fetchTemplates(teamId).then(setTemplates).finally(() => setLoading(false));
   }, [teamId]);
+
+  function handleLoad(sections: Section[]) {
+    // Friske ids + nulstil done
+    const clean = sections.map(s => ({
+      ...s,
+      id: uid(),
+      exercises: (s.exercises ?? []).map(e => ({ ...e, done: false })),
+    }));
+    onLoad(clean);
+    onClose();
+  }
 
   return (
     <div style={{
@@ -594,10 +836,23 @@ function LoadTemplateModal({
           <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Indlæs skabelon</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
         </div>
+
+        {/* Advarsel */}
+        {hasSections && (
+          <div style={{
+            background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8,
+            padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#78350f',
+            display: 'flex', gap: 8, alignItems: 'flex-start',
+          }}>
+            <span>⚠</span>
+            <span>Dette erstatter dine nuværende sektioner.</span>
+          </div>
+        )}
+
         {loading ? (
           <p style={{ color: 'var(--text3)', fontSize: 14 }}>Indlæser…</p>
         ) : templates.length === 0 ? (
-          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Ingen skabeloner endnu.</p>
+          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Ingen skabeloner — gem en træning som skabelon.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {templates.map(t => (
@@ -610,7 +865,7 @@ function LoadTemplateModal({
                   <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t.sections?.length ?? 0} sektioner</div>
                 </div>
                 <button
-                  onClick={() => { onLoad(t.sections); onClose(); }}
+                  onClick={() => handleLoad(t.sections)}
                   style={{
                     background: 'var(--accent)', color: '#fff', border: 'none',
                     borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer',
@@ -627,11 +882,7 @@ function LoadTemplateModal({
 
 // ─── SaveTemplateModal ────────────────────────────────────────────────────────
 
-function SaveTemplateModal({
-  teamId,
-  sections,
-  onClose,
-}: {
+function SaveTemplateModal({ teamId, sections, onClose }: {
   teamId: string;
   sections: Section[];
   onClose: () => void;
@@ -644,7 +895,13 @@ function SaveTemplateModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await api.createTemplate({ name: name.trim(), sections, team_id: teamId });
+      // Rens: nye ids + done: false
+      const clean = sections.map(s => ({
+        ...s,
+        id: uid(),
+        exercises: (s.exercises ?? []).map(e => ({ ...e, done: false })),
+      }));
+      await api.createTemplate({ name: name.trim(), sections: clean, team_id: teamId });
       setDone(true);
       setTimeout(onClose, 1000);
     } finally {
@@ -679,8 +936,7 @@ function SaveTemplateModal({
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
               <button
-                onClick={handleSave}
-                disabled={saving || !name.trim()}
+                onClick={handleSave} disabled={saving || !name.trim()}
                 style={{
                   background: 'var(--accent)', color: '#fff', border: 'none',
                   borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
@@ -697,14 +953,11 @@ function SaveTemplateModal({
 
 // ─── SectionList (hoved-eksport) ──────────────────────────────────────────────
 
-export function SectionList({
-  training,
-  canEdit,
-  onUpdate,
-}: {
+export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
   training: Training;
   canEdit: boolean;
   onUpdate: (patch: Partial<Training>) => void;
+  onInstantSave: (patch: Partial<Training>) => void;
 }) {
   const [sectionTypes, setSectionTypes] = useState<SectionType[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -726,13 +979,7 @@ export function SectionList({
   }
 
   function addSection(st: SectionType) {
-    const newSection: Section = {
-      id: uid(),
-      type: st.id,
-      mins: 15,
-      exercises: [],
-    };
-    updateSections([...sections, newSection]);
+    updateSections([...sections, { id: uid(), type: st.id, mins: 15, exercises: [] }]);
   }
 
   function removeSection(idx: number) {
@@ -753,6 +1000,33 @@ export function SectionList({
     updateSections(updated);
   }
 
+  // Straks-gem ved afkrydsning (ingen debounce)
+  function toggleDone(sectionIdx: number, exerciseIdx: number) {
+    const updated = sections.map((sec, si) => {
+      if (si !== sectionIdx) return sec;
+      return {
+        ...sec,
+        exercises: sec.exercises.map((ex, ei) =>
+          ei !== exerciseIdx ? ex : { ...ex, done: !ex.done }
+        ),
+      };
+    });
+    onInstantSave({ sections: updated });
+  }
+
+  // Nulstil alle afkrydsninger
+  function resetDone() {
+    const anyDone = sections.some(s => s.exercises.some(e => e.done));
+    if (!anyDone) return;
+    const updated = sections.map(sec => ({
+      ...sec,
+      exercises: sec.exercises.map(ex => ({ ...ex, done: false })),
+    }));
+    onInstantSave({ sections: updated });
+  }
+
+  const anyDone = sections.some(s => s.exercises.some(e => e.done));
+
   return (
     <div style={{
       background: 'var(--bg-card)', borderRadius: 14,
@@ -762,41 +1036,36 @@ export function SectionList({
       {/* Card-header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        padding: '14px 16px',
-        borderBottom: '1px solid var(--border)',
+        padding: '14px 16px', borderBottom: '1px solid var(--border)',
         flexWrap: 'wrap',
       }}>
         <span style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700, flex: 1 }}>
           Sektioner & øvelser
         </span>
 
-        {/* Indlæs skabelon */}
-        <button
-          onClick={() => setShowLoadTemplate(true)}
-          title="Indlæs skabelon"
-          style={{ ...btnGhost, padding: '5px 10px' }}
-        >📋</button>
-
-        {/* Gem som skabelon */}
-        {canEdit && sections.length > 0 && (
-          <button
-            onClick={() => setShowSaveTemplate(true)}
-            title="Gem som skabelon"
-            style={{ ...btnGhost, padding: '5px 10px' }}
-          >💾</button>
+        {/* Nulstil afkrydsninger */}
+        {anyDone && (
+          <button onClick={resetDone} title="Nulstil alle afkrydsninger" style={{ ...btnGhost, padding: '5px 10px', fontSize: 13 }}>
+            ↺ Nulstil
+          </button>
         )}
 
-        {/* AI-forslag — disabled indtil Session 5 */}
+        {/* Indlæs skabelon */}
+        <button onClick={() => setShowLoadTemplate(true)} title="Indlæs skabelon" style={{ ...btnGhost, padding: '5px 10px' }}>📋</button>
+
+        {/* Gem skabelon */}
+        {canEdit && sections.length > 0 && (
+          <button onClick={() => setShowSaveTemplate(true)} title="Gem som skabelon" style={{ ...btnGhost, padding: '5px 10px' }}>💾</button>
+        )}
+
+        {/* AI hele træning — disabled til Session 5 */}
         <button
           disabled
-          title="AI-forslag (kommer i Session 5)"
+          title="AI-forslag til hele træning (Session 5)"
           style={{
             ...btnGhost,
-            border: '1px solid #7c3aed',
-            color: '#7c3aed',
-            opacity: 0.45,
-            cursor: 'not-allowed',
-            padding: '5px 12px',
+            border: '1px solid #7c3aed', color: '#7c3aed',
+            opacity: 0.45, cursor: 'not-allowed', padding: '5px 12px',
           }}
         >✨ Hele træning</button>
 
@@ -822,29 +1091,27 @@ export function SectionList({
           <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text3)', fontSize: 14 }}>
             Ingen sektioner — klik "+ Sektion" for at begynde.
           </div>
-        ) : (
-          sections.map((sec, idx) => {
-            const st = sectionTypes.find(t => t.id === sec.type);
-            return (
-              <SectionBlock
-                key={sec.id}
-                section={sec}
-                sectionType={st}
-                sectionIndex={idx + 1}
-                totalSections={sections.length}
-                exercises={exercises}
-                canEdit={canEdit}
-                onUpdate={patch => updateSection(idx, patch)}
-                onRemove={() => removeSection(idx)}
-                onMoveUp={() => moveSection(idx, -1)}
-                onMoveDown={() => moveSection(idx, 1)}
-              />
-            );
-          })
-        )}
+        ) : sections.map((sec, idx) => {
+          const st = sectionTypes.find(t => t.id === sec.type);
+          return (
+            <SectionBlock
+              key={sec.id}
+              section={sec}
+              sectionType={st}
+              sectionIndex={idx + 1}
+              totalSections={sections.length}
+              exercises={exercises}
+              canEdit={canEdit}
+              onUpdate={patch => updateSection(idx, patch)}
+              onRemove={() => removeSection(idx)}
+              onMoveUp={() => moveSection(idx, -1)}
+              onMoveDown={() => moveSection(idx, 1)}
+              onToggleDone={exIdx => toggleDone(idx, exIdx)}
+            />
+          );
+        })}
       </div>
 
-      {/* Modaler */}
       {showAddSection && (
         <AddSectionModal
           sectionTypes={sectionTypes}
@@ -855,11 +1122,8 @@ export function SectionList({
       {showLoadTemplate && (
         <LoadTemplateModal
           teamId={teamId}
-          onLoad={secs => {
-            // Tilføj nye ids så React tracker dem
-            const withIds = secs.map(s => ({ ...s, id: s.id || uid() }));
-            updateSections(withIds);
-          }}
+          hasSections={sections.length > 0}
+          onLoad={secs => updateSections(secs)}
           onClose={() => setShowLoadTemplate(false)}
         />
       )}

@@ -544,6 +544,7 @@ export default function TrainingEditor() {
         training={training}
         canEdit={canEdit}
         onUpdate={update}
+        onInstantSave={saveNow}
       />
 
     </div>
