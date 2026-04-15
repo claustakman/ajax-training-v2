@@ -1,4 +1,5 @@
 // API-klient — BASE_URL skifter prod/dev
+import type { Training, Template } from './types';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787';
 
@@ -38,6 +39,24 @@ export const api = {
   put: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+
+  // ── Træninger ──────────────────────────────────────────────────────────────
+  fetchTrainings: (teamId: string, archived?: 0 | 1) => {
+    const q = archived !== undefined ? `&archived=${archived}` : '';
+    return request<Training[]>(`/api/trainings?team_id=${teamId}${q}`);
+  },
+  fetchTraining: (id: string) => request<Training>(`/api/trainings/${id}`),
+  createTraining: (data: Partial<Training>) =>
+    request<Training>('/api/trainings', { method: 'POST', body: JSON.stringify(data) }),
+  updateTraining: (id: string, data: Partial<Training>) =>
+    request<Training>(`/api/trainings/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteTraining: (id: string) => request<{ deleted: boolean }>(`/api/trainings/${id}`, { method: 'DELETE' }),
+
+  // ── Skabeloner ─────────────────────────────────────────────────────────────
+  fetchTemplates: (teamId: string) => request<Template[]>(`/api/templates?team_id=${teamId}`),
+  createTemplate: (data: { name: string; sections: unknown[]; team_id: string }) =>
+    request<Template>('/api/templates', { method: 'POST', body: JSON.stringify(data) }),
+  deleteTemplate: (id: string) => request<{ deleted: boolean }>(`/api/templates/${id}`, { method: 'DELETE' }),
 
   // Multipart upload (billeder)
   upload: async <T>(path: string, formData: FormData): Promise<T> => {
