@@ -10,6 +10,7 @@ import { sectionTypeRoutes } from './routes/section_types';
 import { boardRoutes } from './routes/board';
 import { holdsportRoutes } from './routes/holdsport';
 import { aiRoutes } from './routes/ai';
+import { templateRoutes } from './routes/templates';
 
 export type Env = {
   DB: D1Database;
@@ -37,6 +38,7 @@ app.route('/api/section-types', sectionTypeRoutes);
 app.route('/api/board', boardRoutes);
 app.route('/api/holdsport', holdsportRoutes);
 app.route('/api/ai', aiRoutes);
+app.route('/api/templates', templateRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
 app.onError((err, c) => {

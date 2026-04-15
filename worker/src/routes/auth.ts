@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { verifyPassword, createJWT, hashPassword, verifyJWT, newId } from '../lib/auth';
+import { verifyPassword, createJWT, hashPassword, newId } from '../lib/auth';
 import { requireAuth, type AuthContext } from '../lib/middleware';
 import type { Env } from '../index';
 
