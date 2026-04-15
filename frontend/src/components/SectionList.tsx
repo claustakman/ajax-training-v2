@@ -477,7 +477,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
         style={{
           width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
           border: ex.done ? 'none' : '2px solid var(--border2)',
-          background: ex.done ? 'var(--accent)' : 'transparent',
+          background: ex.done ? sectionColor : 'transparent',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 13, color: '#fff', marginTop: 1,
           transition: 'background 0.15s, border-color 0.15s',
@@ -620,7 +620,6 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
     <div style={{
       borderLeft: `4px solid ${color}`,
       border: `1px solid var(--border)`,
-      borderLeft: `4px solid ${color}`,
       borderRadius: 8, marginBottom: 10, overflow: 'hidden',
     }}>
       {/* Header */}
