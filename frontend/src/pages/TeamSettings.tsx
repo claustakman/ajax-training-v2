@@ -191,67 +191,73 @@ export default function TeamSettings() {
               onDrop={() => handleDrop(idx)}
               onDragEnd={() => { setDragOver(null); dragIdx.current = null; }}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 12px',
                 borderRadius: 10,
                 background: dragOver === idx ? 'var(--accent-light)' : 'var(--bg-input)',
                 border: `1px solid ${dragOver === idx ? 'var(--accent)' : 'var(--border2)'}`,
                 borderLeft: `4px solid ${st.color}`,
                 cursor: 'grab',
                 transition: 'background 0.15s',
+                overflow: 'hidden',
               }}
             >
-              {/* Drag handle */}
-              <span style={{ color: 'var(--text3)', fontSize: 14, flexShrink: 0 }}>⠿</span>
+              {/* Øverste række: drag + farve + navn + knapper */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px' }}>
+                {/* Drag handle */}
+                <span style={{ color: 'var(--text3)', fontSize: 14, flexShrink: 0 }}>⠿</span>
 
-              {/* Color dot */}
-              <span style={{
-                width: 14, height: 14, borderRadius: '50%',
-                background: st.color, flexShrink: 0,
-              }} />
-
-              {/* Label */}
-              <span style={{ flex: 1, fontWeight: 500, fontSize: 14 }}>{st.label}</span>
-
-              {/* Required badge */}
-              {st.required === 1 && (
+                {/* Color dot */}
                 <span style={{
-                  fontSize: 11, color: 'var(--text3)',
-                  background: 'var(--bg-card)',
-                  padding: '2px 8px', borderRadius: 20,
-                  border: '1px solid var(--border2)',
-                }}>Påkrævet</span>
-              )}
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: st.color, flexShrink: 0,
+                }} />
 
-              {/* Tags */}
+                {/* Label + Påkrævet */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{st.label}</div>
+                  {st.required === 1 && (
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>Påkrævet</div>
+                  )}
+                </div>
+
+                {/* Actions — altid synlige, altid indenfor kortet */}
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button
+                    onClick={e => { e.stopPropagation(); openEdit(st); }}
+                    style={{
+                      padding: '5px 12px', borderRadius: 8, fontSize: 12,
+                      background: 'var(--bg-card)', color: 'var(--text2)',
+                      border: '1px solid var(--border2)', cursor: 'pointer',
+                      minHeight: 32,
+                    }}
+                  >Rediger</button>
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDelete(st); }}
+                    style={{
+                      padding: '5px 12px', borderRadius: 8, fontSize: 12,
+                      background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
+                      border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
+                      minHeight: 32,
+                    }}
+                  >Slet</button>
+                </div>
+              </div>
+
+              {/* Tags — kun hvis der er nogen, én enkelt række med pills */}
               {st.tags.length > 0 && (
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {st.tags.slice(0, 3).map(t => (
+                <div style={{
+                  display: 'flex', flexWrap: 'wrap', gap: 4,
+                  padding: '0 12px 10px 38px',
+                }}>
+                  {st.tags.map(t => (
                     <span key={t} style={{
-                      fontSize: 11, padding: '2px 6px',
-                      background: `${st.color}20`, color: st.color,
-                      borderRadius: 12,
+                      fontSize: 11, padding: '2px 8px',
+                      background: `${st.color}18`, color: st.color,
+                      borderRadius: 20, border: `1px solid ${st.color}30`,
+                      fontWeight: 500,
                     }}>{t}</span>
                   ))}
-                  {st.tags.length > 3 && <span style={{ fontSize: 11, color: 'var(--text3)' }}>+{st.tags.length - 3}</span>}
                 </div>
               )}
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                <button
-                  onClick={() => openEdit(st)}
-                  style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, background: 'var(--bg-card)', color: 'var(--text2)', border: '1px solid var(--border2)' }}
-                >
-                  Rediger
-                </button>
-                <button
-                  onClick={() => handleDelete(st)}
-                  style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', border: '1px solid rgba(220,38,38,0.2)' }}
-                >
-                  Slet
-                </button>
-              </div>
             </div>
           ))}
         </div>
