@@ -112,23 +112,46 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   );
 
   // Hent aktiviteter når step skifter til 'activities'
+  // Flow: hent config (workerUrl + token) fra vores API → kald Holdsport-worker direkte fra browser
   useEffect(() => {
     if (step !== 'activities') return;
     setLoadingAct(true);
     setFetchError('');
-    api.fetchHoldsportActivities(teamId, from, to)
-      .then(data => {
-        setActivities(data);
+
+    (async () => {
+      try {
+        // 1. Hent credentials fra vores API
+        const config = await api.fetchHoldsportConfig(teamId);
+
+        // 2. Hent hold fra Holdsport-workeren direkte (browser → worker)
+        const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
+
+        // 3. Hent aktiviteter for hvert hold
+        const all: HoldsportActivity[] = [];
+        for (const team of teams) {
+          try {
+            const acts = await api.fetchHoldsportActivitiesForTeam(
+              config.workerUrl, config.token, team.id, from, to
+            );
+            const arr = Array.isArray(acts) ? acts : [];
+            all.push(...arr.map(a => ({ ...a, _teamId: team.id, _teamName: team.name ?? team.title ?? '' })));
+          } catch { /* spring over fejlende hold */ }
+        }
+
+        setActivities(all);
         // Forvælg alle træninger der ikke er importeret endnu
         const preselect = new Set(
-          data
+          all
             .filter(a => isTraining(a) && !importedIds.has(String(a.id)))
             .map(a => String(a.id))
         );
         setSelected(preselect);
-      })
-      .catch(e => setFetchError(e.message ?? 'Fejl ved hentning'))
-      .finally(() => setLoadingAct(false));
+      } catch (e: unknown) {
+        setFetchError(e instanceof Error ? e.message : 'Fejl ved hentning');
+      } finally {
+        setLoadingAct(false);
+      }
+    })();
   }, [step]);
 
   const filtered = showAll ? activities : activities.filter(isTraining);

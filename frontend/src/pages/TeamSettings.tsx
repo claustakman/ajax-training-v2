@@ -22,17 +22,15 @@ function HoldsportSection({ teamId, initialUrl, initialToken }: {
     if (!workerUrl) return;
     setTesting(true);
     setTestResult(null);
-    // Gem midlertidigt så ping kan bruge de nye værdier
     try {
+      // Gem credentials først
       await api.updateTeam(teamId, { holdsport_worker_url: workerUrl, holdsport_token: token });
-      const res = await api.pingHoldsport(teamId);
-      if (res.ok) {
-        setTestResult({ ok: true, message: `✓ Forbundet — fandt ${res.team_count ?? 0} hold` });
-      } else {
-        setTestResult({ ok: false, message: `✗ Kunne ikke forbinde: ${res.error ?? 'Ukendt fejl'}` });
-      }
+      // Kald Holdsport-workeren direkte fra browser (undgår worker-til-worker begrænsning)
+      const cleanUrl = workerUrl.replace(/\/+$/, '');
+      const teams = await api.fetchHoldsportTeams(cleanUrl, token);
+      setTestResult({ ok: true, message: `✓ Forbundet — fandt ${teams.length} hold` });
     } catch (e) {
-      setTestResult({ ok: false, message: `✗ ${e instanceof ApiError ? e.message : 'Fejl'}` });
+      setTestResult({ ok: false, message: `✗ ${e instanceof ApiError ? e.message : 'Kunne ikke forbinde'}` });
     } finally {
       setTesting(false);
     }

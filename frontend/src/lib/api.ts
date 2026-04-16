@@ -71,14 +71,35 @@ export const api = {
     request<import('./auth').Team>(`/api/teams/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // ── Holdsport ─────────────────────────────────────────────────────────────
-  fetchHoldsportActivities: (teamId: string, from: string, to: string) =>
-    request<import('./types').HoldsportActivity[]>(
-      `/api/holdsport/activities?team_id=${teamId}&from=${from}&to=${to}`
+  // Henter workerUrl + token fra vores API — frontend kalder Holdsport-workeren direkte
+  fetchHoldsportConfig: (teamId: string) =>
+    request<{ workerUrl: string; token: string }>(
+      `/api/holdsport/config?team_id=${teamId}`
     ),
-  pingHoldsport: (teamId: string) =>
-    request<{ ok: boolean; team_count?: number; error?: string }>(
-      `/api/holdsport/ping?team_id=${teamId}`
-    ),
+
+  // Kald Holdsport-workeren direkte fra browser (undgår Cloudflare worker-til-worker begrænsning)
+  fetchHoldsportTeams: async (workerUrl: string, token: string) => {
+    const res = await fetch(`${workerUrl}/teams`, {
+      headers: { 'X-Token': token, 'Accept': 'application/json' },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      throw new ApiError(res.status, body.error ?? `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<Array<{ id: string | number; name?: string; title?: string }>>;
+  },
+
+  fetchHoldsportActivitiesForTeam: async (workerUrl: string, token: string, teamId: string | number, from: string, to: string) => {
+    const url = new URL(`${workerUrl}/teams/${teamId}/activities`);
+    url.searchParams.set('date', from);
+    url.searchParams.set('to', to);
+    url.searchParams.set('per_page', '100');
+    const res = await fetch(url.toString(), {
+      headers: { 'X-Token': token, 'Accept': 'application/json' },
+    });
+    if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
+    return res.json() as Promise<import('./types').HoldsportActivity[]>;
+  },
 
   // ── Sektionstyper ─────────────────────────────────────────────────────────
   fetchSectionTypes: (teamId: string) =>
