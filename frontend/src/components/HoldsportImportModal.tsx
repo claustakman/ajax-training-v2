@@ -48,6 +48,16 @@ function isTraining(activity: HoldsportActivity): boolean {
   return name.includes('træning') || name.includes('training');
 }
 
+function countAttendees(activity: HoldsportActivity): number | undefined {
+  // Holdsport returnerer activities_users med status_code 1 = Tilmeldt
+  const users = (activity as unknown as Record<string, unknown>).activities_users;
+  if (Array.isArray(users)) {
+    const count = users.filter((u: unknown) => (u as Record<string, unknown>).status_code === 1).length;
+    return count > 0 ? count : undefined;
+  }
+  return activity.attendance_count ?? activity.signups_count ?? undefined;
+}
+
 function mapActivity(activity: HoldsportActivity, teamId: string): Partial<Training> {
   return {
     team_id: teamId,
@@ -55,7 +65,7 @@ function mapActivity(activity: HoldsportActivity, teamId: string): Partial<Train
     start_time: activity.starttime?.split('T')[1]?.slice(0, 5),
     end_time: activity.endtime?.split('T')[1]?.slice(0, 5),
     location: activity.place || activity.location || undefined,
-    participant_count: activity.attendance_count ?? activity.signups_count ?? undefined,
+    participant_count: countAttendees(activity),
     holdsport_id: String(activity.id),
     sections: [],
     trainers: [],
@@ -319,7 +329,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                       const timeRange = fmtTimeRange(activity.starttime, activity.endtime);
                       const dateStr = fmtActivityDate(activity.starttime);
                       const place = activity.place || activity.location;
-                      const participants = activity.attendance_count ?? activity.signups_count;
+                      const participants = countAttendees(activity);
 
                       return (
                         <div
