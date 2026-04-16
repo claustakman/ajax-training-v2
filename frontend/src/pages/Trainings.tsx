@@ -178,9 +178,7 @@ export default function Trainings() {
   const [showHoldsportModal, setShowHoldsportModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Find det aktive holds Holdsport-konfiguration
-  const currentTeam = user?.teams.find(t => t.id === currentTeamId);
-  const holdsportConfigured = !!(currentTeam?.holdsport_worker_url);
+
 
   function load() {
     if (!currentTeamId) return;
@@ -199,10 +197,6 @@ export default function Trainings() {
   }
 
   function handleHoldsportClick() {
-    if (!holdsportConfigured) {
-      navigate('/indstillinger');
-      return;
-    }
     setShowHoldsportModal(true);
   }
 
@@ -257,11 +251,11 @@ export default function Trainings() {
         {canEdit && (
           <button
             onClick={handleHoldsportClick}
-            title={holdsportConfigured ? 'Importer fra Holdsport' : 'Holdsport er ikke konfigureret'}
+            title="Importer fra Holdsport"
             style={{
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
               borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer',
-              color: holdsportConfigured ? 'var(--text)' : 'var(--text3)',
+              color: 'var(--text)',
             }}
           >
             Holdsport ↓
