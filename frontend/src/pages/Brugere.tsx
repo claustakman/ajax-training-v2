@@ -170,7 +170,7 @@ function UserRow({ user, currentTeamId, onTeamRoleChange, onRemove, onResetPassw
 }) {
   const [expanded, setExpanded] = useState(false);
   const teamEntry = user.teams.find(t => t.id === currentTeamId);
-  const displayRole = user.role === 'admin' ? 'admin' : (teamEntry?.role ?? user.role);
+  const displayRole = user.role === 'admin' ? 'admin' : (teamEntry?.role ?? 'guest');
 
   return (
     <div style={{ background: 'var(--bg-card)', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>

@@ -128,11 +128,29 @@ userRoutes.post('/:id/teams', requireAuth('team_manager'), async (c) => {
 });
 
 // PATCH /api/users/:id/teams/:tid — opdater rolle på et hold
-userRoutes.patch('/:id/teams/:tid', requireAuth('admin'), async (c) => {
+// Admin: altid. team_manager: kun på hold de selv er team_manager på.
+userRoutes.patch('/:id/teams/:tid', requireAuth('team_manager'), async (c) => {
   const userId = c.req.param('id');
   const teamId = c.req.param('tid');
+  const { sub, role: callerRole } = c.get('user');
   const { role } = await c.req.json<{ role: string }>();
   if (!role) return c.json({ error: 'role påkrævet' }, 400);
+
+  // Non-admin: tjek at caller er team_manager på dette hold
+  if (callerRole !== 'admin') {
+    const membership = await c.env.DB.prepare(
+      'SELECT role FROM user_teams WHERE user_id = ? AND team_id = ?'
+    ).bind(sub, teamId).first<{ role: string }>();
+    if (!membership || membership.role !== 'team_manager') {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    // team_manager kan maks tildele trainer-niveau
+    const ROLE_LEVEL: Record<string, number> = { guest: 1, trainer: 2, team_manager: 3, admin: 4 };
+    if ((ROLE_LEVEL[role] ?? 0) > ROLE_LEVEL['team_manager']) {
+      return c.json({ error: 'Du kan ikke tildele admin-rolle' }, 403);
+    }
+  }
+
   await c.env.DB.prepare('UPDATE user_teams SET role = ? WHERE user_id = ? AND team_id = ?')
     .bind(role, userId, teamId).run();
   return c.json({ ok: true });
