@@ -5,11 +5,13 @@
 -- TEAMS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS teams (
-  id          TEXT PRIMARY KEY,
-  name        TEXT NOT NULL,
-  age_group   TEXT NOT NULL,
-  season      TEXT NOT NULL,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  id                   TEXT PRIMARY KEY,
+  name                 TEXT NOT NULL,
+  age_group            TEXT NOT NULL,
+  season               TEXT NOT NULL,
+  holdsport_worker_url TEXT,
+  holdsport_token      TEXT,
+  created_at           TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- ============================================================

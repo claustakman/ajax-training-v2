@@ -20,7 +20,7 @@ async function getHSConfig(c: HonoCtx, teamId: string): Promise<{ workerUrl: str
 
   if (team?.holdsport_worker_url) {
     return {
-      workerUrl: team.holdsport_worker_url,
+      workerUrl: team.holdsport_worker_url.replace(/\/+$/, ''),
       token: team.holdsport_token ?? c.env.HS_TOKEN ?? '',
     };
   }
@@ -28,7 +28,7 @@ async function getHSConfig(c: HonoCtx, teamId: string): Promise<{ workerUrl: str
   // Fallback: headers sendt fra klient (localStorage-baseret config)
   const workerUrl = c.req.header('X-HS-Worker-URL');
   const token = c.req.header('X-HS-Token') ?? c.env.HS_TOKEN ?? '';
-  if (workerUrl) return { workerUrl, token };
+  if (workerUrl) return { workerUrl: workerUrl.replace(/\/+$/, ''), token };
 
   return null;
 }
@@ -128,7 +128,11 @@ holdsportRoutes.get('/ping', requireAuth('trainer'), async (c) => {
     const res = await fetch(`${config.workerUrl}/teams`, {
       headers: { 'X-Token': config.token, 'Authorization': `Bearer ${config.token}` },
     });
-    if (!res.ok) return c.json({ ok: false, error: `HTTP ${res.status}` });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+      const msg = (body.error as string) ?? `HTTP ${res.status}`;
+      return c.json({ ok: false, error: msg });
+    }
     const data = await res.json();
     const teams = extractActivities(data);
     return c.json({ ok: true, team_count: teams.length });
