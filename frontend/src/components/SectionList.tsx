@@ -262,10 +262,10 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
   const [search, setSearch] = useState('');
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [showFree, setShowFree] = useState(false);
+  const [detailEx, setDetailEx] = useState<Exercise | null>(null);
 
   const stTags = sectionType.tags ?? [];
 
-  // Byg tag-liste fra øvelser der matcher sektionstype
   const relevantExercises = exercises.filter(ex =>
     stTags.length === 0 || stTags.some(t => (ex.tags ?? []).includes(t))
   );
@@ -283,89 +283,113 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
 
   return (
     <>
+      {/* Fylder hele skærmen */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 400,
-        background: 'rgba(0,0,0,0.45)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', padding: 16,
+        background: 'rgba(0,0,0,0.5)', display: 'flex',
+        alignItems: 'flex-end',
       }} onClick={onClose}>
         <div style={{
-          background: 'var(--bg-card)', borderRadius: 16, padding: 20,
-          width: '100%', maxWidth: 540, maxHeight: '88vh',
+          background: 'var(--bg)',
+          borderRadius: '16px 16px 0 0',
+          padding: '0',
+          width: '100%',
+          maxHeight: '92vh',
           display: 'flex', flexDirection: 'column',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          boxShadow: '0 -4px 24px rgba(0,0,0,0.18)',
         }} onClick={e => e.stopPropagation()}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20, color: sectionType.color }}>
-              {sectionType.label}
-            </h2>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
+
+          {/* Sticky header */}
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '16px 16px 0 0',
+            padding: '12px 16px 14px',
+            borderBottom: '1px solid var(--border)',
+            flexShrink: 0,
+          }}>
+            {/* Handle */}
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border2)', margin: '0 auto 14px' }} />
+
+            {/* Titel + luk */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20, color: sectionType.color }}>
+                Tilføj øvelse — {sectionType.label}
+              </h2>
+              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', padding: 4, lineHeight: 1 }}>×</button>
+            </div>
+
+            {/* Søg */}
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Søg øvelse…"
+              style={{ ...inputSm, marginBottom: 10, fontSize: 16, padding: '10px 12px', minHeight: 44 }}
+            />
+
+            {/* Tag-filter pills */}
+            {allTags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {allTags.map(tag => {
+                  const active = activeTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      style={{
+                        fontSize: 12, borderRadius: 20, padding: '4px 12px', border: 'none',
+                        cursor: 'pointer', fontWeight: active ? 600 : 400,
+                        background: active ? sectionType.color : 'var(--bg-input)',
+                        color: active ? '#fff' : 'var(--text2)',
+                        transition: 'background 0.12s',
+                        minHeight: 30,
+                      }}
+                    >{tag}</button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Søg */}
-          <input
-            autoFocus
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Søg øvelse…"
-            style={{ ...inputSm, marginBottom: 8, fontSize: 15, padding: '8px 12px', minHeight: 40 }}
-          />
-
-          {/* Tag-filter pills */}
-          {allTags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-              {allTags.map(tag => {
-                const active = activeTags.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    style={{
-                      fontSize: 12, borderRadius: 20, padding: '3px 10px', border: 'none',
-                      cursor: 'pointer', fontWeight: active ? 600 : 400,
-                      background: active ? sectionType.color : 'var(--bg-input)',
-                      color: active ? '#fff' : 'var(--text2)',
-                      transition: 'background 0.12s',
-                    }}
-                  >{tag}</button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Liste */}
-          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {/* Scrollbar liste */}
+          <div style={{ overflowY: 'auto', flex: 1 }}>
             {filtered.length === 0 && (
-              <p style={{ color: 'var(--text3)', fontSize: 14, textAlign: 'center', margin: '20px 0' }}>
+              <p style={{ color: 'var(--text3)', fontSize: 14, textAlign: 'center', margin: '32px 0' }}>
                 Ingen øvelser fundet.
               </p>
             )}
-            {filtered.map(ex => {
-              const added = alreadyAdded.includes(ex.id);
-              return (
-                <ExercisePickerRow
-                  key={ex.id}
-                  ex={ex}
-                  added={added}
-                  accentColor={sectionType.color}
-                  onPick={() => { if (!added) onPick(ex); }}
-                />
-              );
-            })}
 
-            {/* Fri øvelse */}
-            <div
-              onClick={() => setShowFree(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '9px 12px', borderRadius: 9,
-                background: 'var(--bg-card)', border: '1px dashed var(--border2)',
-                cursor: 'pointer', marginTop: 4,
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-input)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-card)')}
-            >
-              <span style={{ fontSize: 18 }}>✏️</span>
-              <span style={{ fontSize: 14, color: 'var(--text2)', fontStyle: 'italic' }}>+ Fri øvelse…</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {filtered.map(ex => {
+                const added = alreadyAdded.includes(ex.id);
+                return (
+                  <ExercisePickerCard
+                    key={ex.id}
+                    ex={ex}
+                    added={added}
+                    accentColor={sectionType.color}
+                    onPick={() => { if (!added) onPick(ex); }}
+                    onDetail={() => setDetailEx(ex)}
+                  />
+                );
+              })}
+
+              {/* Fri øvelse */}
+              <div
+                onClick={() => setShowFree(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px',
+                  borderTop: '1px dashed var(--border2)',
+                  cursor: 'pointer',
+                  paddingBottom: 'calc(14px + env(safe-area-inset-bottom))',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-input)')}
+                onMouseLeave={e => (e.currentTarget.style.background = '')}
+              >
+                <span style={{ fontSize: 18 }}>✏️</span>
+                <span style={{ fontSize: 15, color: 'var(--text2)', fontStyle: 'italic' }}>+ Fri øvelse…</span>
+              </div>
             </div>
           </div>
         </div>
@@ -374,67 +398,78 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
       {showFree && (
         <FreeExerciseModal
           onAdd={name => {
-            // Syntetiser en "fri øvelse" exercise og send til parent
             onPick({ id: '', name, default_mins: 5 } as Exercise);
             setShowFree(false);
           }}
           onClose={() => setShowFree(false)}
         />
       )}
+
+      {detailEx && (
+        <ExerciseDetailModal ex={detailEx} onClose={() => setDetailEx(null)} />
+      )}
     </>
   );
 }
 
-// Hjælpe-komponent til picker-rækker (inkl. foldbar beskrivelse)
-function ExercisePickerRow({ ex, added, accentColor, onPick }: {
-  ex: Exercise; added: boolean; accentColor: string; onPick: () => void;
+// ─── ExercisePickerCard ───────────────────────────────────────────────────────
+
+function ExercisePickerCard({ ex, added, accentColor, onPick, onDetail }: {
+  ex: Exercise;
+  added: boolean;
+  accentColor: string;
+  onPick: () => void;
+  onDetail: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   return (
     <div style={{
-      borderRadius: 9, border: '1px solid var(--border)',
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '12px 16px',
+      borderBottom: '1px solid var(--border)',
       background: added ? 'var(--bg-input)' : 'var(--bg-card)',
-      opacity: added ? 0.6 : 1,
-      overflow: 'hidden',
+      opacity: added ? 0.65 : 1,
     }}>
+      {/* Venstre: navn + tags — klik åbner detalje */}
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: added ? 'default' : 'pointer' }}
-        onClick={onPick}
+        onClick={onDetail}
+        style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
       >
-        {ex.image_url && (
-          <img src={ex.image_url} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 5, flexShrink: 0 }} />
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {ex.name}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
-            {(ex.tags ?? []).slice(0, 4).map(t => (
-              <span key={t} style={{
-                fontSize: 11, background: 'var(--bg-input)', border: '1px solid var(--border)',
-                borderRadius: 20, padding: '1px 7px', color: 'var(--text2)',
-              }}>{t}</span>
-            ))}
-            {ex.default_mins && <span style={{ fontSize: 11, color: 'var(--text3)' }}>{ex.default_mins} min</span>}
-          </div>
+        <div style={{
+          fontWeight: 600, fontSize: 15, color: 'var(--text)',
+          marginBottom: 5, lineHeight: 1.3,
+        }}>
+          {ex.name}
         </div>
-        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-          {ex.description && (
-            <button
-              onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text3)', padding: '0 4px' }}
-            >{expanded ? '▾' : '▸'}</button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+          {(ex.tags ?? []).map(t => (
+            <span key={t} style={{
+              fontSize: 11, background: 'var(--bg-input)', border: '1px solid var(--border)',
+              borderRadius: 20, padding: '2px 8px', color: 'var(--text2)',
+            }}>{t}</span>
+          ))}
+          {ex.default_mins ? (
+            <span style={{ fontSize: 11, color: 'var(--text3)' }}>⏱ {ex.default_mins} min</span>
+          ) : null}
+          {ex.stars > 0 && (
+            <span style={{ fontSize: 11, color: '#f59e0b' }}>{'★'.repeat(ex.stars)}</span>
           )}
-          {added
-            ? <span style={{ fontSize: 12, color: 'var(--text3)' }}>Tilføjet</span>
-            : <span style={{ fontSize: 18, color: accentColor, fontWeight: 700, lineHeight: 1 }}>+</span>
-          }
         </div>
+        <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>ℹ︎ Se detaljer</div>
       </div>
-      {expanded && ex.description && (
-        <div style={{ padding: '0 12px 10px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, borderTop: '1px solid var(--border)' }}>
-          {ex.description}
-        </div>
+
+      {/* Højre: tilføj-knap */}
+      {added ? (
+        <span style={{ fontSize: 12, color: accentColor, fontWeight: 600, flexShrink: 0 }}>✓ Tilføjet</span>
+      ) : (
+        <button
+          onClick={onPick}
+          style={{
+            background: accentColor, color: '#fff', border: 'none',
+            borderRadius: 8, padding: '8px 16px', fontSize: 14,
+            fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+            minHeight: 40,
+          }}
+        >+ Tilføj</button>
       )}
     </div>
   );

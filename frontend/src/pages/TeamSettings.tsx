@@ -263,6 +263,47 @@ export default function TeamSettings() {
         )}
       </div>
 
+      {/* AI-forslag — administreres af Cloudflare-admin */}
+      <div style={{
+        background: 'var(--bg-card)', borderRadius: 12, padding: 20,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        opacity: 0.55, pointerEvents: 'none', userSelect: 'none',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <span style={{ fontSize: 18 }}>🔒</span>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>AI-forslag</div>
+        </div>
+
+        <div style={{
+          background: 'var(--bg-input)', border: '1px solid var(--border2)',
+          borderRadius: 8, padding: '10px 14px', marginBottom: 12,
+          fontSize: 13, color: 'var(--text2)', lineHeight: 1.6,
+        }}>
+          Anthropic API-nøgle — vedligeholdes i Cloudflare af admin
+        </div>
+
+        {/* Pseudofelt — ikke interaktivt */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
+            borderRadius: 8, padding: '9px 12px', fontSize: 14, color: 'var(--text3)',
+            letterSpacing: '0.15em', fontFamily: 'monospace',
+          }}>
+            sk-ant-••••••••••••••••••••••••••
+          </div>
+          <div style={{
+            padding: '8px 14px', background: 'var(--bg-input)', border: '1px solid var(--border2)',
+            borderRadius: 8, fontSize: 13, color: 'var(--text3)', fontWeight: 500,
+          }}>
+            Rediger
+          </div>
+        </div>
+
+        <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text3)' }}>
+          Model: claude-haiku · Deles på tværs af alle hold i BETA
+        </div>
+      </div>
+
       {/* Modal */}
       {modalOpen && (
         <SectionTypeModal
