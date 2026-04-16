@@ -53,7 +53,26 @@ userRoutes.get('/', requireAuth('team_manager'), async (c) => {
     })));
   }
 
-  // Admin — returner alle brugere med alle hold
+  // Admin med team_id — returner kun brugere på det hold (samme logik som team_manager)
+  if (teamId) {
+    const teamUsers = await c.env.DB.prepare(
+      `SELECT u.id, u.name, u.email, u.role, u.last_seen, u.created_at, ut.role as team_role
+       FROM users u JOIN user_teams ut ON ut.user_id = u.id
+       WHERE ut.team_id = ? ORDER BY u.name`
+    ).bind(teamId).all();
+
+    const teamInfo = await c.env.DB.prepare(
+      'SELECT id, name, age_group, season FROM teams WHERE id = ?'
+    ).bind(teamId).first<{ id: string; name: string; age_group: string; season: string }>();
+
+    return c.json(teamUsers.results.map((u: Record<string, unknown>) => ({
+      id: u.id, name: u.name, email: u.email, role: u.role,
+      last_seen: u.last_seen, created_at: u.created_at,
+      teams: teamInfo ? [{ ...teamInfo, role: u.team_role }] : [],
+    })));
+  }
+
+  // Admin uden team_id — returner alle brugere med alle hold
   const users = await c.env.DB.prepare(
     'SELECT id, name, email, role, last_seen, created_at FROM users ORDER BY name'
   ).all();
