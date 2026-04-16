@@ -7,6 +7,8 @@ export interface Team {
   age_group: string;
   season: string;
   role: 'guest' | 'trainer' | 'team_manager';  // hold-specifik rolle
+  holdsport_worker_url?: string;
+  holdsport_token?: string;
 }
 
 export interface AuthUser {

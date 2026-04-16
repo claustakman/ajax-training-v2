@@ -461,6 +461,11 @@ export default function TrainingEditor() {
                     min={0}
                     style={inputStyle}
                   />
+                  {training.holdsport_id && (
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                      Hentet fra Holdsport — kan ændres
+                    </div>
+                  )}
                 </Field>
               </div>
 

@@ -79,3 +79,18 @@ export interface SectionType {
   sort_order: number
   team_id: string | null
 }
+
+export interface HoldsportActivity {
+  id: string | number
+  name?: string
+  title?: string
+  starttime?: string
+  endtime?: string
+  place?: string
+  location?: string
+  attendance_count?: number
+  signups_count?: number
+  _teamId?: string | number
+  _teamName?: string
+  [key: string]: unknown
+}

@@ -27,6 +27,10 @@ async function copyGlobalSectionTypesToTeam(db: D1Database, teamId: string) {
 // GET /api/teams
 teamRoutes.get('/', requireAuth(), async (c) => {
   const { sub, role } = c.get('user');
+
+  // Bestem om caller må se Holdsport-credentials
+  const canSeeCredentials = role === 'admin';
+
   let teams;
   if (role === 'admin') {
     teams = await c.env.DB.prepare('SELECT * FROM teams ORDER BY name').all();
@@ -35,6 +39,25 @@ teamRoutes.get('/', requireAuth(), async (c) => {
       'SELECT t.* FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ? ORDER BY t.name'
     ).bind(sub).all();
   }
+
+  // For ikke-admin: fjern holdsport-credentials medmindre brugeren er team_manager på holdet
+  if (!canSeeCredentials) {
+    // Hent brugerens roller på hold
+    const userTeams = await c.env.DB.prepare(
+      'SELECT team_id, role FROM user_teams WHERE user_id = ?'
+    ).bind(sub).all<{ team_id: string; role: string }>();
+    const managerTeamIds = new Set(
+      userTeams.results.filter(ut => ut.role === 'team_manager').map(ut => ut.team_id)
+    );
+
+    return c.json(teams.results.map((t: Record<string, unknown>) => {
+      if (managerTeamIds.has(t.id as string)) return t;
+      // guest/trainer: strip credentials
+      const { holdsport_worker_url: _u, holdsport_token: _t, ...rest } = t;
+      return rest;
+    }));
+  }
+
   return c.json(teams.results);
 });
 
@@ -55,14 +78,20 @@ teamRoutes.post('/', requireAuth('admin'), async (c) => {
 // PATCH /api/teams/:id
 teamRoutes.patch('/:id', requireAuth('team_manager'), async (c) => {
   const id = c.req.param('id');
-  const body = await c.req.json<Partial<{ name: string; age_group: string; season: string }>>();
-  const fields = Object.entries(body)
-    .filter(([k]) => ['name', 'age_group', 'season'].includes(k))
-    .map(([k]) => `${k} = ?`);
-  if (fields.length === 0) return c.json({ error: 'Ingen felter at opdatere' }, 400);
+  const body = await c.req.json<Partial<{
+    name: string; age_group: string; season: string;
+    holdsport_worker_url: string; holdsport_token: string;
+  }>>();
+  const ALLOWED = ['name', 'age_group', 'season', 'holdsport_worker_url', 'holdsport_token'];
+  const entries = Object.entries(body).filter(([k]) => ALLOWED.includes(k));
+  if (entries.length === 0) return c.json({ error: 'Ingen felter at opdatere' }, 400);
+  const fields = entries.map(([k]) => `${k} = ?`);
+  const values = entries.map(([, v]) => v);
   await c.env.DB.prepare(`UPDATE teams SET ${fields.join(', ')} WHERE id = ?`)
-    .bind(...Object.values(body), id).run();
-  return c.json({ ok: true });
+    .bind(...values, id).run();
+  // Returner opdateret team
+  const team = await c.env.DB.prepare('SELECT * FROM teams WHERE id = ?').bind(id).first();
+  return c.json(team);
 });
 
 // DELETE /api/teams/:id

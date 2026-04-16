@@ -3,6 +3,160 @@ import { Navigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api, ApiError } from '../lib/api';
 
+// ─── Holdsport-sektion ────────────────────────────────────────────────────────
+
+function HoldsportSection({ teamId, initialUrl, initialToken }: {
+  teamId: string;
+  initialUrl: string;
+  initialToken: string;
+}) {
+  const [workerUrl, setWorkerUrl] = useState(initialUrl);
+  const [token, setToken] = useState(initialToken);
+  const [showToken, setShowToken] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [saveMsg, setSaveMsg] = useState('');
+
+  async function handleTest() {
+    if (!workerUrl) return;
+    setTesting(true);
+    setTestResult(null);
+    // Gem midlertidigt så ping kan bruge de nye værdier
+    try {
+      await api.updateTeam(teamId, { holdsport_worker_url: workerUrl, holdsport_token: token });
+      const res = await api.pingHoldsport(teamId);
+      if (res.ok) {
+        setTestResult({ ok: true, message: `✓ Forbundet — fandt ${res.team_count ?? 0} hold` });
+      } else {
+        setTestResult({ ok: false, message: `✗ Kunne ikke forbinde: ${res.error ?? 'Ukendt fejl'}` });
+      }
+    } catch (e) {
+      setTestResult({ ok: false, message: `✗ ${e instanceof ApiError ? e.message : 'Fejl'}` });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveMsg('');
+    try {
+      await api.updateTeam(teamId, { holdsport_worker_url: workerUrl, holdsport_token: token });
+      setSaveMsg('Holdsport-indstillinger gemt ✓');
+      setTimeout(() => setSaveMsg(''), 3000);
+    } catch (e) {
+      setSaveMsg(e instanceof ApiError ? e.message : 'Fejl ved gem');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '9px 12px', fontSize: 15,
+    background: 'var(--bg-input)', border: '1px solid var(--border2)',
+    borderRadius: 8, color: 'var(--text)', boxSizing: 'border-box', minHeight: 44,
+  };
+
+  return (
+    <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 16 }}>
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700 }}>Holdsport</div>
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
+          Konfigurér integration til Holdsport API for dette hold
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+        {/* Worker URL */}
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 6 }}>
+            Worker URL
+          </label>
+          <input
+            type="url"
+            value={workerUrl}
+            onChange={e => setWorkerUrl(e.target.value)}
+            placeholder="https://holdsport-proxy.DITNAVN.workers.dev"
+            style={inputStyle}
+          />
+        </div>
+
+        {/* App Token */}
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 6 }}>
+            App Token
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showToken ? 'text' : 'password'}
+              value={token}
+              onChange={e => setToken(e.target.value)}
+              placeholder="••••••••"
+              style={{ ...inputStyle, paddingRight: 44 }}
+            />
+            <button
+              onClick={() => setShowToken(s => !s)}
+              style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text3)', fontSize: 16, padding: 4,
+              }}
+              title={showToken ? 'Skjul token' : 'Vis token'}
+            >
+              {showToken ? '🙈' : '👁'}
+            </button>
+          </div>
+        </div>
+
+        {/* Test-resultat */}
+        {testResult && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+            background: testResult.ok ? 'rgba(29,158,117,0.1)' : 'rgba(220,38,38,0.08)',
+            color: testResult.ok ? 'var(--green)' : 'var(--red)',
+            border: `1px solid ${testResult.ok ? 'rgba(29,158,117,0.25)' : 'rgba(220,38,38,0.2)'}`,
+          }}>
+            {testResult.message}
+          </div>
+        )}
+
+        {/* Knapper */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleTest}
+            disabled={testing || !workerUrl}
+            style={{
+              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+              background: 'var(--bg-input)', border: '1px solid var(--border2)',
+              color: 'var(--text2)', cursor: testing || !workerUrl ? 'not-allowed' : 'pointer',
+              opacity: !workerUrl ? 0.5 : 1, minHeight: 40,
+            }}
+          >
+            {testing ? '⏳ Tester…' : '🔌 Test forbindelse'}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              background: 'var(--accent)', color: '#fff', border: 'none',
+              cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, minHeight: 40,
+            }}
+          >
+            {saving ? 'Gemmer…' : 'Gem'}
+          </button>
+          {saveMsg && (
+            <span style={{ fontSize: 13, color: saveMsg.includes('✓') ? 'var(--green)' : 'var(--red)' }}>
+              {saveMsg}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface SectionType {
   id: string;
   label: string;
@@ -31,6 +185,8 @@ export default function TeamSettings() {
   const [editTarget, setEditTarget] = useState<SectionType | null>(null);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [quarterThemes, setQuarterThemes] = useState<string[]>([]);
+  const [hsWorkerUrl, setHsWorkerUrl] = useState('');
+  const [hsToken, setHsToken] = useState('');
 
   // Drag state
   const dragIdx = useRef<number | null>(null);
@@ -43,12 +199,19 @@ export default function TeamSettings() {
       api.get<SectionType[]>(`/api/section-types?team_id=${currentTeamId}`),
       api.get<string[]>('/api/exercises/tags').catch(() => []),
       api.get<Array<{ themes: string[] }>>(`/api/quarters?team_id=${currentTeamId}`),
-    ]).then(([st, tags, quarters]) => {
+      api.get<Array<{ id: string; holdsport_worker_url?: string; holdsport_token?: string }>>('/api/teams').catch(() => []),
+    ]).then(([st, tags, quarters, teams]) => {
       setSectionTypes(st);
       setAllTags([...new Set(tags)].sort());
       const themes = new Set<string>();
       for (const q of quarters) for (const t of q.themes) if (t) themes.add(t);
       setQuarterThemes([...themes].sort());
+      // Find det aktive hold og sæt Holdsport-config
+      const activeTeam = teams.find(t => t.id === currentTeamId);
+      if (activeTeam) {
+        setHsWorkerUrl(activeTeam.holdsport_worker_url ?? '');
+        setHsToken(activeTeam.holdsport_token ?? '');
+      }
     }).catch(() => {/* ignore */})
       .finally(() => setLoading(false));
   }, [currentTeamId]);
@@ -268,6 +431,15 @@ export default function TeamSettings() {
           </div>
         )}
       </div>
+
+      {/* Holdsport */}
+      {currentTeamId && (
+        <HoldsportSection
+          teamId={currentTeamId}
+          initialUrl={hsWorkerUrl}
+          initialToken={hsToken}
+        />
+      )}
 
       {/* AI-forslag — administreres af Cloudflare-admin */}
       <div style={{

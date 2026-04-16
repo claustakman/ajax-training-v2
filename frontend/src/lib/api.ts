@@ -66,6 +66,20 @@ export const api = {
     request<Template>('/api/templates', { method: 'POST', body: JSON.stringify(data) }),
   deleteTemplate: (id: string) => request<{ deleted: boolean }>(`/api/templates/${id}`, { method: 'DELETE' }),
 
+  // ── Hold (opdatér) ────────────────────────────────────────────────────────
+  updateTeam: (id: string, data: Record<string, unknown>) =>
+    request<import('./auth').Team>(`/api/teams/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // ── Holdsport ─────────────────────────────────────────────────────────────
+  fetchHoldsportActivities: (teamId: string, from: string, to: string) =>
+    request<import('./types').HoldsportActivity[]>(
+      `/api/holdsport/activities?team_id=${teamId}&from=${from}&to=${to}`
+    ),
+  pingHoldsport: (teamId: string) =>
+    request<{ ok: boolean; team_count?: number; error?: string }>(
+      `/api/holdsport/ping?team_id=${teamId}`
+    ),
+
   // ── Sektionstyper ─────────────────────────────────────────────────────────
   fetchSectionTypes: (teamId: string) =>
     request<import('./types').SectionType[]>(`/api/section-types?team_id=${teamId}`),

@@ -4,6 +4,7 @@ import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin, totalMins } from '../lib/dateUtils';
+import HoldsportImportModal from '../components/HoldsportImportModal';
 
 // ─── Skeleton-kort ────────────────────────────────────────────────────────────
 function SkeletonCard() {
@@ -111,6 +112,9 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
         {training.stars > 0 && (
           <span style={{ fontSize: 13, color: '#f59e0b' }}>{'★'.repeat(training.stars)}</span>
         )}
+        {training.holdsport_id && (
+          <span title="Importeret fra Holdsport" style={{ fontSize: 11, color: 'var(--text3)' }}>HS</span>
+        )}
         <span style={{ color: 'var(--text3)', fontSize: 16 }}>›</span>
       </div>
     </div>
@@ -143,6 +147,25 @@ function EmptyState({ canEdit, onNew }: { canEdit: boolean; onNew: () => void })
   );
 }
 
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ message, type, onDone }: { message: string; type: 'success' | 'error'; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3500);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div style={{
+      position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 600, padding: '11px 20px', borderRadius: 10, fontSize: 14, fontWeight: 500,
+      background: type === 'success' ? 'var(--green)' : 'var(--red)',
+      color: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+      pointerEvents: 'none',
+    }}>
+      {message}
+    </div>
+  );
+}
+
 // ─── Hoved-komponent ───────────────────────────────────────────────────────────
 export default function Trainings() {
   const navigate = useNavigate();
@@ -152,8 +175,14 @@ export default function Trainings() {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showHoldsportModal, setShowHoldsportModal] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  useEffect(() => {
+  // Find det aktive holds Holdsport-konfiguration
+  const currentTeam = user?.teams.find(t => t.id === currentTeamId);
+  const holdsportConfigured = !!(currentTeam?.holdsport_worker_url);
+
+  function load() {
     if (!currentTeamId) return;
     setLoading(true);
     setError(null);
@@ -161,16 +190,56 @@ export default function Trainings() {
       .then(setTrainings)
       .catch(e => setError(e.message ?? 'Fejl ved indlæsning'))
       .finally(() => setLoading(false));
-  }, [currentTeamId]);
+  }
+
+  useEffect(() => { load(); }, [currentTeamId]);
 
   function handleNew() {
     navigate('/traininger/ny');
   }
 
+  function handleHoldsportClick() {
+    if (!holdsportConfigured) {
+      navigate('/indstillinger');
+      return;
+    }
+    setShowHoldsportModal(true);
+  }
+
+  async function handleHoldsportImport(activities: Parameters<typeof api.createTraining>[0][]) {
+    setShowHoldsportModal(false);
+    let successCount = 0;
+    let skipCount = 0;
+
+    for (const activity of activities) {
+      try {
+        await api.createTraining(activity);
+        successCount++;
+      } catch {
+        skipCount++;
+      }
+    }
+
+    // Genindlæs træningslisten
+    load();
+
+    if (successCount > 0) {
+      setToast({
+        message: `${successCount} træning${successCount !== 1 ? 'er' : ''} importeret ✓`,
+        type: 'success',
+      });
+    }
+    if (skipCount > 0) {
+      setTimeout(() => {
+        setToast({ message: `${skipCount} kunne ikke importeres`, type: 'error' });
+      }, successCount > 0 ? 3800 : 0);
+    }
+  }
+
   return (
     <div>
       {/* ── Sidetitel + handlinger ── */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, gap: 8, flexWrap: 'wrap' }}>
         <h1 style={{
           fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700,
           margin: 0, flex: 1,
@@ -184,6 +253,20 @@ export default function Trainings() {
             color: 'var(--text2)',
           }}
         >📦 Arkiv</button>
+
+        {canEdit && (
+          <button
+            onClick={handleHoldsportClick}
+            title={holdsportConfigured ? 'Importer fra Holdsport' : 'Holdsport er ikke konfigureret'}
+            style={{
+              background: 'var(--bg-input)', border: '1px solid var(--border2)',
+              borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer',
+              color: holdsportConfigured ? 'var(--text)' : 'var(--text3)',
+            }}
+          >
+            Holdsport ↓
+          </button>
+        )}
 
         {canEdit && (
           <button
@@ -221,6 +304,25 @@ export default function Trainings() {
             />
           ))}
         </div>
+      )}
+
+      {/* ── Holdsport import modal ── */}
+      {showHoldsportModal && currentTeamId && (
+        <HoldsportImportModal
+          teamId={currentTeamId}
+          existingTrainings={trainings}
+          onImport={handleHoldsportImport}
+          onClose={() => setShowHoldsportModal(false)}
+        />
+      )}
+
+      {/* ── Toast ── */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDone={() => setToast(null)}
+        />
       )}
     </div>
   );
