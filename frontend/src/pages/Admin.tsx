@@ -239,6 +239,7 @@ function BrugereTab() {
           onRoleChange={(teamId, role) => handleRoleChange(u.id, teamId, role)}
           onAddToTeam={(teamId, role) => handleAddToTeam(u.id, teamId, role)}
           onRemoveFromTeam={(teamId, teamName) => handleRemoveFromTeam(u.id, teamId, teamName)}
+          onNameChange={newName => setUsers(prev => prev.map(x => x.id === u.id ? { ...x, name: newName } : x))}
         />
       ))}
     </div>
@@ -247,7 +248,7 @@ function BrugereTab() {
 
 // ─── AdminUserRow ─────────────────────────────────────────────────────────────
 
-function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddToTeam, onRemoveFromTeam }: {
+function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddToTeam, onRemoveFromTeam, onNameChange }: {
   user: AdminUser;
   allTeams: Team[];
   expanded: boolean;
@@ -255,10 +256,26 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
   onRoleChange: (teamId: string, role: string) => void;
   onAddToTeam: (teamId: string, role: string) => void;
   onRemoveFromTeam: (teamId: string, teamName: string) => void;
+  onNameChange: (newName: string) => void;
 }) {
   const [addTeamId, setAddTeamId] = useState('');
   const [addRole, setAddRole] = useState<typeof TEAM_ROLES[number]>('trainer');
   const [adding, setAdding] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(user.name);
+  const [savingName, setSavingName] = useState(false);
+
+  async function handleNameSave() {
+    const trimmed = nameValue.trim();
+    if (!trimmed || trimmed === user.name) { setEditingName(false); setNameValue(user.name); return; }
+    setSavingName(true);
+    try {
+      await api.patch(`/api/users/${user.id}`, { name: trimmed });
+      onNameChange(trimmed);
+      setEditingName(false);
+    } catch { setNameValue(user.name); }
+    finally { setSavingName(false); }
+  }
 
   const userTeamIds = new Set(user.teams.map(t => t.id));
   const availableTeams = allTeams.filter(t => !userTeamIds.has(t.id));
@@ -318,6 +335,35 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
       {/* Expanded */}
       {expanded && (
         <div style={{ borderTop: '1px solid var(--border)', padding: '16px' }}>
+
+          {/* Navn-redigering */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Navn</div>
+            {editingName ? (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  autoFocus
+                  value={nameValue}
+                  onChange={e => setNameValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') { setEditingName(false); setNameValue(user.name); } }}
+                  style={{ ...inputStyle, flex: 1, fontSize: 14 }}
+                />
+                <button onClick={handleNameSave} disabled={savingName} style={{ padding: '6px 14px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                  {savingName ? '…' : 'Gem'}
+                </button>
+                <button onClick={() => { setEditingName(false); setNameValue(user.name); }} style={{ padding: '6px 14px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: 'pointer', fontSize: 13 }}>
+                  Annuller
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 14 }}>{user.name}</span>
+                <button onClick={() => setEditingName(true)} style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  Rediger
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Admin-bruger */}
           {user.role === 'admin' && (
