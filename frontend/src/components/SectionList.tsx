@@ -475,6 +475,97 @@ function ExercisePickerCard({ ex, added, accentColor, onPick, onDetail }: {
   );
 }
 
+// ─── SaveToCatalogModal ───────────────────────────────────────────────────────
+
+function SaveToCatalogModal({ name, onSave, onClose }: {
+  name: string;
+  onSave: (exerciseId: string) => void;
+  onClose: () => void;
+}) {
+  const [catalog, setCatalog] = useState<'hal' | 'fys'>('hal');
+  const [tagsInput, setTagsInput] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+      const res = await api.post<{ id: string }>('/api/exercises', {
+        name,
+        catalog,
+        tags,
+        age_groups: [],
+      });
+      setDone(true);
+      setTimeout(() => { onSave(res.id); onClose(); }, 800);
+    } catch {
+      setSaving(false);
+      alert('Fejl ved gem til katalog');
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 600,
+      background: 'rgba(0,0,0,0.45)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: 16,
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
+        width: '100%', maxWidth: 380,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ margin: '0 0 4px', fontFamily: 'var(--font-heading)', fontSize: 20 }}>Gem til katalog</h2>
+        <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 16 }}>"{name}"</div>
+
+        {done ? (
+          <p style={{ color: 'var(--green)', fontWeight: 600 }}>✓ Gemt til katalog!</p>
+        ) : (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>Katalog</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {(['hal', 'fys'] as const).map(c => (
+                  <button key={c} onClick={() => setCatalog(c)} style={{
+                    flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                    background: catalog === c ? 'var(--accent)' : 'var(--bg-input)',
+                    color: catalog === c ? '#fff' : 'var(--text2)',
+                    border: `1px solid ${catalog === c ? 'var(--accent)' : 'var(--border2)'}`,
+                    cursor: 'pointer',
+                  }}>{c === 'hal' ? 'Hal' : 'Fysisk'}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>Tags (kommaseparerede)</div>
+              <input
+                value={tagsInput}
+                onChange={e => setTagsInput(e.target.value)}
+                placeholder="f.eks. afleveringer, teknik"
+                style={{ ...inputSm, fontSize: 14, minHeight: 40 }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
+              <button
+                onClick={handleSave} disabled={saving}
+                style={{
+                  background: 'var(--accent)', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
+                  opacity: saving ? 0.5 : 1,
+                }}
+              >{saving ? '…' : 'Gem'}</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
 function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
@@ -493,6 +584,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
   onClickName: () => void;
   onUpdate: (patch: Partial<SectionExercise>) => void;
 }) {
+  const [showSaveToCatalog, setShowSaveToCatalog] = useState(false);
   const isFree = !ex.id;
   const displayName = ex.customName || exerciseDef?.name || ex.id || '—';
   const tags = exerciseDef?.tags ?? [];
@@ -576,12 +668,29 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>min</span>
       </div>
 
+      {/* Gem til katalog (kun fri øvelse med navn) */}
+      {canEdit && isFree && ex.customName?.trim() && (
+        <button
+          onClick={() => setShowSaveToCatalog(true)}
+          title="Gem til katalog"
+          style={{ ...btnGhost, padding: '3px 7px', flexShrink: 0, fontSize: 13 }}
+        >📚</button>
+      )}
+
       {/* Slet */}
       {canEdit && (
         <button
           onClick={onDelete}
           style={{ ...btnGhost, padding: '3px 7px', color: 'var(--red)', flexShrink: 0, fontSize: 14 }}
         >×</button>
+      )}
+
+      {showSaveToCatalog && (
+        <SaveToCatalogModal
+          name={ex.customName ?? ''}
+          onSave={exerciseId => onUpdate({ id: exerciseId, customName: undefined })}
+          onClose={() => setShowSaveToCatalog(false)}
+        />
       )}
     </div>
   );
