@@ -54,6 +54,8 @@ authRoutes.post('/login', async (c) => {
 // GET /api/auth/me
 authRoutes.get('/me', requireAuth(), async (c) => {
   const { sub } = c.get('user');
+  const now = new Date().toISOString();
+  await c.env.DB.prepare('UPDATE users SET last_seen = ? WHERE id = ?').bind(now, sub).run();
   const user = await c.env.DB.prepare('SELECT id, name, email, role, last_seen FROM users WHERE id = ?')
     .bind(sub).first();
   if (!user) return c.json({ error: 'Ikke fundet' }, 404);

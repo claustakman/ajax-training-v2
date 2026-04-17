@@ -105,10 +105,13 @@ trainingRoutes.patch('/:id', requireAuth('trainer'), async (c) => {
     }
   }
   if (updates.length === 0) return c.json({ error: 'Ingen felter at opdatere' }, 400);
+  const now = new Date().toISOString();
   updates.push('updated_at = ?');
-  values.push(new Date().toISOString(), id);
+  values.push(now, id);
   await c.env.DB.prepare(`UPDATE trainings SET ${updates.join(', ')} WHERE id = ?`)
     .bind(...values).run();
+  const { sub } = c.get('user');
+  await c.env.DB.prepare('UPDATE users SET last_seen = ? WHERE id = ?').bind(now, sub).run();
 
   const updated = await c.env.DB.prepare('SELECT * FROM trainings WHERE id = ?').bind(id).first();
   return c.json(parseTraining(updated as Record<string, unknown>));

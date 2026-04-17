@@ -13,6 +13,11 @@ interface AdminUser {
   teams: (Team & { role: string })[];
 }
 
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return '—';
+  return new Intl.DateTimeFormat('da-DK', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+}
+
 const AGE_GROUPS = ['U9', 'U11', 'U13', 'U15', 'U17', 'U19', 'Senior'];
 const TEAM_ROLES = ['guest', 'trainer', 'team_manager'] as const;
 
@@ -363,6 +368,13 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Aktivitet */}
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
+            Seneste aktivitet: <strong style={{ color: 'var(--text2)' }}>{formatDate(user.last_seen)}</strong>
+            <span style={{ margin: '0 6px' }}>·</span>
+            Oprettet: <strong style={{ color: 'var(--text2)' }}>{formatDate(user.created_at)}</strong>
           </div>
 
           {/* Admin-bruger */}
