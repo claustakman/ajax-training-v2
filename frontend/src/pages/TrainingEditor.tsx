@@ -313,6 +313,51 @@ export default function TrainingEditor() {
     }
   }
 
+  const [hsUpdating, setHsUpdating] = useState(false);
+
+  async function handleHoldsportUpdate() {
+    if (!training?.holdsport_id || !training.date || !currentTeamId) return;
+    setHsUpdating(true);
+    try {
+      const [config, members] = await Promise.all([
+        api.fetchHoldsportConfig(currentTeamId),
+        api.get<Array<{ id: string; name: string; team_role: string }>>(
+          `/api/users/team-members?team_id=${currentTeamId}`
+        ),
+      ]);
+      const trainerNames = new Set(
+        members
+          .filter(m => m.team_role === 'trainer' || m.team_role === 'team_manager')
+          .map(m => m.name)
+      );
+      const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
+      let found = null;
+      for (const team of teams) {
+        found = await api.fetchHoldsportActivity(
+          config.workerUrl, config.token, team.id, training.holdsport_id, training.date
+        );
+        if (found) break;
+      }
+      if (!found) { setHsUpdating(false); return; }
+
+      const users = (found as unknown as Record<string, unknown>).activities_users;
+      let playerCount = 0;
+      const trainerList: string[] = [];
+      if (Array.isArray(users)) {
+        for (const u of users) {
+          const rec = u as Record<string, unknown>;
+          if (rec.status_code !== 1) continue;
+          const name = rec.name as string;
+          if (trainerNames.has(name)) trainerList.push(name);
+          else playerCount++;
+        }
+      }
+      update({ participant_count: playerCount > 0 ? playerCount : undefined, trainers: trainerList });
+    } catch { /* fejl ignoreres stille */ } finally {
+      setHsUpdating(false);
+    }
+  }
+
   async function handleDelete() {
     if (!training?.id) { navigate('/'); return; }
     if (!confirm('Slet træning? Dette kan ikke fortrydes.')) return;
@@ -452,15 +497,31 @@ export default function TrainingEditor() {
                   />
                 </Field>
                 <Field label="Antal spillere">
-                  <input
-                    type="number"
-                    value={training.participant_count ?? ''}
-                    onChange={e => update({ participant_count: e.target.value ? Number(e.target.value) : undefined })}
-                    disabled={!canEdit}
-                    placeholder="0"
-                    min={0}
-                    style={inputStyle}
-                  />
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      value={training.participant_count ?? ''}
+                      onChange={e => update({ participant_count: e.target.value ? Number(e.target.value) : undefined })}
+                      disabled={!canEdit}
+                      placeholder="0"
+                      min={0}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    {training.holdsport_id && canEdit && (
+                      <button
+                        onClick={handleHoldsportUpdate}
+                        disabled={hsUpdating}
+                        title="Opdater fra Holdsport"
+                        style={{
+                          flexShrink: 0, padding: '0 14px', minHeight: 44, borderRadius: 8,
+                          background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                          fontSize: 13, color: 'var(--text2)', cursor: hsUpdating ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {hsUpdating ? '…' : '↺ Opdater'}
+                      </button>
+                    )}
+                  </div>
                   {training.holdsport_id && (
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
                       Hentet fra Holdsport — kan ændres

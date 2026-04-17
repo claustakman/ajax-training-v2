@@ -48,27 +48,48 @@ function isTraining(activity: HoldsportActivity): boolean {
   return name.includes('træning') || name.includes('training');
 }
 
-function countAttendees(activity: HoldsportActivity): number | undefined {
-  // Holdsport returnerer activities_users med status_code 1 = Tilmeldt
+type TeamMember = { id: string; name: string; team_role: string };
+
+// Udtræk spillerantal og trænere fra en Holdsport-aktivitet.
+// Tilmeldte (status_code=1) hvis navn matcher en app-træner → trainer, ellers spiller.
+function extractFromActivity(
+  activity: HoldsportActivity,
+  appTrainerNames: Set<string>
+): { playerCount: number; trainerNames: string[] } {
   const users = (activity as unknown as Record<string, unknown>).activities_users;
-  if (Array.isArray(users)) {
-    const count = users.filter((u: unknown) => (u as Record<string, unknown>).status_code === 1).length;
-    return count > 0 ? count : undefined;
+  if (!Array.isArray(users)) {
+    return { playerCount: activity.attendance_count ?? activity.signups_count ?? 0, trainerNames: [] };
   }
-  return activity.attendance_count ?? activity.signups_count ?? undefined;
+  const attending = users.filter((u: unknown) => (u as Record<string, unknown>).status_code === 1);
+  const trainerNames: string[] = [];
+  let playerCount = 0;
+  for (const u of attending) {
+    const name = (u as Record<string, unknown>).name as string;
+    if (appTrainerNames.has(name)) {
+      trainerNames.push(name);
+    } else {
+      playerCount++;
+    }
+  }
+  return { playerCount, trainerNames };
 }
 
-function mapActivity(activity: HoldsportActivity, teamId: string): Partial<Training> {
+function mapActivity(
+  activity: HoldsportActivity,
+  teamId: string,
+  appTrainerNames: Set<string>
+): Partial<Training> {
+  const { playerCount, trainerNames } = extractFromActivity(activity, appTrainerNames);
   return {
     team_id: teamId,
     date: activity.starttime?.split('T')[0],
     start_time: activity.starttime?.split('T')[1]?.slice(0, 5),
     end_time: activity.endtime?.split('T')[1]?.slice(0, 5),
     location: activity.place || activity.location || undefined,
-    participant_count: countAttendees(activity),
+    participant_count: playerCount > 0 ? playerCount : undefined,
+    trainers: trainerNames,
     holdsport_id: String(activity.id),
     sections: [],
-    trainers: [],
     themes: [],
     stars: 0,
     archived: false,
@@ -110,6 +131,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   const [step, setStep] = useState<'dates' | 'activities'>('dates');
 
   const [activities, setActivities] = useState<HoldsportActivity[]>([]);
+  const [appTrainerNames, setAppTrainerNames] = useState<Set<string>>(new Set());
   const [loadingAct, setLoadingAct] = useState(false);
   const [fetchError, setFetchError] = useState('');
 
@@ -122,7 +144,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   );
 
   // Hent aktiviteter når step skifter til 'activities'
-  // Flow: hent config (workerUrl + token) fra vores API → kald Holdsport-worker direkte fra browser
+  // Flow: hent config + team-members parallelt → kald Holdsport-worker direkte fra browser
   useEffect(() => {
     if (step !== 'activities') return;
     setLoadingAct(true);
@@ -130,8 +152,19 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
 
     (async () => {
       try {
-        // 1. Hent credentials fra vores API
-        const config = await api.fetchHoldsportConfig(teamId);
+        // 1. Hent credentials og app-brugere parallelt
+        const [config, members] = await Promise.all([
+          api.fetchHoldsportConfig(teamId),
+          api.get<TeamMember[]>(`/api/users/team-members?team_id=${teamId}`),
+        ]);
+
+        // Trænere = trainer eller team_manager i appen
+        const trainerNames = new Set(
+          members
+            .filter(m => m.team_role === 'trainer' || m.team_role === 'team_manager')
+            .map(m => m.name)
+        );
+        setAppTrainerNames(trainerNames);
 
         // 2. Hent hold fra Holdsport-workeren direkte (browser → worker)
         const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
@@ -187,7 +220,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   function handleImport() {
     const picked = activities
       .filter(a => selected.has(String(a.id)))
-      .map(a => mapActivity(a, teamId));
+      .map(a => mapActivity(a, teamId, appTrainerNames));
     onImport(picked);
   }
 
@@ -329,7 +362,8 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                       const timeRange = fmtTimeRange(activity.starttime, activity.endtime);
                       const dateStr = fmtActivityDate(activity.starttime);
                       const place = activity.place || activity.location;
-                      const participants = countAttendees(activity);
+                      const { playerCount, trainerNames: actTrainers } = extractFromActivity(activity, appTrainerNames);
+                      const participants = playerCount > 0 ? playerCount : undefined;
 
                       return (
                         <div
@@ -371,10 +405,11 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>
                               {dateStr}{timeRange ? ` · ${timeRange}` : ''}
                             </div>
-                            {(place || participants) && (
-                              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2, display: 'flex', gap: 10 }}>
+                            {(place || participants !== undefined || actTrainers.length > 0) && (
+                              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                                 {place && <span>📍 {place}</span>}
-                                {participants && <span>👥 {participants} tilmeldte</span>}
+                                {participants !== undefined && <span>👥 {participants} spillere</span>}
+                                {actTrainers.length > 0 && <span>🏅 {actTrainers.join(', ')}</span>}
                               </div>
                             )}
                           </div>

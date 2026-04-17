@@ -101,6 +101,20 @@ export const api = {
     return res.json() as Promise<import('./types').HoldsportActivity[]>;
   },
 
+  // Hent én specifik Holdsport-aktivitet via dato (ingen direkte opslag-endpoint)
+  fetchHoldsportActivity: async (workerUrl: string, token: string, hsTeamId: string | number, holdsportId: string, date: string) => {
+    const url = new URL(`${workerUrl}/teams/${hsTeamId}/activities`);
+    url.searchParams.set('date', date);
+    url.searchParams.set('to', date);
+    url.searchParams.set('per_page', '100');
+    const res = await fetch(url.toString(), {
+      headers: { 'X-Token': token, 'Accept': 'application/json' },
+    });
+    if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
+    const acts = await res.json() as import('./types').HoldsportActivity[];
+    return (Array.isArray(acts) ? acts : []).find(a => String(a.id) === holdsportId) ?? null;
+  },
+
   // ── Sektionstyper ─────────────────────────────────────────────────────────
   fetchSectionTypes: (teamId: string) =>
     request<import('./types').SectionType[]>(`/api/section-types?team_id=${teamId}`),
