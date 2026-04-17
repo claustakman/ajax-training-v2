@@ -382,7 +382,7 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
                   padding: '14px 16px',
                   borderTop: '1px dashed var(--border2)',
                   cursor: 'pointer',
-                  paddingBottom: 'calc(14px + env(safe-area-inset-bottom))',
+                  paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
                 }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-input)')}
                 onMouseLeave={e => (e.currentTarget.style.background = '')}
