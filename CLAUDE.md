@@ -172,11 +172,13 @@ Undtagelse: `admin` er global og slår altid igennem uanset aktivt hold.
 ### `teams`
 ```sql
 CREATE TABLE teams (
-  id          TEXT PRIMARY KEY,
-  name        TEXT NOT NULL,
-  age_group   TEXT NOT NULL,
-  season      TEXT NOT NULL,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  id                   TEXT PRIMARY KEY,
+  name                 TEXT NOT NULL,
+  age_group            TEXT NOT NULL,
+  season               TEXT NOT NULL,
+  holdsport_worker_url TEXT,   -- migration 0009
+  holdsport_token      TEXT,   -- migration 0009
+  created_at           TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
 
@@ -393,9 +395,9 @@ CREATE TABLE templates (
 | POST   | `/api/board/:id/comments` | auth         | Tilføj kommentar          |
 
 ### Holdsport (`/api/holdsport`)
-| Method | Path                        | Rolle   | Beskrivelse                 |
-|--------|-----------------------------|---------|-----------------------------|
-| GET    | `/api/holdsport/activities` | trainer | Proxy med dato-range        |
+| Method | Path                       | Rolle   | Beskrivelse                                      |
+|--------|----------------------------|---------|--------------------------------------------------|
+| GET    | `/api/holdsport/config`    | trainer | Returnerer `{ workerUrl, token }` til frontend   |
 
 ### AI (`/api/ai`)
 | Method | Path              | Rolle   | Beskrivelse                                             |
@@ -466,8 +468,20 @@ fysisk       → tags: [styrke, plyometrik]    → farve: #f59e0b   required: tr
 
 ## Holdsport-integration
 
-Worker: `routes/holdsport.ts` — proxy til Holdsport API.
-Worker-URL og token sendes som headers fra frontend (gemt i `localStorage`).
+Arkitektur: Cloudflare worker-to-worker kald på samme konto er blokeret. Løsning: worker eksponerer kun konfiguration (`workerUrl` + `token`) via `GET /api/holdsport/config`, og **frontend kalder Holdsport-workeren direkte fra browser**.
+
+- `holdsport_worker_url` og `holdsport_token` gemmes på `teams`-tabellen (migration 0009)
+- Frontend henter config → kalder `https://<workerUrl>/teams` og `/teams/:id/activities` direkte
+- `api.ts` har hjælpere: `fetchHoldsportConfig`, `fetchHoldsportTeams`, `fetchHoldsportActivitiesForTeam`, `fetchHoldsportActivity`
+- `HoldsportImportModal.tsx` håndterer import-flow: vælg hold → vælg aktivitet → importer til træning
+- Ved import populeres `participant_count` (kun `status_code === 1` tæller) og `trainers[]` (matchet mod app-brugere med trainer/team_manager-rolle på holdet via navn-match)
+- `TrainingEditor.tsx` har "↺ Opdater"-knap ved `participant_count`-feltet for træninger med `holdsport_id`
+- `GET /api/users/team-members` returnerer nu `team_role` (brugt til træner-filtrering)
+
+### Secrets
+```bash
+wrangler secret put HS_TOKEN   # bruges ikke længere direkte — token gemmes per hold i DB
+```
 
 ---
 
@@ -485,6 +499,7 @@ Worker-URL og token sendes som headers fra frontend (gemt i `localStorage`).
 - Temaer vælges fra årshjulet for det aktive hold
 - `SectionList`-komponent for sektioner og øvelser
 - Arkivér / Slet / ← Tilbage i toolbar
+- **Holdsport**: "Holdsport"-knap åbner `HoldsportImportModal`. For træninger med `holdsport_id`: "↺ Opdater"-knap ved antal spillere opdaterer `participant_count` + `trainers` fra Holdsport
 
 ### `SectionList.tsx` (komponent i TrainingEditor)
 - Sektioner med farvet venstre-kant og collapsible body
@@ -494,11 +509,13 @@ Worker-URL og token sendes som headers fra frontend (gemt i `localStorage`).
   - Søgefelt + tag-filter pills i sticky header
   - Øvelser som **liste-rækker** (ikke grid) — titel, tags, minutter, stjerner
   - Klik på øvelse-navn åbner `ExerciseDetailModal`
-  - "+ Fri øvelse" i bunden
-- `ExerciseRow`: afkrydsning (cirkel), op/ned, navn/tags, minutter, slet
+  - "+ Fri øvelse" i bunden (med `calc(80px + env(safe-area-inset-bottom))` padding for bundnav)
+- `ExerciseRow`: afkrydsning (cirkel), op/ned, navn/tags, minutter, 📚 gem til katalog, slet
+  - Fri øvelse med navn viser 📚-knap → `SaveToCatalogModal` (vælg hal/fys + tags → `POST /api/exercises`)
+  - Efter gem linkes rækken til den nye katalogøvelse (id sættes, customName fjernes)
 - Skabeloner: gem (`SaveTemplateModal`) og indlæs (`LoadTemplateModal`)
 - Nulstil alle afkrydsninger
-- AI-forslag knapper (deaktiverede til session 4+)
+- AI-forslag knapper (deaktiverede til session 5)
 
 ### `Aarshjul.tsx` (`/aarshjul`)
 - 4 kvartaler med temaer for `currentTeamId`
@@ -544,7 +561,8 @@ Kun `admin`. To tabs:
 
 **Brugere-tab:**
 - Alle brugere med holdtilknytninger
-- Klik udvider: vis alle hold med aktuel rolle
+- Klik udvider: vis alle hold med aktuel rolle + **seneste aktivitet** + oprettelsesdato
+- Inline navn-redigering (til at matche Holdsport-navne)
 - Rolleskift per hold (knapper: Gæst / Træner / Årgangansvarlig)
 - Tilføj eksisterende bruger til yderligere hold med valgt rolle
 - Fjern bruger fra specifikt hold
@@ -636,6 +654,9 @@ Opdater lokal state straks, API i baggrunden. Revert + toast ved fejl.
 
 ### displayRole i Brugere.tsx
 Brug `teamEntry?.role ?? 'guest'` — aldrig `user.role` som fallback (giver falske holdtilknytninger).
+
+### last_seen opdateres ved
+`POST /api/auth/login`, `GET /api/auth/me` (app-load) og `PATCH /api/trainings/:id` (auto-gem). Vises i Admin-siden under brugerens udvidede sektion.
 
 ### Øvelsesbilleder (R2)
 - Upload: `POST /api/exercises/:id/image` med `multipart/form-data`
