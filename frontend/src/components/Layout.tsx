@@ -143,6 +143,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             minWidth: 200,
             overflow: 'hidden',
           }}>
+            <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
             <MenuItem to="/tavle" onClick={() => setMenuOpen(false)}>Tavle</MenuItem>
             <MenuItem to="/profil" onClick={() => setMenuOpen(false)}>Profil</MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
