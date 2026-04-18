@@ -717,7 +717,6 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
   const [showPicker, setShowPicker] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [showSaveSection, setShowSaveSection] = useState(false);
   const [showLoadSection, setShowLoadSection] = useState(false);
 
   const color = sectionType?.color ?? '#6b6b6b';
@@ -902,13 +901,6 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
                 title="Indlæs sektionsskabelon"
                 style={{ ...btnGhost, padding: '5px 10px', fontSize: 13 }}
               >📋</button>
-              {exList.length > 0 && (
-                <button
-                  onClick={() => setShowSaveSection(true)}
-                  title="Gem sektion som skabelon"
-                  style={{ ...btnGhost, padding: '5px 10px', fontSize: 13 }}
-                >💾</button>
-              )}
             </div>
           )}
 
@@ -953,16 +945,6 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
 
       {/* Øvelse-detalje modal */}
       {detailEx && <ExerciseDetailModal ex={detailEx} onClose={() => setDetailEx(null)} />}
-
-      {/* Gem sektionsskabelon */}
-      {showSaveSection && sectionType && (
-        <SaveSectionTemplateModal
-          teamId={teamId}
-          section={section}
-          sectionTypeId={sectionType.id}
-          onClose={() => setShowSaveSection(false)}
-        />
-      )}
 
       {/* Indlæs sektionsskabelon */}
       {showLoadSection && sectionType && (
@@ -1071,145 +1053,6 @@ function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
   );
 }
 
-// ─── SaveTemplateModal (fuld træning) ─────────────────────────────────────────
-
-function SaveTemplateModal({ teamId, sections, onClose }: {
-  teamId: string;
-  sections: Section[];
-  onClose: () => void;
-}) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
-
-  async function handleSave() {
-    if (!name.trim()) return;
-    setSaving(true);
-    try {
-      const clean = sections.map(s => ({
-        ...s, id: uid(),
-        exercises: (s.exercises ?? []).map(e => ({ ...e, done: false })),
-      }));
-      await api.createTemplate({
-        name: name.trim(), sections: clean, team_id: teamId,
-        type: 'training', description: description.trim() || undefined,
-      });
-      setDone(true);
-      setTimeout(onClose, 1000);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      background: 'rgba(0,0,0,0.4)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 400,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-      }} onClick={e => e.stopPropagation()}>
-        <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-heading)', fontSize: 22 }}>Gem træning som skabelon</h2>
-        {done ? (
-          <p style={{ color: 'var(--green)', fontWeight: 600 }}>✓ Gemt!</p>
-        ) : (
-          <>
-            <input
-              autoFocus value={name} onChange={e => setName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSave()}
-              placeholder="Skabelon-navn…"
-              style={{ ...inputSm, fontSize: 15, marginBottom: 10, minHeight: 40 }}
-            />
-            <input
-              value={description} onChange={e => setDescription(e.target.value)}
-              placeholder="Kort beskrivelse (valgfrit)…"
-              style={{ ...inputSm, fontSize: 14, marginBottom: 14 }}
-            />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
-              <button onClick={handleSave} disabled={saving || !name.trim()} style={{
-                background: 'var(--accent)', color: '#fff', border: 'none',
-                borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
-                opacity: saving || !name.trim() ? 0.5 : 1,
-              }}>{saving ? '…' : 'Gem'}</button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── SaveSectionTemplateModal ─────────────────────────────────────────────────
-
-function SaveSectionTemplateModal({ teamId, section, sectionTypeId, onClose }: {
-  teamId: string;
-  section: Section;
-  sectionTypeId: string;
-  onClose: () => void;
-}) {
-  const [name, setName] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
-
-  async function handleSave() {
-    if (!name.trim()) return;
-    setSaving(true);
-    try {
-      const clean = { ...section, id: uid(), exercises: section.exercises.map(e => ({ ...e, done: false })) };
-      await api.createTemplate({
-        name: name.trim(), sections: [clean], team_id: teamId,
-        type: 'section', section_type: sectionTypeId,
-      });
-      setDone(true);
-      setTimeout(onClose, 1000);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 600,
-      background: 'rgba(0,0,0,0.45)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 380,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-      }} onClick={e => e.stopPropagation()}>
-        <h2 style={{ margin: '0 0 4px', fontFamily: 'var(--font-heading)', fontSize: 20 }}>Gem sektion som skabelon</h2>
-        <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>{section.exercises.length} øvelse{section.exercises.length !== 1 ? 'r' : ''} · {section.mins} min</div>
-        {done ? (
-          <p style={{ color: 'var(--green)', fontWeight: 600 }}>✓ Gemt!</p>
-        ) : (
-          <>
-            <input
-              autoFocus value={name} onChange={e => setName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSave()}
-              placeholder="Skabelon-navn…"
-              style={{ ...inputSm, fontSize: 15, marginBottom: 14, minHeight: 40 }}
-            />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
-              <button onClick={handleSave} disabled={saving || !name.trim()} style={{
-                background: 'var(--accent)', color: '#fff', border: 'none',
-                borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
-                opacity: saving || !name.trim() ? 0.5 : 1,
-              }}>{saving ? '…' : 'Gem'}</button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ─── LoadSectionTemplateModal ─────────────────────────────────────────────────
 
 function LoadSectionTemplateModal({ teamId, sectionTypeId, onLoad, onClose }: {
@@ -1304,7 +1147,6 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [showAddSection, setShowAddSection] = useState(false);
   const [showLoadTemplate, setShowLoadTemplate] = useState(false);
-  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const teamId = training.team_id;
 
   useEffect(() => {
@@ -1394,11 +1236,6 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
         {/* Indlæs skabelon */}
         <button onClick={() => setShowLoadTemplate(true)} title="Indlæs skabelon" style={{ ...btnGhost, padding: '5px 10px' }}>📋</button>
 
-        {/* Gem skabelon */}
-        {canEdit && sections.length > 0 && (
-          <button onClick={() => setShowSaveTemplate(true)} title="Gem som skabelon" style={{ ...btnGhost, padding: '5px 10px' }}>💾</button>
-        )}
-
         {/* AI hele træning — disabled til Session 5 */}
         <button
           disabled
@@ -1467,13 +1304,6 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
           hasSections={sections.length > 0}
           onLoad={secs => updateSections(secs)}
           onClose={() => setShowLoadTemplate(false)}
-        />
-      )}
-      {showSaveTemplate && (
-        <SaveTemplateModal
-          teamId={teamId}
-          sections={sections}
-          onClose={() => setShowSaveTemplate(false)}
         />
       )}
     </div>
