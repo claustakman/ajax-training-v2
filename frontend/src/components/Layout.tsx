@@ -3,10 +3,18 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole, ROLE_LABELS } from '../lib/auth';
 import type { Team } from '../lib/auth';
 
+// Faste nav-punkter — desktop topbar + mobil bundnav
 const NAV_ITEMS = [
   { to: '/',          label: 'Træning',  icon: '📋' },
   { to: '/aarshjul',  label: 'Årshjul',  icon: '📅' },
   { to: '/katalog',   label: 'Katalog',  icon: '📚' },
+];
+
+// Mobil bundnav — kun tre punkter + hamburger
+const MOBILE_NAV_ITEMS = [
+  { to: '/',        label: 'Træning', icon: '📋' },
+  { to: '/katalog', label: 'Katalog', icon: '📚' },
+  { to: '/tavle',   label: 'Tavle',   icon: '📌' },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -118,11 +126,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* Hamburger */}
+        {/* Hamburger — kun synlig på desktop (mobil har hamburger i bundnav) */}
         <button
           onClick={() => setMenuOpen(o => !o)}
           style={{ background: 'none', padding: 8, fontSize: 20, color: 'var(--text2)' }}
           aria-label="Menu"
+          className="desktop-hamburger"
         >
           ☰
         </button>
@@ -143,14 +152,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             minWidth: 200,
             overflow: 'hidden',
           }}>
+            <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)}>Årshjul</MenuItem>
             <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
-            <MenuItem to="/tavle" onClick={() => setMenuOpen(false)}>Tavle</MenuItem>
+            {hasRole(user, 'team_manager', currentTeamRole) && (
+              <MenuItem to="/holdindstillinger" onClick={() => setMenuOpen(false)}>Holdindstillinger</MenuItem>
+            )}
             <MenuItem to="/profil" onClick={() => setMenuOpen(false)}>Profil</MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
               <MenuItem to="/brugere" onClick={() => setMenuOpen(false)}>Brugere</MenuItem>
-            )}
-            {hasRole(user, 'team_manager', currentTeamRole) && (
-              <MenuItem to="/holdindstillinger" onClick={() => setMenuOpen(false)}>Holdindstillinger</MenuItem>
             )}
             {hasRole(user, 'admin', currentTeamRole) && (
               <MenuItem to="/admin" onClick={() => setMenuOpen(false)}>Admin</MenuItem>
@@ -209,7 +218,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         display: 'flex',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }} className="mobile-nav">
-        {NAV_ITEMS.map(item => (
+        {MOBILE_NAV_ITEMS.map(item => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -231,8 +240,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           style={{
             flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
             padding: '8px 0', background: 'none',
-            color: 'var(--text3)', fontSize: 10, fontWeight: 500, gap: 2,
-            borderTop: '2px solid transparent',
+            color: menuOpen ? 'var(--accent)' : 'var(--text3)',
+            fontSize: 10, fontWeight: 500, gap: 2,
+            borderTop: menuOpen ? '2px solid var(--accent)' : '2px solid transparent',
           }}
         >
           <span style={{ fontSize: 20 }}>☰</span>
@@ -247,6 +257,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }
         @media (max-width: 767px) {
           .desktop-nav { display: none !important; }
+          .desktop-hamburger { display: none !important; }
         }
       `}</style>
     </div>
