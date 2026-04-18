@@ -57,18 +57,20 @@ ajax-traening-v2/
 │   │   │   ├── types.ts        # Delte TypeScript-typer
 │   │   │   └── dateUtils.ts    # fmtDay, fmtMon, fmtWday, durMin, totalMins m.fl.
 │   │   ├── components/
-│   │   │   ├── Layout.tsx      # Nav shell: topbar + bundnav
-│   │   │   └── SectionList.tsx # Sektioner + øvelser i trænings-editor
+│   │   │   ├── Layout.tsx           # Nav shell: topbar + bundnav
+│   │   │   ├── SectionList.tsx      # Sektioner + øvelser i trænings-editor
+│   │   │   └── SaveTemplateModal.tsx # Gem skabelon (fuld træning eller sektion)
 │   │   └── pages/
 │   │       ├── Login.tsx
 │   │       ├── Trainings.tsx       # Træningsliste (/)
 │   │       ├── TrainingEditor.tsx  # Trænings-editor (/traininger/:id)
+│   │       ├── Archive.tsx         # Arkiv (/arkiv)
 │   │       ├── Aarshjul.tsx        # Årshjul (/aarshjul)
 │   │       ├── Catalog.tsx         # Øvelseskatalog (/katalog)
 │   │       ├── Board.tsx           # Opslagstavle (/tavle)
 │   │       ├── Profile.tsx         # Brugerprofil (/profil)
 │   │       ├── Brugere.tsx         # Bruger-styring for team_manager (/brugere)
-│   │       ├── TeamSettings.tsx    # Holdindstillinger (/indstillinger)
+│   │       ├── TeamSettings.tsx    # Holdindstillinger (/holdindstillinger)
 │   │       └── Admin.tsx           # Admin: Hold + Brugere (/admin)
 │   ├── vite.config.ts
 │   └── index.html
@@ -114,10 +116,11 @@ Inline CSS via React `style`-props og CSS-variabler. **Ingen Tailwind.**
 ```
 
 ### Navigation
-- **Topbar** (desktop): Logo + 3 faste tabs + hold-switcher (hvis > 1 hold) + hamburger-menu
-- **Bundnav** (mobil): 3 faste ikoner + Mere-knap (☰)
-- **3 faste tabs/ikoner:** Træning · Årshjul · Katalog
-- **Hamburger/Mere-panel:** Tavle · Profil · Spillere *(team_manager+)* · Indstillinger *(team_manager+)* · Admin *(admin)* · Log ud
+- **Topbar** (desktop): Logo + nav-tabs (Træning · Årshjul · Katalog) + hold-switcher (hvis > 1 hold) + hamburger-menu
+- **Bundnav** (mobil): Træning · Katalog · Tavle + ☰ Mere-knap — hamburger i topbar skjult på mobil
+- **Mere-panel rækkefølge:** Årshjul · Arkiv · Holdindstillinger *(team_manager+)* · Profil · Brugere *(team_manager+)* · Admin *(admin)* · Skift hold · Log ud
+- På mobil åbner Mere-panelet **nedefra** (over bundnav, `border-radius: 16px 16px 0 0`)
+- På desktop åbner det som dropdown fra topbar (højre side)
 - Topbar: `border-bottom: 3px solid var(--accent)`
 - Aktiv tab: rød understregning
 - Bundnav: `paddingBottom: env(safe-area-inset-bottom)` for iPhone safe area
@@ -309,8 +312,16 @@ CREATE TABLE board_comments (
 ### `templates`
 ```sql
 CREATE TABLE templates (
-  id TEXT PRIMARY KEY, team_id TEXT, name TEXT NOT NULL,
-  sections TEXT NOT NULL DEFAULT '[]', created_by TEXT, created_at TEXT NOT NULL
+  id          TEXT PRIMARY KEY,
+  team_id     TEXT,
+  name        TEXT NOT NULL,
+  type        TEXT NOT NULL DEFAULT 'training',  -- 'training' | 'section' (migration 0010)
+  section_type TEXT,                              -- sektionstype-id hvis type='section'
+  themes      TEXT NOT NULL DEFAULT '[]',         -- JSON array
+  description TEXT,
+  sections    TEXT NOT NULL DEFAULT '[]',         -- JSON array af Section[]
+  created_by  TEXT,
+  created_at  TEXT NOT NULL
 );
 ```
 
@@ -498,8 +509,15 @@ wrangler secret put HS_TOKEN   # bruges ikke længere direkte — token gemmes p
 - Ansvarlig og trænere vælges fra hold-medlemmer (dropdown fra `/api/users/team-members`)
 - Temaer vælges fra årshjulet for det aktive hold
 - `SectionList`-komponent for sektioner og øvelser
-- Arkivér / Slet / ← Tilbage i toolbar
+- Toolbar: ← Tilbage · 💾 Skabelon · 📦 Arkivér · 🗑 Slet
+  - "💾 Skabelon" åbner `SaveTemplateModal` (kun synlig på gemte træninger med sektioner)
 - **Holdsport**: "Holdsport"-knap åbner `HoldsportImportModal`. For træninger med `holdsport_id`: "↺ Opdater"-knap ved antal spillere opdaterer `participant_count` + `trainers` fra Holdsport
+
+### `SaveTemplateModal.tsx` (komponent — åbnes fra TrainingEditor toolbar)
+- Tab-vælger: **Fuld træning** | **Enkelt sektion**
+- Fuld træning: navn, beskrivelse, tema-pills fra årshjul, preview (sektionsliste med farvet dot)
+- Enkelt sektion: klikbar kortliste over sektioner med farvet kant + ✓-markering, auto-udfylder navn fra sektionstype-label + træningens første tema, beskrivelse, tema-pills, preview (øvelsenavne, max 5 + "+ X flere")
+- Gem-knap disablet hvis navn tomt eller ingen sektion valgt
 
 ### `SectionList.tsx` (komponent i TrainingEditor)
 - Sektioner med farvet venstre-kant og collapsible body
@@ -513,9 +531,19 @@ wrangler secret put HS_TOKEN   # bruges ikke længere direkte — token gemmes p
 - `ExerciseRow`: afkrydsning (cirkel), op/ned, navn/tags, minutter, 📚 gem til katalog, slet
   - Fri øvelse med navn viser 📚-knap → `SaveToCatalogModal` (vælg hal/fys + tags → `POST /api/exercises`)
   - Efter gem linkes rækken til den nye katalogøvelse (id sættes, customName fjernes)
-- Skabeloner: gem (`SaveTemplateModal`) og indlæs (`LoadTemplateModal`)
+- Sektionsskabeloner: 📋 indlæs (`LoadSectionTemplateModal`) per sektion — filtrerer på `type=section&section_type=X`
+- Fuld træning-skabeloner: 📋 indlæs (`LoadTemplateModal`) fra card-header — filtrerer på `type=training`
 - Nulstil alle afkrydsninger
 - AI-forslag knapper (deaktiverede til session 5)
+
+### `Archive.tsx` (`/arkiv`)
+- Viser alle arkiverede træninger for `currentTeamId`
+- Filtre: Vurdering (stjerner) · Sted · Træner
+- **Desktop**: tabel — Dato | Træning | Sted | Varighed | Trænere | Vurdering | Handlinger
+  - Trænere-badges: rød (lead_trainer) / blå (øvrige)
+- **Mobil**: kortliste med "📦 Arkiveret"-badge øverst på hvert kort
+- Handlinger: ⎘ Kopi (duplikér som ny aktiv træning), ↩ Genskab (fjern fra arkiv), ✕ Permanent slet
+- Kopi stripper: id, created_at, updated_at, archived, holdsport_id — navigerer til ny træning
 
 ### `Aarshjul.tsx` (`/aarshjul`)
 - 4 kvartaler med temaer for `currentTeamId`
@@ -546,7 +574,7 @@ Kun `team_manager+`. Viser **kun** brugere tilknyttet det aktive hold.
 - Fjern bruger fra hold
 - Nulstil adgangskode (regenerate invite-link)
 
-### `TeamSettings.tsx` (`/indstillinger`)
+### `TeamSettings.tsx` (`/holdindstillinger`)
 Kun `team_manager+`.
 - **Sektionstyper**: opret, rediger (label, farve, tags, temaer, påkrævet), slet, drag-to-reorder
 - **AI-forslag**: ghostet sektion med info om at Anthropic API-nøgle vedligeholdes i Cloudflare af admin (BETA)
@@ -612,6 +640,10 @@ interface Template {
   id: string
   team_id: string
   name: string
+  type: 'training' | 'section'   // 'training' = fuld træning, 'section' = én sektion
+  section_type?: string           // sektionstype-id hvis type='section'
+  themes: string[]
+  description?: string
   sections: Section[]
   created_by?: string
   created_at: string
@@ -656,7 +688,16 @@ Opdater lokal state straks, API i baggrunden. Revert + toast ved fejl.
 Brug `teamEntry?.role ?? 'guest'` — aldrig `user.role` som fallback (giver falske holdtilknytninger).
 
 ### last_seen opdateres ved
-`POST /api/auth/login`, `GET /api/auth/me` (app-load) og `PATCH /api/trainings/:id` (auto-gem). Vises i Admin-siden under brugerens udvidede sektion.
+`POST /api/auth/login`, `GET /api/auth/me` (app-load) og `PATCH /api/trainings/:id` (auto-gem). Vises i Admin-siden under brugerens udvidede sektion som "Seneste aktivitet".
+
+### Skabeloner — to typer
+- `type='training'`: fuld træning, alle sektioner. Indlæses via 📋 i SectionList card-header.
+- `type='section'`: én sektion, filtreres på `section_type`. Indlæses via 📋 i hvert SectionBlock.
+- Gem sker via "💾 Skabelon" i TrainingEditor toolbar → `SaveTemplateModal` (håndterer begge typer).
+- `fetchTemplates(teamId, { type, section_type })` — worker filtrerer på begge parametre.
+
+### Fri øvelse → katalog
+📚-knap på `ExerciseRow` når `isFree && ex.customName?.trim()` → `SaveToCatalogModal` → `POST /api/exercises` returnerer `{ id }` → rækken konverteres til katalogøvelse (id sættes, customName fjernes).
 
 ### Øvelsesbilleder (R2)
 - Upload: `POST /api/exercises/:id/image` med `multipart/form-data`
