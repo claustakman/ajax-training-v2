@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import type { Training } from '../lib/types';
+import type { Training, SectionType } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 import { SectionList } from '../components/SectionList';
+import SaveTemplateModal from '../components/SaveTemplateModal';
 
 // ─── Status-indikator ────────────────────────────────────────────────────────
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -209,9 +210,11 @@ export default function TrainingEditor() {
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [headerOpen, setHeaderOpen] = useState(true);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   // Data fra API
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([]);
   const [allThemes, setAllThemes] = useState<string[]>([]);
+  const [sectionTypes, setSectionTypes] = useState<SectionType[]>([]);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trainingRef = useRef<Training | null>(null);
@@ -228,6 +231,7 @@ export default function TrainingEditor() {
       const themes = Array.from(new Set(quarters.flatMap(q => q.themes ?? [])));
       setAllThemes(themes);
     }).catch(() => {});
+    api.fetchSectionTypes(currentTeamId).then(setSectionTypes).catch(() => {});
   }, [currentTeamId]);
 
   // ── Indlæs træning ─────────────────────────────────────────────────────────
@@ -396,6 +400,16 @@ export default function TrainingEditor() {
 
         {canEdit && (
           <>
+            {!isNew && training.sections.length > 0 && (
+              <button
+                onClick={() => setShowSaveTemplate(true)}
+                style={{
+                  background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                  borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+                }}
+              >💾 Skabelon</button>
+            )}
+
             <button
               onClick={handleArchive}
               style={{
@@ -610,6 +624,17 @@ export default function TrainingEditor() {
         onUpdate={update}
         onInstantSave={saveNow}
       />
+
+      {/* ── Gem skabelon modal ── */}
+      {showSaveTemplate && currentTeamId && (
+        <SaveTemplateModal
+          training={training}
+          teamId={currentTeamId}
+          sectionTypes={sectionTypes}
+          onSaved={() => {}}
+          onClose={() => setShowSaveTemplate(false)}
+        />
+      )}
 
     </div>
   );
