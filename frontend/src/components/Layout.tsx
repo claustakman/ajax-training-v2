@@ -145,13 +145,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             style={{ position: 'fixed', inset: 0, zIndex: 150 }}
           />
           <div style={{
-            position: 'fixed', top: 'var(--topbar-h)', right: 16, zIndex: 200,
+            position: 'fixed', zIndex: 200,
             background: 'var(--bg-card)',
-            borderRadius: 12,
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
             minWidth: 200,
             overflow: 'hidden',
-          }}>
+          }} className="menu-dropdown">
             <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)}>Årshjul</MenuItem>
             <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
@@ -254,10 +253,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         @media (min-width: 768px) {
           .mobile-nav { display: none !important; }
           main { padding-bottom: 16px !important; }
+          .menu-dropdown {
+            top: var(--topbar-h);
+            right: 16px;
+            border-radius: 12px;
+          }
         }
         @media (max-width: 767px) {
           .desktop-nav { display: none !important; }
           .desktop-hamburger { display: none !important; }
+          .menu-dropdown {
+            left: 0;
+            right: 0;
+            bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom));
+            border-radius: 16px 16px 0 0;
+            max-height: 75vh;
+            overflow-y: auto;
+          }
         }
       `}</style>
     </div>
