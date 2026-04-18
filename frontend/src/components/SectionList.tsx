@@ -698,7 +698,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
 
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
-function SectionBlock({ section, sectionType, sectionIndex, totalSections, exercises, canEdit,
+function SectionBlock({ section, sectionType, sectionIndex, totalSections, exercises, canEdit, teamId,
   onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone,
 }: {
   section: Section;
@@ -707,6 +707,7 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
   totalSections: number;
   exercises: Exercise[];
   canEdit: boolean;
+  teamId: string;
   onUpdate: (patch: Partial<Section>) => void;
   onRemove: () => void;
   onMoveUp: () => void;
@@ -716,6 +717,8 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
   const [showPicker, setShowPicker] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [showSaveSection, setShowSaveSection] = useState(false);
+  const [showLoadSection, setShowLoadSection] = useState(false);
 
   const color = sectionType?.color ?? '#6b6b6b';
   const label = sectionType?.label ?? section.type;
@@ -882,18 +885,30 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
             <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>{section.note}</p>
           )}
 
-          {/* AI + Øvelse knapper under detaljer */}
+          {/* AI + Øvelse + skabelon knapper */}
           {canEdit && (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
               <button
                 disabled
                 title="AI-forslag til denne sektion (Session 5)"
-                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', opacity: 0.4, cursor: 'not-allowed', padding: '5px 12px', fontSize: 13, flex: 1 }}
-              >✨ AI-forslag</button>
+                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', opacity: 0.4, cursor: 'not-allowed', padding: '5px 10px', fontSize: 13, flex: 1 }}
+              >✨ AI</button>
               <button
                 onClick={() => setShowPicker(true)}
-                style={{ ...btnGhost, borderColor: color, color, padding: '5px 14px', fontSize: 13, fontWeight: 600, flex: 1 }}
+                style={{ ...btnGhost, borderColor: color, color, padding: '5px 12px', fontSize: 13, fontWeight: 600, flex: 2 }}
               >+ Øvelse</button>
+              <button
+                onClick={() => setShowLoadSection(true)}
+                title="Indlæs sektionsskabelon"
+                style={{ ...btnGhost, padding: '5px 10px', fontSize: 13 }}
+              >📋</button>
+              {exList.length > 0 && (
+                <button
+                  onClick={() => setShowSaveSection(true)}
+                  title="Gem sektion som skabelon"
+                  style={{ ...btnGhost, padding: '5px 10px', fontSize: 13 }}
+                >💾</button>
+              )}
             </div>
           )}
 
@@ -938,11 +953,31 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
 
       {/* Øvelse-detalje modal */}
       {detailEx && <ExerciseDetailModal ex={detailEx} onClose={() => setDetailEx(null)} />}
+
+      {/* Gem sektionsskabelon */}
+      {showSaveSection && sectionType && (
+        <SaveSectionTemplateModal
+          teamId={teamId}
+          section={section}
+          sectionTypeId={sectionType.id}
+          onClose={() => setShowSaveSection(false)}
+        />
+      )}
+
+      {/* Indlæs sektionsskabelon */}
+      {showLoadSection && sectionType && (
+        <LoadSectionTemplateModal
+          teamId={teamId}
+          sectionTypeId={sectionType.id}
+          onLoad={s => onUpdate({ exercises: s.exercises, mins: s.mins, note: s.note })}
+          onClose={() => setShowLoadSection(false)}
+        />
+      )}
     </div>
   );
 }
 
-// ─── LoadTemplateModal ────────────────────────────────────────────────────────
+// ─── LoadTemplateModal (fuld træning) ────────────────────────────────────────
 
 function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
   teamId: string;
@@ -953,15 +988,23 @@ function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
   const [templates, setTemplates] = useState<import('../lib/types').Template[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.fetchTemplates(teamId).then(setTemplates).finally(() => setLoading(false));
-  }, [teamId]);
+  function load() {
+    api.fetchTemplates(teamId, { type: 'training' })
+      .then(setTemplates)
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, [teamId]);
+
+  async function handleDelete(id: string) {
+    if (!confirm('Slet skabelon?')) return;
+    await api.deleteTemplate(id);
+    setTemplates(prev => prev.filter(t => t.id !== id));
+  }
 
   function handleLoad(sections: Section[]) {
-    // Friske ids + nulstil done
     const clean = sections.map(s => ({
-      ...s,
-      id: uid(),
+      ...s, id: uid(),
       exercises: (s.exercises ?? []).map(e => ({ ...e, done: false })),
     }));
     onLoad(clean);
@@ -980,44 +1023,45 @@ function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Indlæs skabelon</h2>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Indlæs træningsskabelon</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
         </div>
 
-        {/* Advarsel */}
         {hasSections && (
           <div style={{
             background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8,
             padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#78350f',
             display: 'flex', gap: 8, alignItems: 'flex-start',
           }}>
-            <span>⚠</span>
-            <span>Dette erstatter dine nuværende sektioner.</span>
+            <span>⚠</span><span>Dette erstatter dine nuværende sektioner.</span>
           </div>
         )}
 
         {loading ? (
           <p style={{ color: 'var(--text3)', fontSize: 14 }}>Indlæser…</p>
         ) : templates.length === 0 ? (
-          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Ingen skabeloner — gem en træning som skabelon.</p>
+          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Ingen træningsskabeloner — gem en træning som skabelon.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {templates.map(t => (
               <div key={t.id} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 10,
+                gap: 8,
               }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>{t.name}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t.sections?.length ?? 0} sektioner</div>
+                  {t.description && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{t.description}</div>}
                 </div>
-                <button
-                  onClick={() => handleLoad(t.sections)}
-                  style={{
-                    background: 'var(--accent)', color: '#fff', border: 'none',
-                    borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer',
-                  }}
-                >Indlæs</button>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => handleDelete(t.id)}
+                    style={{ ...btnGhost, padding: '5px 8px', color: 'var(--red)', fontSize: 13 }}>🗑</button>
+                  <button onClick={() => handleLoad(t.sections)}
+                    style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
+                    Indlæs
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1027,7 +1071,7 @@ function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
   );
 }
 
-// ─── SaveTemplateModal ────────────────────────────────────────────────────────
+// ─── SaveTemplateModal (fuld træning) ─────────────────────────────────────────
 
 function SaveTemplateModal({ teamId, sections, onClose }: {
   teamId: string;
@@ -1035,6 +1079,7 @@ function SaveTemplateModal({ teamId, sections, onClose }: {
   onClose: () => void;
 }) {
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -1042,13 +1087,14 @@ function SaveTemplateModal({ teamId, sections, onClose }: {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      // Rens: nye ids + done: false
       const clean = sections.map(s => ({
-        ...s,
-        id: uid(),
+        ...s, id: uid(),
         exercises: (s.exercises ?? []).map(e => ({ ...e, done: false })),
       }));
-      await api.createTemplate({ name: name.trim(), sections: clean, team_id: teamId });
+      await api.createTemplate({
+        name: name.trim(), sections: clean, team_id: teamId,
+        type: 'training', description: description.trim() || undefined,
+      });
       setDone(true);
       setTimeout(onClose, 1000);
     } finally {
@@ -1067,31 +1113,179 @@ function SaveTemplateModal({ teamId, sections, onClose }: {
         width: '100%', maxWidth: 400,
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
       }} onClick={e => e.stopPropagation()}>
-        <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-heading)', fontSize: 22 }}>Gem som skabelon</h2>
+        <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-heading)', fontSize: 22 }}>Gem træning som skabelon</h2>
         {done ? (
           <p style={{ color: 'var(--green)', fontWeight: 600 }}>✓ Gemt!</p>
         ) : (
           <>
             <input
-              autoFocus
-              value={name}
-              onChange={e => setName(e.target.value)}
+              autoFocus value={name} onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSave()}
               placeholder="Skabelon-navn…"
-              style={{ ...inputSm, fontSize: 15, marginBottom: 12, minHeight: 40 }}
+              style={{ ...inputSm, fontSize: 15, marginBottom: 10, minHeight: 40 }}
+            />
+            <input
+              value={description} onChange={e => setDescription(e.target.value)}
+              placeholder="Kort beskrivelse (valgfrit)…"
+              style={{ ...inputSm, fontSize: 14, marginBottom: 14 }}
             />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
-              <button
-                onClick={handleSave} disabled={saving || !name.trim()}
-                style={{
-                  background: 'var(--accent)', color: '#fff', border: 'none',
-                  borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
-                  opacity: saving || !name.trim() ? 0.5 : 1,
-                }}
-              >{saving ? '…' : 'Gem'}</button>
+              <button onClick={handleSave} disabled={saving || !name.trim()} style={{
+                background: 'var(--accent)', color: '#fff', border: 'none',
+                borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
+                opacity: saving || !name.trim() ? 0.5 : 1,
+              }}>{saving ? '…' : 'Gem'}</button>
             </div>
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── SaveSectionTemplateModal ─────────────────────────────────────────────────
+
+function SaveSectionTemplateModal({ teamId, section, sectionTypeId, onClose }: {
+  teamId: string;
+  section: Section;
+  sectionTypeId: string;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function handleSave() {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const clean = { ...section, id: uid(), exercises: section.exercises.map(e => ({ ...e, done: false })) };
+      await api.createTemplate({
+        name: name.trim(), sections: [clean], team_id: teamId,
+        type: 'section', section_type: sectionTypeId,
+      });
+      setDone(true);
+      setTimeout(onClose, 1000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 600,
+      background: 'rgba(0,0,0,0.45)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: 16,
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
+        width: '100%', maxWidth: 380,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ margin: '0 0 4px', fontFamily: 'var(--font-heading)', fontSize: 20 }}>Gem sektion som skabelon</h2>
+        <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>{section.exercises.length} øvelse{section.exercises.length !== 1 ? 'r' : ''} · {section.mins} min</div>
+        {done ? (
+          <p style={{ color: 'var(--green)', fontWeight: 600 }}>✓ Gemt!</p>
+        ) : (
+          <>
+            <input
+              autoFocus value={name} onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
+              placeholder="Skabelon-navn…"
+              style={{ ...inputSm, fontSize: 15, marginBottom: 14, minHeight: 40 }}
+            />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
+              <button onClick={handleSave} disabled={saving || !name.trim()} style={{
+                background: 'var(--accent)', color: '#fff', border: 'none',
+                borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
+                opacity: saving || !name.trim() ? 0.5 : 1,
+              }}>{saving ? '…' : 'Gem'}</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── LoadSectionTemplateModal ─────────────────────────────────────────────────
+
+function LoadSectionTemplateModal({ teamId, sectionTypeId, onLoad, onClose }: {
+  teamId: string;
+  sectionTypeId: string;
+  onLoad: (section: Section) => void;
+  onClose: () => void;
+}) {
+  const [templates, setTemplates] = useState<import('../lib/types').Template[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  function load() {
+    api.fetchTemplates(teamId, { type: 'section', section_type: sectionTypeId })
+      .then(setTemplates)
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, [teamId, sectionTypeId]);
+
+  async function handleDelete(id: string) {
+    if (!confirm('Slet skabelon?')) return;
+    await api.deleteTemplate(id);
+    setTemplates(prev => prev.filter(t => t.id !== id));
+  }
+
+  function handleLoad(tmpl: import('../lib/types').Template) {
+    const raw = tmpl.sections[0];
+    if (!raw) return;
+    onLoad({ ...raw, id: uid(), exercises: raw.exercises.map(e => ({ ...e, done: false })) });
+    onClose();
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 600,
+      background: 'rgba(0,0,0,0.45)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: 16,
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
+        width: '100%', maxWidth: 420, maxHeight: '75vh', overflowY: 'auto',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20 }}>Indlæs sektionsskabelon</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
+        </div>
+
+        {loading ? (
+          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Indlæser…</p>
+        ) : templates.length === 0 ? (
+          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Ingen skabeloner for denne sektionstype.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {templates.map(t => (
+              <div key={t.id} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 10, gap: 8,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                    {t.sections[0]?.exercises?.length ?? 0} øvelse{(t.sections[0]?.exercises?.length ?? 0) !== 1 ? 'r' : ''} · {t.sections[0]?.mins ?? 0} min
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => handleDelete(t.id)}
+                    style={{ ...btnGhost, padding: '5px 8px', color: 'var(--red)', fontSize: 13 }}>🗑</button>
+                  <button onClick={() => handleLoad(t)}
+                    style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
+                    Indlæs
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -1249,6 +1443,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
               totalSections={sections.length}
               exercises={exercises}
               canEdit={canEdit}
+              teamId={teamId}
               onUpdate={patch => updateSection(idx, patch)}
               onRemove={() => removeSection(idx)}
               onMoveUp={() => moveSection(idx, -1)}

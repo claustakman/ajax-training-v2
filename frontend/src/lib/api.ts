@@ -61,9 +61,15 @@ export const api = {
   deleteTraining: (id: string) => request<{ deleted: boolean }>(`/api/trainings/${id}`, { method: 'DELETE' }),
 
   // ── Skabeloner ─────────────────────────────────────────────────────────────
-  fetchTemplates: (teamId: string) => request<Template[]>(`/api/templates?team_id=${teamId}`),
-  createTemplate: (data: { name: string; sections: unknown[]; team_id: string }) =>
-    request<Template>('/api/templates', { method: 'POST', body: JSON.stringify(data) }),
+  fetchTemplates: (teamId: string, filters?: { type?: 'training' | 'section'; section_type?: string }) => {
+    const q = new URLSearchParams({ team_id: teamId, ...(filters ?? {}) }).toString();
+    return request<Template[]>(`/api/templates?${q}`);
+  },
+  createTemplate: (data: {
+    name: string; sections: unknown[]; team_id: string;
+    type?: 'training' | 'section'; section_type?: string;
+    themes?: string[]; description?: string;
+  }) => request<Template>('/api/templates', { method: 'POST', body: JSON.stringify(data) }),
   deleteTemplate: (id: string) => request<{ deleted: boolean }>(`/api/templates/${id}`, { method: 'DELETE' }),
 
   // ── Hold (opdatér) ────────────────────────────────────────────────────────

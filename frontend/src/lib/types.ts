@@ -43,7 +43,11 @@ export interface Template {
   id: string
   team_id: string
   name: string
-  sections: Section[]
+  type: 'training' | 'section'   // 'training' = fuld træning, 'section' = én sektion
+  section_type?: string           // sektionstype-id hvis type='section', fx "opvarmning"
+  themes: string[]                // temaer skabelonen dækker
+  description?: string            // fri beskrivelse
+  sections: Section[]             // ved type='section': kun ét element
   created_by?: string
   created_at: string
 }
