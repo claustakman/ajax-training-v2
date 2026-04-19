@@ -839,7 +839,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
 function SectionBlock({ section, sectionType, sectionIndex, totalSections, exercises, canEdit, teamId,
-  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone,
+  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone, onToast,
 }: {
   section: Section;
   sectionType: SectionType | undefined;
@@ -853,6 +853,7 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
   onMoveUp: () => void;
   onMoveDown: () => void;
   onToggleDone: (exerciseIdx: number) => void;
+  onToast: (msg: string) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
@@ -1091,7 +1092,13 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
         <LoadSectionTemplateModal
           teamId={teamId}
           sectionTypeId={sectionType.id}
-          onLoad={s => onUpdate({ exercises: s.exercises, mins: s.mins, note: s.note })}
+          sectionTypeLabel={sectionType.label}
+          exerciseCount={exList.length}
+          exerciseDefs={exercises}
+          onLoad={exs => {
+            onUpdate({ exercises: exs });
+            onToast('Skabelon indlæst ✓');
+          }}
           onClose={() => setShowLoadSection(false)}
         />
       )}
@@ -1101,22 +1108,20 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
 
 // ─── LoadTemplateModal (fuld træning) ────────────────────────────────────────
 
-function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
+function LoadTemplateModal({ teamId, sectionCount, onLoad, onClose }: {
   teamId: string;
-  hasSections: boolean;
+  sectionCount: number;
   onLoad: (sections: Section[]) => void;
   onClose: () => void;
 }) {
   const [templates, setTemplates] = useState<import('../lib/types').Template[]>([]);
   const [loading, setLoading] = useState(true);
 
-  function load() {
+  useEffect(() => {
     api.fetchTemplates(teamId, { type: 'training' })
       .then(setTemplates)
       .finally(() => setLoading(false));
-  }
-
-  useEffect(() => { load(); }, [teamId]);
+  }, [teamId]);
 
   async function handleDelete(id: string) {
     if (!confirm('Slet skabelon?')) return;
@@ -1124,8 +1129,8 @@ function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
     setTemplates(prev => prev.filter(t => t.id !== id));
   }
 
-  function handleLoad(sections: Section[]) {
-    const clean = sections.map(s => ({
+  function handleLoad(t: import('../lib/types').Template) {
+    const clean = t.sections.map(s => ({
       ...s, id: uid(),
       exercises: (s.exercises ?? []).map(e => ({ ...e, done: false })),
     }));
@@ -1141,51 +1146,93 @@ function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
     }} onClick={onClose}>
       <div style={{
         background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 440, maxHeight: '80vh', overflowY: 'auto',
+        width: '100%', maxWidth: 480, maxHeight: '82vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
       }} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Indlæs træningsskabelon</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
         </div>
 
-        {hasSections && (
+        {/* Advarsel */}
+        {sectionCount > 0 && (
           <div style={{
             background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8,
             padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#78350f',
             display: 'flex', gap: 8, alignItems: 'flex-start',
           }}>
-            <span>⚠</span><span>Dette erstatter dine nuværende sektioner.</span>
+            <span>⚠</span>
+            <span>Dette erstatter dine nuværende {sectionCount} sektion{sectionCount !== 1 ? 'er' : ''}.</span>
           </div>
         )}
 
         {loading ? (
           <p style={{ color: 'var(--text3)', fontSize: 14 }}>Indlæser…</p>
         ) : templates.length === 0 ? (
-          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Ingen træningsskabeloner — gem en træning som skabelon.</p>
+          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text3)' }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>📋</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Ingen træningsskabeloner endnu</div>
+            <div style={{ fontSize: 13 }}>Gem en træning som skabelon via 💾 i toolbar.</div>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {templates.map(t => (
-              <div key={t.id} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 10,
-                gap: 8,
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t.sections?.length ?? 0} sektioner</div>
-                  {t.description && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{t.description}</div>}
+            {templates.map(t => {
+              const totalEx = t.sections.reduce((s, sec) => s + (sec.exercises?.length ?? 0), 0);
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => handleLoad(t)}
+                  style={{
+                    padding: '12px 14px', background: 'var(--bg-input)', borderRadius: 10,
+                    cursor: 'pointer', transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-light)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-input)')}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* Navn */}
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3 }}>{t.name}</div>
+
+                      {/* Beskrivelse */}
+                      {t.description && (
+                        <div style={{
+                          fontSize: 13, color: 'var(--text2)', marginBottom: 6,
+                          display: '-webkit-box', WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}>{t.description}</div>
+                      )}
+
+                      {/* Temaer */}
+                      {t.themes && t.themes.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                          {t.themes.map(th => (
+                            <span key={th} style={{
+                              fontSize: 11, fontWeight: 500,
+                              background: 'var(--accent-light)', color: 'var(--accent)',
+                              borderRadius: 20, padding: '2px 8px',
+                            }}>{th}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tæller */}
+                      <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                        {t.sections?.length ?? 0} sektioner · {totalEx} øvelser
+                      </div>
+                    </div>
+
+                    {/* Slet */}
+                    <button
+                      onClick={e => { e.stopPropagation(); handleDelete(t.id); }}
+                      style={{ ...btnGhost, padding: '4px 8px', color: 'var(--red)', fontSize: 14, flexShrink: 0 }}
+                    >✕</button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  <button onClick={() => handleDelete(t.id)}
-                    style={{ ...btnGhost, padding: '5px 8px', color: 'var(--red)', fontSize: 13 }}>🗑</button>
-                  <button onClick={() => handleLoad(t.sections)}
-                    style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
-                    Indlæs
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -1195,22 +1242,24 @@ function LoadTemplateModal({ teamId, hasSections, onLoad, onClose }: {
 
 // ─── LoadSectionTemplateModal ─────────────────────────────────────────────────
 
-function LoadSectionTemplateModal({ teamId, sectionTypeId, onLoad, onClose }: {
+function LoadSectionTemplateModal({ teamId, sectionTypeId, sectionTypeLabel, exerciseCount, exerciseDefs, onLoad, onClose }: {
   teamId: string;
   sectionTypeId: string;
-  onLoad: (section: Section) => void;
+  sectionTypeLabel: string;
+  exerciseCount: number;
+  exerciseDefs: Exercise[];
+  onLoad: (exercises: SectionExercise[]) => void;
   onClose: () => void;
 }) {
   const [templates, setTemplates] = useState<import('../lib/types').Template[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  function load() {
+  useEffect(() => {
     api.fetchTemplates(teamId, { type: 'section', section_type: sectionTypeId })
       .then(setTemplates)
       .finally(() => setLoading(false));
-  }
-
-  useEffect(() => { load(); }, [teamId, sectionTypeId]);
+  }, [teamId, sectionTypeId]);
 
   async function handleDelete(id: string) {
     if (!confirm('Slet skabelon?')) return;
@@ -1221,7 +1270,8 @@ function LoadSectionTemplateModal({ teamId, sectionTypeId, onLoad, onClose }: {
   function handleLoad(tmpl: import('../lib/types').Template) {
     const raw = tmpl.sections[0];
     if (!raw) return;
-    onLoad({ ...raw, id: uid(), exercises: raw.exercises.map(e => ({ ...e, done: false })) });
+    const exercises = raw.exercises.map(e => ({ ...e, done: false }));
+    onLoad(exercises);
     onClose();
   }
 
@@ -1233,41 +1283,123 @@ function LoadSectionTemplateModal({ teamId, sectionTypeId, onLoad, onClose }: {
     }} onClick={onClose}>
       <div style={{
         background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 420, maxHeight: '75vh', overflowY: 'auto',
+        width: '100%', maxWidth: 460, maxHeight: '80vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20 }}>Indlæs sektionsskabelon</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20 }}>Indlæs øvelser fra skabelon</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
         </div>
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16 }}>
+          Viser skabeloner for <strong>{sectionTypeLabel}</strong>
+        </div>
+
+        {/* Advarsel */}
+        {exerciseCount > 0 && (
+          <div style={{
+            background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8,
+            padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#78350f',
+            display: 'flex', gap: 8, alignItems: 'flex-start',
+          }}>
+            <span>⚠</span>
+            <span>Dette erstatter sektionens nuværende {exerciseCount} øvelse{exerciseCount !== 1 ? 'r' : ''}.</span>
+          </div>
+        )}
 
         {loading ? (
           <p style={{ color: 'var(--text3)', fontSize: 14 }}>Indlæser…</p>
         ) : templates.length === 0 ? (
-          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Ingen skabeloner for denne sektionstype.</p>
+          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text3)' }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>📋</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>
+              Ingen skabeloner for {sectionTypeLabel} endnu
+            </div>
+            <div style={{ fontSize: 13 }}>Gem en sektion som skabelon fra trænings-editoren.</div>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {templates.map(t => (
-              <div key={t.id} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 10, gap: 8,
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                    {t.sections[0]?.exercises?.length ?? 0} øvelse{(t.sections[0]?.exercises?.length ?? 0) !== 1 ? 'r' : ''} · {t.sections[0]?.mins ?? 0} min
+            {templates.map(t => {
+              const sec = t.sections[0];
+              const exList = sec?.exercises ?? [];
+              const isExpanded = expandedId === t.id;
+              const MAX_SHOW = 8;
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => handleLoad(t)}
+                  style={{
+                    padding: '12px 14px', background: 'var(--bg-input)', borderRadius: 10,
+                    cursor: 'pointer', transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-light)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-input)')}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* Navn */}
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3 }}>{t.name}</div>
+
+                      {/* Beskrivelse */}
+                      {t.description && (
+                        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 6 }}>{t.description}</div>
+                      )}
+
+                      {/* Temaer */}
+                      {t.themes && t.themes.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                          {t.themes.map(th => (
+                            <span key={th} style={{
+                              fontSize: 11, fontWeight: 500,
+                              background: 'var(--accent-light)', color: 'var(--accent)',
+                              borderRadius: 20, padding: '2px 8px',
+                            }}>{th}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tæller + fold-toggle */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                          {exList.length} øvelse{exList.length !== 1 ? 'r' : ''} · {sec?.mins ?? 0} min
+                        </span>
+                        {exList.length > 0 && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : t.id); }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text2)', padding: '0 4px' }}
+                          >{isExpanded ? '▾ Skjul' : '▸ Se øvelser'}</button>
+                        )}
+                      </div>
+
+                      {/* Foldbar øvelseliste */}
+                      {isExpanded && (
+                        <div style={{ marginTop: 8, paddingLeft: 4 }} onClick={e => e.stopPropagation()}>
+                          {exList.slice(0, MAX_SHOW).map((ex, i) => {
+                            const defName = ex.id ? exerciseDefs.find(e => e.id === ex.id)?.name : undefined;
+                            const displayName = ex.customName ?? defName ?? ex.id ?? '—';
+                            return (
+                              <div key={i} style={{ fontSize: 13, color: 'var(--text2)', padding: '2px 0', borderBottom: '1px solid var(--border)' }}>
+                                {displayName}{ex.mins ? ` · ${ex.mins} min` : ''}
+                              </div>
+                            );
+                          })}
+                          {exList.length > MAX_SHOW && (
+                            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>+ {exList.length - MAX_SHOW} flere</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Slet */}
+                    <button
+                      onClick={e => { e.stopPropagation(); handleDelete(t.id); }}
+                      style={{ ...btnGhost, padding: '4px 8px', color: 'var(--red)', fontSize: 14, flexShrink: 0 }}
+                    >✕</button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  <button onClick={() => handleDelete(t.id)}
-                    style={{ ...btnGhost, padding: '5px 8px', color: 'var(--red)', fontSize: 13 }}>🗑</button>
-                  <button onClick={() => handleLoad(t)}
-                    style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
-                    Indlæs
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -1276,6 +1408,23 @@ function LoadSectionTemplateModal({ teamId, sectionTypeId, onLoad, onClose }: {
 }
 
 // ─── SectionList (hoved-eksport) ──────────────────────────────────────────────
+
+// ─── Mini-toast ───────────────────────────────────────────────────────────────
+function MiniToast({ message, onDone }: { message: string; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2800);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div style={{
+      position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 700, padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+      background: 'var(--green)', color: '#fff',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.18)', pointerEvents: 'none',
+      whiteSpace: 'nowrap',
+    }}>{message}</div>
+  );
+}
 
 export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
   training: Training;
@@ -1287,6 +1436,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [showAddSection, setShowAddSection] = useState(false);
   const [showLoadTemplate, setShowLoadTemplate] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const teamId = training.team_id;
 
   useEffect(() => {
@@ -1426,6 +1576,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
               onMoveUp={() => moveSection(idx, -1)}
               onMoveDown={() => moveSection(idx, 1)}
               onToggleDone={exIdx => toggleDone(idx, exIdx)}
+              onToast={setToast}
             />
           );
         })}
@@ -1441,11 +1592,16 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
       {showLoadTemplate && (
         <LoadTemplateModal
           teamId={teamId}
-          hasSections={sections.length > 0}
-          onLoad={secs => updateSections(secs)}
+          sectionCount={sections.length}
+          onLoad={secs => {
+            updateSections(secs);
+            setToast('Skabelon indlæst ✓');
+          }}
           onClose={() => setShowLoadTemplate(false)}
         />
       )}
+
+      {toast && <MiniToast message={toast} onDone={() => setToast(null)} />}
     </div>
   );
 }
