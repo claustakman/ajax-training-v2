@@ -239,15 +239,6 @@ export default function Trainings() {
           margin: 0, flex: 1,
         }}>Træninger</h1>
 
-        <button
-          onClick={() => navigate('/arkiv')}
-          style={{
-            background: 'var(--bg-input)', border: '1px solid var(--border2)',
-            borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer',
-            color: 'var(--text2)',
-          }}
-        >📦 Arkiv</button>
-
         {canEdit && (
           <button
             onClick={handleHoldsportClick}

@@ -429,6 +429,19 @@ function ExercisePickerCard({ ex, added, accentColor, onPick, onDetail }: {
       background: added ? 'var(--bg-input)' : 'var(--bg-card)',
       opacity: added ? 0.65 : 1,
     }}>
+      {/* Thumbnail */}
+      {ex.image_url && (
+        <img
+          src={ex.image_url}
+          alt=""
+          onClick={onDetail}
+          style={{
+            width: 44, height: 44, borderRadius: 8,
+            objectFit: 'cover', flexShrink: 0, cursor: 'pointer',
+          }}
+        />
+      )}
+
       {/* Venstre: navn + tags — klik åbner detalje */}
       <div
         onClick={onDetail}
