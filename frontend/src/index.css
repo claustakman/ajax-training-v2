@@ -83,6 +83,28 @@ a {
   border-radius: 6px;
 }
 
+/* ─── Bottom-sheet modaler på mobil ──────────────────────────────────────── */
+
+.modal-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-sheet {
+    border-radius: 16px 16px 0 0 !important;
+    max-height: 92dvh !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
 /* ─── Catalog mobil-UX ────────────────────────────────────────────────────── */
 
 /* Fix 1 — sticky søgefelt på mobil */

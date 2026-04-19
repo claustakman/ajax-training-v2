@@ -174,16 +174,15 @@ export default function SaveTemplateModal({ training, teamId, sectionTypes, onSa
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay + modal i ét flex-element */}
       <div
+        className="modal-overlay"
         onClick={onClose}
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500 }}
-      />
+      >
 
       {/* Modal */}
-      <div style={{
-        position: 'fixed', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
+      <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{
         width: 'min(520px, 95vw)',
         maxHeight: '88vh',
         overflowY: 'auto',
@@ -436,6 +435,8 @@ export default function SaveTemplateModal({ training, teamId, sectionTypes, onSa
             {saving ? 'Gemmer…' : 'Gem skabelon'}
           </button>
         </div>
+      </div>
+
       </div>
 
       {toast && <Toast msg={toast} />}

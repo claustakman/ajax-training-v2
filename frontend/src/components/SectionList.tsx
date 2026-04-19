@@ -102,12 +102,11 @@ function DurationBar({ sections, training }: {
 
 function ExerciseDetailModal({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
   return (
-    <div style={{
+    <div className="modal-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 500,
-      background: 'rgba(0,0,0,0.45)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
+      background: 'rgba(0,0,0,0.45)',
     }} onClick={onClose}>
-      <div style={{
+      <div className="modal-sheet" style={{
         background: 'var(--bg-card)', borderRadius: 16, padding: 24,
         width: '100%', maxWidth: 500, maxHeight: '85vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
@@ -174,12 +173,11 @@ function AddSectionModal({ sectionTypes, onAdd, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <div style={{
+    <div className="modal-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 300,
-      background: 'rgba(0,0,0,0.4)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
+      background: 'rgba(0,0,0,0.4)',
     }} onClick={onClose}>
-      <div style={{
+      <div className="modal-sheet" style={{
         background: 'var(--bg-card)', borderRadius: 16, padding: 24,
         width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
@@ -267,14 +265,13 @@ function FreeExerciseModal({ initialName = '', onAddFree, onAddCatalog, onClose 
   }
 
   return (
-    <div style={{
+    <div className="modal-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 500,
-      background: 'rgba(0,0,0,0.45)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
+      background: 'rgba(0,0,0,0.45)',
     }} onClick={onClose}>
-      <div style={{
+      <div className="modal-sheet" style={{
         background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 380,
+        width: '100%', maxWidth: 380, maxHeight: '80vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
       }} onClick={e => e.stopPropagation()}>
         <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-heading)', fontSize: 20, textTransform: 'uppercase' }}>
@@ -652,14 +649,13 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
   }
 
   return (
-    <div style={{
+    <div className="modal-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 600,
-      background: 'rgba(0,0,0,0.45)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
+      background: 'rgba(0,0,0,0.45)',
     }} onClick={onClose}>
-      <div style={{
+      <div className="modal-sheet" style={{
         background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 380,
+        width: '100%', maxWidth: 380, maxHeight: '80vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
       }} onClick={e => e.stopPropagation()}>
         <h2 style={{ margin: '0 0 4px', fontFamily: 'var(--font-heading)', fontSize: 20 }}>Gem til katalog</h2>
@@ -1154,12 +1150,11 @@ function LoadTemplateModal({ teamId, sectionCount, onLoad, onClose }: {
   }
 
   return (
-    <div style={{
+    <div className="modal-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 300,
-      background: 'rgba(0,0,0,0.4)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
+      background: 'rgba(0,0,0,0.4)',
     }} onClick={onClose}>
-      <div style={{
+      <div className="modal-sheet" style={{
         background: 'var(--bg-card)', borderRadius: 16, padding: 24,
         width: '100%', maxWidth: 480, maxHeight: '82vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
@@ -1291,12 +1286,11 @@ function LoadSectionTemplateModal({ teamId, sectionTypeId, sectionTypeLabel, exe
   }
 
   return (
-    <div style={{
+    <div className="modal-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 600,
-      background: 'rgba(0,0,0,0.45)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 16,
+      background: 'rgba(0,0,0,0.45)',
     }} onClick={onClose}>
-      <div style={{
+      <div className="modal-sheet" style={{
         background: 'var(--bg-card)', borderRadius: 16, padding: 24,
         width: '100%', maxWidth: 460, maxHeight: '80vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',

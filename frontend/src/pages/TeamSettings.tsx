@@ -778,15 +778,12 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
   }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.4)' }}
-      />
-      <div style={{
-        position: 'fixed', top: '50%', left: '50%', zIndex: 400,
-        transform: 'translate(-50%, -50%)',
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.4)' }}
+    >
+      <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{
         background: 'var(--bg-card)',
         borderRadius: 16,
         padding: 24,
@@ -945,6 +942,6 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
