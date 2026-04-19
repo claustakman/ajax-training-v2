@@ -186,7 +186,7 @@ function AddSectionModal({ sectionTypes, onAdd, onClose }: {
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Tilføj sektion</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--text2)' }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {sectionTypes.map(st => (
@@ -436,7 +436,7 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
               <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20, color: sectionType.color }}>
                 Tilføj øvelse — {sectionType.label}
               </h2>
-              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', padding: 4, lineHeight: 1 }}>×</button>
+              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
             </div>
 
             {/* Fix 1+3 — søgefelt: ingen autoFocus (bruger forsinket focus via ref) */}
