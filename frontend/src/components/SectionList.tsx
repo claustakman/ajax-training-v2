@@ -3,7 +3,7 @@
  * Session 3 — fuldt implementeret.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../lib/api';
 import type { Section, SectionExercise, SectionType, Exercise, Training } from '../lib/types';
 import { ExerciseEditor } from '../pages/Catalog';
@@ -328,6 +328,17 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [showFree, setShowFree] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
+  const [viewportH, setViewportH] = useState(window.visualViewport?.height ?? window.innerHeight);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Fix 4 — visualViewport: opdater højde når tastatur skubber viewport op
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handler = () => setViewportH(vv.height);
+    vv.addEventListener('resize', handler);
+    return () => vv.removeEventListener('resize', handler);
+  }, []);
 
   const stTags = sectionType.tags ?? [];
 
@@ -342,33 +353,39 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
     return matchSearch && matchTags;
   }).slice(0, 80);
 
+  // Fix 2 — scroll til top når filter ændres
+  useEffect(() => {
+    resultsRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, [filtered.length, search, activeTags.join(',')]);
+
   function toggleTag(tag: string) {
     setActiveTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   }
 
   return (
     <>
-      {/* Fylder hele skærmen */}
+      {/* Overlay */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 400,
         background: 'rgba(0,0,0,0.5)', display: 'flex',
         alignItems: 'flex-end',
       }} onClick={onClose}>
+        {/* Fix 4 — brug visualViewport-højde så modal ikke klippes af tastatur */}
         <div style={{
           background: 'var(--bg)',
           borderRadius: '16px 16px 0 0',
-          padding: '0',
           width: '100%',
-          maxHeight: '92vh',
+          maxHeight: `${viewportH * 0.92}px`,
           display: 'flex', flexDirection: 'column',
           boxShadow: '0 -4px 24px rgba(0,0,0,0.18)',
+          overflow: 'hidden',
         }} onClick={e => e.stopPropagation()}>
 
-          {/* Sticky header */}
+          {/* Fix 1 — fast header: aldrig scrollet væk */}
           <div style={{
             background: 'var(--bg-card)',
             borderRadius: '16px 16px 0 0',
-            padding: '12px 16px 14px',
+            padding: '12px 16px 12px',
             borderBottom: '1px solid var(--border)',
             flexShrink: 0,
           }}>
@@ -376,20 +393,26 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border2)', margin: '0 auto 14px' }} />
 
             {/* Titel + luk */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20, color: sectionType.color }}>
                 Tilføj øvelse — {sectionType.label}
               </h2>
               <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', padding: 4, lineHeight: 1 }}>×</button>
             </div>
 
-            {/* Søg */}
+            {/* Fix 3 — søgefelt med mobil-optimerede attributter */}
             <input
               autoFocus
+              type="search"
+              inputMode="search"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Søg øvelse…"
-              style={{ ...inputSm, marginBottom: 10, fontSize: 16, padding: '10px 12px', minHeight: 44 }}
+              style={{ ...inputSm, marginBottom: 8, fontSize: 16, padding: '10px 12px', minHeight: 44 }}
             />
 
             {/* Tag-filter pills */}
@@ -416,8 +439,16 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
             )}
           </div>
 
-          {/* Scrollbar liste */}
-          <div style={{ overflowY: 'auto', flex: 1 }}>
+          {/* Fix 1 + 5 — scrollbar resultatliste med safe-area padding i bunden */}
+          <div
+            ref={resultsRef}
+            style={{
+              overflowY: 'auto',
+              flex: 1,
+              minHeight: 160,
+              WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
+            }}
+          >
             {filtered.length === 0 && (
               <p style={{ color: 'var(--text3)', fontSize: 14, textAlign: 'center', margin: '32px 0' }}>
                 Ingen øvelser fundet.
@@ -447,7 +478,7 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
                   padding: '14px 16px',
                   borderTop: '1px dashed var(--border2)',
                   cursor: 'pointer',
-                  paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
+                  paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
                 }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-input)')}
                 onMouseLeave={e => (e.currentTarget.style.background = '')}
