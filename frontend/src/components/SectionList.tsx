@@ -489,9 +489,15 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
             }}
           >
             {filtered.length === 0 && (
-              <p style={{ color: 'var(--text3)', fontSize: 14, textAlign: 'center', margin: '32px 0' }}>
-                Ingen øvelser fundet.
-              </p>
+              <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>
+                  Ingen øvelser fundet
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+                  Prøv en anden søgning eller tilføj en fri øvelse nedenfor.
+                </div>
+              </div>
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1505,6 +1511,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
       exercises: sec.exercises.map(ex => ({ ...ex, done: false })),
     }));
     onInstantSave({ sections: updated });
+    setToast('Afkrydsninger nulstillet ✓');
   }
 
   const anyDone = sections.some(s => s.exercises.some(e => e.done));

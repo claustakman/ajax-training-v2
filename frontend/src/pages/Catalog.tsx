@@ -299,14 +299,35 @@ export default function Catalog() {
 
       {/* Liste */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {loading && (
-          <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 32, textAlign: 'center', color: 'var(--text3)' }}>
-            Henter øvelser…
+        {loading && [1,2,3,4,5,6,7,8].map(n => (
+          <div key={n} style={{
+            background: 'var(--bg-card)', borderRadius: 12,
+            padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="skeleton" style={{ height: 15, width: `${45 + (n * 7) % 35}%` }} />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <div className="skeleton" style={{ height: 20, width: 56, borderRadius: 10 }} />
+                <div className="skeleton" style={{ height: 20, width: 44, borderRadius: 10 }} />
+              </div>
+            </div>
+            <div className="skeleton" style={{ width: 36, height: 12, borderRadius: 6, flexShrink: 0 }} />
           </div>
-        )}
+        ))}
         {!loading && filtered.length === 0 && (
-          <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 32, textAlign: 'center', color: 'var(--text3)' }}>
-            Ingen øvelser matcher søgningen
+          <div style={{
+            background: 'var(--bg-card)', borderRadius: 12,
+            padding: '40px 24px', textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+            <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 6 }}>
+              Ingen øvelser fundet
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+              {hasFilters ? 'Prøv at ændre filtrene eller søgningen.' : 'Opret den første øvelse med "+ Ny øvelse".'}
+            </div>
           </div>
         )}
         {filtered.map(ex => (

@@ -14,10 +14,10 @@ function SkeletonCard() {
       padding: '14px 16px', display: 'flex', gap: 16, alignItems: 'center',
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
     }}>
-      <div style={{ width: 44, height: 54, borderRadius: 10, background: 'var(--bg-input)' }} />
+      <div className="skeleton" style={{ width: 44, height: 54, borderRadius: 10 }} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ height: 16, borderRadius: 6, background: 'var(--bg-input)', width: '55%' }} />
-        <div style={{ height: 13, borderRadius: 6, background: 'var(--bg-input)', width: '35%' }} />
+        <div className="skeleton" style={{ height: 15, width: '55%' }} />
+        <div className="skeleton" style={{ height: 12, width: '35%' }} />
       </div>
     </div>
   );

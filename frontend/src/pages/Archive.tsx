@@ -380,8 +380,23 @@ export default function Archive() {
       {/* Indhold */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[1, 2, 3].map(n => (
-            <div key={n} style={{ background: 'var(--bg-card)', borderRadius: 12, height: 80, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', opacity: 0.5 }} />
+          {[1, 2, 3, 4, 5].map(n => (
+            <div key={n} style={{
+              background: 'var(--bg-card)', borderRadius: 12,
+              padding: '14px 16px', display: 'flex', gap: 14, alignItems: 'center',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            }}>
+              <div className="skeleton" style={{ width: 44, height: 54, borderRadius: 10, flexShrink: 0 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="skeleton" style={{ height: 15, width: '50%' }} />
+                <div className="skeleton" style={{ height: 12, width: '30%' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <div className="skeleton" style={{ width: 52, height: 28, borderRadius: 7 }} />
+                <div className="skeleton" style={{ width: 64, height: 28, borderRadius: 7 }} />
+                <div className="skeleton" style={{ width: 28, height: 28, borderRadius: 7 }} />
+              </div>
+            </div>
           ))}
         </div>
       ) : trainings.length === 0 ? (

@@ -211,6 +211,7 @@ export default function TrainingEditor() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [headerOpen, setHeaderOpen] = useState(true);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [miniToast, setMiniToast] = useState<string | null>(null);
   // Data fra API
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([]);
   const [allThemes, setAllThemes] = useState<string[]>([]);
@@ -631,9 +632,24 @@ export default function TrainingEditor() {
           training={training}
           teamId={currentTeamId}
           sectionTypes={sectionTypes}
-          onSaved={() => {}}
+          onSaved={() => {
+            setShowSaveTemplate(false);
+            setMiniToast('Skabelon gemt ✓');
+            setTimeout(() => setMiniToast(null), 2800);
+          }}
           onClose={() => setShowSaveTemplate(false)}
         />
+      )}
+
+      {/* Mini-toast */}
+      {miniToast && (
+        <div style={{
+          position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 700, padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+          background: 'var(--green)', color: '#fff',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.18)', pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+        }}>{miniToast}</div>
       )}
 
     </div>
