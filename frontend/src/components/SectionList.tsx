@@ -329,15 +329,46 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
   const [showFree, setShowFree] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
   const [viewportH, setViewportH] = useState(window.visualViewport?.height ?? window.innerHeight);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-  // Fix 4 — visualViewport: opdater højde når tastatur skubber viewport op
+  // Fix 1 — forsinket autoFocus: vent til bottom sheet animation er færdig
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Fix 4 — visualViewport højde
+  // Fix 2 + 3 — scroll modal op og beregn tastaturhøjde
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const handler = () => setViewportH(vv.height);
+
+    const handler = () => {
+      setViewportH(vv.height);
+
+      // Fix 3 — beregn tastaturhøjde og løft modalen
+      if (window.innerWidth <= 640) {
+        const kbHeight = window.innerHeight - vv.height - vv.offsetTop;
+        setKeyboardHeight(Math.max(0, kbHeight));
+      }
+
+      // Fix 2 — scroll modal til toppen så søgefeltet er synligt
+      if (window.innerWidth <= 640) {
+        modalRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
     vv.addEventListener('resize', handler);
-    return () => vv.removeEventListener('resize', handler);
+    vv.addEventListener('scroll', handler);
+    return () => {
+      vv.removeEventListener('resize', handler);
+      vv.removeEventListener('scroll', handler);
+    };
   }, []);
 
   const stTags = sectionType.tags ?? [];
@@ -370,16 +401,24 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
         background: 'rgba(0,0,0,0.5)', display: 'flex',
         alignItems: 'flex-end',
       }} onClick={onClose}>
-        {/* Fix 4 — brug visualViewport-højde så modal ikke klippes af tastatur */}
-        <div style={{
-          background: 'var(--bg)',
-          borderRadius: '16px 16px 0 0',
-          width: '100%',
-          maxHeight: `${viewportH * 0.92}px`,
-          display: 'flex', flexDirection: 'column',
-          boxShadow: '0 -4px 24px rgba(0,0,0,0.18)',
-          overflow: 'hidden',
-        }} onClick={e => e.stopPropagation()}>
+          {/* Fix 3+4 — brug visualViewport-højde + løft modalen over tastatur */}
+        <div
+          ref={modalRef}
+          style={{
+            background: 'var(--bg)',
+            borderRadius: '16px 16px 0 0',
+            width: '100%',
+            maxHeight: `${viewportH * 0.92}px`,
+            display: 'flex', flexDirection: 'column',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.18)',
+            overflow: 'hidden',
+            ...(keyboardHeight > 0
+              ? { marginBottom: keyboardHeight, transition: 'margin-bottom 0.25s ease' }
+              : { transition: 'margin-bottom 0.25s ease' }
+            ),
+          }}
+          onClick={e => e.stopPropagation()}
+        >
 
           {/* Fix 1 — fast header: aldrig scrollet væk */}
           <div style={{
@@ -400,9 +439,9 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
               <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', padding: 4, lineHeight: 1 }}>×</button>
             </div>
 
-            {/* Fix 3 — søgefelt med mobil-optimerede attributter */}
+            {/* Fix 1+3 — søgefelt: ingen autoFocus (bruger forsinket focus via ref) */}
             <input
-              autoFocus
+              ref={searchInputRef}
               type="search"
               inputMode="search"
               autoComplete="off"
