@@ -564,6 +564,14 @@ export default function TeamSettings() {
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 20px' }}>Holdindstillinger</h1>
 
+      {/* Skabeloner */}
+      {currentTeamId && (
+        <SkabelonerSection
+          teamId={currentTeamId}
+          sectionTypes={sectionTypes}
+        />
+      )}
+
       {/* Section types */}
       <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -677,14 +685,6 @@ export default function TeamSettings() {
           teamId={currentTeamId}
           initialUrl={hsWorkerUrl}
           initialToken={hsToken}
-        />
-      )}
-
-      {/* Skabeloner */}
-      {currentTeamId && (
-        <SkabelonerSection
-          teamId={currentTeamId}
-          sectionTypes={sectionTypes}
         />
       )}
 
