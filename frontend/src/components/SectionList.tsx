@@ -6,6 +6,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import type { Section, SectionExercise, SectionType, Exercise, Training } from '../lib/types';
+import { ExerciseEditor } from '../pages/Catalog';
+import type { Exercise as CatalogExercise } from '../pages/Catalog';
 
 // ─── Hjælpefunktioner ────────────────────────────────────────────────────────
 
@@ -215,11 +217,53 @@ function AddSectionModal({ sectionTypes, onAdd, onClose }: {
 
 // ─── FreeExerciseModal ────────────────────────────────────────────────────────
 
-function FreeExerciseModal({ onAdd, onClose }: {
-  onAdd: (name: string) => void;
+function FreeExerciseModal({ onAddFree, onAddCatalog, onClose }: {
+  onAddFree: (name: string) => void;
+  onAddCatalog: (ex: Exercise) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState('');
+  const [showCatalogEditor, setShowCatalogEditor] = useState(false);
+
+  // Blank øvelse til katalogeditor
+  const blankExercise: CatalogExercise = {
+    id: '', name: name.trim(), description: '', catalog: 'hal',
+    tags: [], age_groups: [], stars: 0,
+    variants: null, link: null, default_mins: null,
+    image_r2_key: null, created_by: null, created_by_email: null, created_at: null,
+  };
+
+  if (showCatalogEditor) {
+    return (
+      <ExerciseEditor
+        ex={{ ...blankExercise, name: name.trim() }}
+        isNew
+        onSaved={(saved) => {
+          // Konvertér CatalogExercise → SectionList Exercise og tilføj til sektion
+          onAddCatalog({
+            id: saved.id,
+            name: saved.name,
+            description: saved.description ?? undefined,
+            catalog: saved.catalog as 'hal' | 'fys',
+            tags: saved.tags,
+            age_groups: saved.age_groups,
+            stars: saved.stars,
+            variants: saved.variants ?? undefined,
+            link: saved.link ?? undefined,
+            default_mins: saved.default_mins ?? undefined,
+            image_url: undefined,
+            image_r2_key: saved.image_r2_key ?? undefined,
+            created_at: saved.created_at ?? '',
+            updated_at: '',
+          });
+          onClose();
+        }}
+        onDeleted={() => onClose()}
+        onClose={() => setShowCatalogEditor(false)}
+      />
+    );
+  }
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 500,
@@ -231,26 +275,37 @@ function FreeExerciseModal({ onAdd, onClose }: {
         width: '100%', maxWidth: 380,
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
       }} onClick={e => e.stopPropagation()}>
-        <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-heading)', fontSize: 20 }}>Fri øvelse</h2>
+        <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-heading)', fontSize: 20, textTransform: 'uppercase' }}>
+          Tilføj øvelse
+        </h2>
         <input
           autoFocus
           value={name}
           onChange={e => setName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && name.trim()) { onAdd(name.trim()); onClose(); } }}
+          onKeyDown={e => { if (e.key === 'Enter' && name.trim()) { onAddFree(name.trim()); onClose(); } }}
           placeholder="Navn på øvelse…"
           style={{ ...inputSm, fontSize: 15, marginBottom: 14, minHeight: 42 }}
         />
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
           <button
-            onClick={() => { if (name.trim()) { onAdd(name.trim()); onClose(); } }}
+            onClick={() => { if (name.trim()) setShowCatalogEditor(true); }}
+            disabled={!name.trim()}
+            style={{
+              background: 'var(--bg-input)', color: 'var(--text)', border: '1px solid var(--border2)',
+              borderRadius: 8, padding: '7px 14px', fontSize: 14, cursor: name.trim() ? 'pointer' : 'not-allowed',
+              opacity: name.trim() ? 1 : 0.4,
+            }}
+          >Opret i katalog</button>
+          <button
+            onClick={() => { if (name.trim()) { onAddFree(name.trim()); onClose(); } }}
             disabled={!name.trim()}
             style={{
               background: 'var(--accent)', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
+              borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: name.trim() ? 'pointer' : 'not-allowed',
               opacity: name.trim() ? 1 : 0.4,
             }}
-          >Tilføj</button>
+          >Opret fritekst</button>
         </div>
       </div>
     </div>
@@ -404,8 +459,12 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
 
       {showFree && (
         <FreeExerciseModal
-          onAdd={name => {
+          onAddFree={name => {
             onPick({ id: '', name, default_mins: 5 } as Exercise);
+            setShowFree(false);
+          }}
+          onAddCatalog={ex => {
+            onPick(ex);
             setShowFree(false);
           }}
           onClose={() => setShowFree(false)}

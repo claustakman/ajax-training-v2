@@ -344,7 +344,7 @@ function ExerciseCard({ ex, isExpanded, onToggle, canEdit, onEdit }: {
 
 // ─── Øvelses-editor modal ─────────────────────────────────────────────────────
 
-function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
+export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
   ex: Exercise; isNew: boolean; onSaved: (ex: Exercise) => void;
   onDeleted: (id: string) => void; onClose: () => void;
 }) {
