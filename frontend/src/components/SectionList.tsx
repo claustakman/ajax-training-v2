@@ -1012,35 +1012,31 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
       {/* Body */}
       {!collapsed && (
         <div style={{ padding: '10px 12px 12px', background: 'var(--bg-card)' }}>
-          {/* Note + Gruppe — side om side */}
+          {/* Note */}
           {canEdit && (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-end' }}>
-              <input
-                value={section.note ?? ''}
-                onChange={e => onUpdate({ note: e.target.value })}
-                placeholder="Note til sektionen…"
-                style={{ ...inputSm, flex: 1, fontSize: 13 }}
-              />
-              <div style={{ flexShrink: 0 }}>
-                <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>Gruppe</div>
-                <select
-                  value={section.group ?? ''}
-                  onChange={e => onUpdate({ group: e.target.value || undefined })}
-                  style={{ ...inputSm, width: 'auto', fontSize: 13, padding: '3px 6px', minHeight: 'auto' }}
-                >
-                  <option value="">–</option>
-                  {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-            </div>
+            <input
+              value={section.note ?? ''}
+              onChange={e => onUpdate({ note: e.target.value })}
+              placeholder="Note til sektionen…"
+              style={{ ...inputSm, marginBottom: 8, fontSize: 13 }}
+            />
           )}
           {!canEdit && section.note && (
             <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>{section.note}</p>
           )}
 
-          {/* AI + Øvelse + skabelon knapper */}
+          {/* Gruppe + AI + Øvelse + skabelon — samme række */}
           {canEdit && (
             <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              <select
+                value={section.group ?? ''}
+                onChange={e => onUpdate({ group: e.target.value || undefined })}
+                title="Gruppe"
+                style={{ ...inputSm, width: 'auto', fontSize: 13, padding: '5px 8px', minHeight: 'auto', flexShrink: 0 }}
+              >
+                <option value="">–</option>
+                {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
               <button
                 disabled
                 title="AI-forslag til denne sektion (Session 5)"
