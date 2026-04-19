@@ -7,6 +7,50 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
+## Hvad er bygget (Sessions 1–6)
+
+### Session 1 — Fundament
+- Cloudflare Worker + D1 + R2 opsætning
+- JWT-baseret auth (login, invite-flow, accept-invite)
+- Træningsliste (`Trainings.tsx`), TrainingEditor med auto-gem, SectionList med øvelsespicker
+- Øvelseskatalog (`Catalog.tsx`) med billede-upload til R2
+- Grundlæggende rollemodel (guest/trainer/team_manager/admin)
+
+### Session 2 — Årshjul, board, brugere
+- `Aarshjul.tsx` med 6 kvartaler og debounce-gem (Q1–Q6 inkl. Overgangsperiode)
+- `Board.tsx` — stub (placeholder, ikke fuldt implementeret)
+- `Brugere.tsx` — invitér, rolleskift, fjern fra hold, nulstil adgangskode (regenerate invite)
+- `Admin.tsx` — Hold-tab + Brugere-tab med seneste aktivitet og inline navn-redigering
+- `Profile.tsx` — vis profil, skift password
+
+### Session 3 — Holdsport-integration
+- `HoldsportImportModal.tsx` — vælg hold → vælg aktivitet → importer
+- `TeamSettings.tsx` — Holdsport-konfiguration (workerUrl + token med show/hide)
+- `api.ts` — hjælpere: `fetchHoldsportConfig`, `fetchHoldsportTeams`, `fetchHoldsportActivitiesForTeam`, `fetchHoldsportActivity`
+- Arkiv (`Archive.tsx`) — desktop tabel + mobil kortliste, filtre, kopi/genskab/slet
+
+### Session 4 — Skabeloner
+- `templates`-tabel i D1 + worker-route `/api/templates`
+- `SaveTemplateModal.tsx` — gem fuld træning eller enkelt sektion med preview
+- `LoadTemplateModal` + `LoadSectionTemplateModal` inde i `SectionList.tsx`
+- `TeamSettings.tsx` — `SkabelonerSection` med to subtabs (Fulde træninger / Sektioner), gruppering per sektionstype, slet med toast
+
+### Session 5 — Sektionstyper + finpudsning
+- `TeamSettings.tsx` — Sektionstyper: opret, rediger, drag-to-reorder, slet
+- AI-sektion i TeamSettings: ghostet felt (BETA-note)
+- Menurækkefølge: Skabeloner → Sektionstyper → Holdsport → AI
+- `Layout.tsx` — Profil rykket til bunden af hamburger-menuen
+
+### Session 6 — Finpudsning og UI-polish
+- Shimmer-skeleton loading states i alle listings (Trainings, Archive, Catalog)
+- Global `.skeleton` CSS-klasse + `@keyframes skeleton-shimmer` i `index.css`
+- `frontend/src/components/ui/Skeleton.tsx` — genbrugelig komponent
+- Toast-dækning komplet: "Skabelon gemt ✓" i TrainingEditor, "Afkrydsninger nulstillet ✓" i SectionList
+- Alle modaler konverteret til `.modal-overlay` + `.modal-sheet` pattern (bottom sheet på ≤640px)
+- Tomme states opgraderet (🔍 icon + title + kontekstuel hjælpetekst) i Catalog og ExercisePicker
+
+---
+
 ## Stack
 
 | Lag       | Teknologi                        | Noter                              |
@@ -15,7 +59,7 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 | API       | Cloudflare Workers (TypeScript)  | Hono router, REST, JWT-auth        |
 | Database  | Cloudflare D1 (SQLite)           | Relationsmodel, versionstyrede migrationer |
 | Storage   | Cloudflare R2                    | Øvelsesbilleder                    |
-| Email     | Resend                           | Invitationsmail (fase 2+)          |
+| Email     | Resend                           | Invitationsmail (ikke implementeret — bruges ikke) |
 | CI/CD     | GitHub Actions                   | Auto-deploy + DB-migration ved push|
 
 ---
@@ -29,49 +73,57 @@ ajax-traening-v2/
 │   └── migrations/             # Versionstyrede migrationer (0001_initial.sql osv.)
 ├── worker/
 │   ├── src/
-│   │   ├── index.ts            # Hono router
+│   │   ├── index.ts            # Hono router — registrerer alle routes
 │   │   ├── lib/
-│   │   │   ├── auth.ts         # JWT sign/verify + password bcrypt
-│   │   │   ├── middleware.ts   # requireAuth() med hold-rolle-opslag
+│   │   │   ├── auth.ts         # JWT sign/verify (HS256), bcrypt password, newId()
+│   │   │   ├── middleware.ts   # requireAuth(minRole?) — hold-rolle-opslag fra D1
 │   │   │   └── r2.ts           # R2 upload/delete helpers
 │   │   └── routes/
-│   │       ├── auth.ts         # POST /api/auth/login, /invite, /accept-invite, /regenerate-invite
+│   │       ├── auth.ts         # login, /me, /invite, /accept-invite, /invite-info/:token, /regenerate-invite, /reset-password
 │   │       ├── teams.ts        # CRUD holds
-│   │       ├── users.ts        # CRUD brugere, roller, holdtildeling
+│   │       ├── users.ts        # CRUD brugere, roller, holdtildeling, team-members
 │   │       ├── trainings.ts    # CRUD træninger (team-scoped)
 │   │       ├── exercises.ts    # CRUD øvelseskatalog + R2-billeder
 │   │       ├── quarters.ts     # CRUD årshjul (team-scoped)
 │   │       ├── section_types.ts # CRUD sektionstyper (global eller team-scoped)
-│   │       ├── board.ts        # Opslagstavle: opslag, kommentarer (team-scoped)
-│   │       ├── holdsport.ts    # Proxy til Holdsport API
-│   │       └── ai.ts           # Proxy til Anthropic API for AI-træningsforslag
+│   │       ├── board.ts        # Opslagstavle: opslag, kommentarer (team-scoped) — stub
+│   │       ├── holdsport.ts    # GET /api/holdsport/config — returnerer workerUrl + token
+│   │       ├── ai.ts           # POST /api/ai/suggest — proxy til Anthropic
+│   │       └── templates.ts    # CRUD skabeloner (type='training' | 'section')
 │   └── wrangler.toml
 ├── frontend/
 │   ├── public/
-│   │   ├── manifest.json
-│   │   └── icon-192.png
+│   │   ├── manifest.json       # PWA manifest
+│   │   └── icon-192.png        # App-ikon
 │   ├── src/
+│   │   ├── App.tsx             # BrowserRouter + routes + RequireAuth guard
+│   │   ├── main.tsx            # React root mount
+│   │   ├── index.css           # CSS-variabler, skeleton-shimmer, modal-overlay/modal-sheet
 │   │   ├── lib/
-│   │   │   ├── api.ts          # API-klient — BASE_URL skifter prod/dev
-│   │   │   ├── auth.tsx        # Auth context (JWT i localStorage)
-│   │   │   ├── types.ts        # Delte TypeScript-typer
-│   │   │   └── dateUtils.ts    # fmtDay, fmtMon, fmtWday, durMin, totalMins m.fl.
+│   │   │   ├── api.ts          # API-klient — BASE_URL fra VITE_API_URL, alle fetch-helpers
+│   │   │   ├── auth.tsx        # AuthContext, useAuth(), hasRole(), ROLE_LABELS
+│   │   │   ├── types.ts        # Delte TypeScript-typer: Training, Section, SectionExercise, Template, Exercise, SectionType, HoldsportActivity
+│   │   │   └── dateUtils.ts    # fmtDay, fmtMon, fmtWday, fmtWdayFull, fmtDateLong, durMin, totalMins
 │   │   ├── components/
-│   │   │   ├── Layout.tsx           # Nav shell: topbar + bundnav
-│   │   │   ├── SectionList.tsx      # Sektioner + øvelser i trænings-editor
-│   │   │   └── SaveTemplateModal.tsx # Gem skabelon (fuld træning eller sektion)
+│   │   │   ├── Layout.tsx           # Nav shell: topbar + bundnav + hamburger-menu + hold-switcher
+│   │   │   ├── SectionList.tsx      # Sektioner + øvelser: ExercisePicker, ExerciseRow, DurationBar, modaler
+│   │   │   ├── SaveTemplateModal.tsx # Gem skabelon (fuld træning eller sektion)
+│   │   │   ├── HoldsportImportModal.tsx # Import fra Holdsport: vælg hold → aktivitet → importer
+│   │   │   └── ui/
+│   │   │       └── Skeleton.tsx     # Genbrugelig shimmer-skeleton komponent
 │   │   └── pages/
-│   │       ├── Login.tsx
-│   │       ├── Trainings.tsx       # Træningsliste (/)
-│   │       ├── TrainingEditor.tsx  # Trænings-editor (/traininger/:id)
-│   │       ├── Archive.tsx         # Arkiv (/arkiv)
-│   │       ├── Aarshjul.tsx        # Årshjul (/aarshjul)
-│   │       ├── Catalog.tsx         # Øvelseskatalog (/katalog)
-│   │       ├── Board.tsx           # Opslagstavle (/tavle)
-│   │       ├── Profile.tsx         # Brugerprofil (/profil)
-│   │       ├── Brugere.tsx         # Bruger-styring for team_manager (/brugere)
-│   │       ├── TeamSettings.tsx    # Holdindstillinger (/holdindstillinger)
-│   │       └── Admin.tsx           # Admin: Hold + Brugere (/admin)
+│   │       ├── Login.tsx            # Login-formular
+│   │       ├── AcceptInvite.tsx     # /invite/:token — sæt password og log ind
+│   │       ├── Trainings.tsx        # Træningsliste (/) med SkeletonCard + HoldsportImportModal
+│   │       ├── TrainingEditor.tsx   # Trænings-editor (/traininger/:id) med auto-gem
+│   │       ├── Archive.tsx          # Arkiv (/arkiv) — desktop tabel + mobil kortliste
+│   │       ├── Aarshjul.tsx         # Årshjul (/aarshjul) — 6 kvartaler med temaer
+│   │       ├── Catalog.tsx          # Øvelseskatalog (/katalog) — hal/keeper/fys tabs
+│   │       ├── Board.tsx            # Opslagstavle (/tavle) — placeholder
+│   │       ├── Profile.tsx          # Brugerprofil (/profil) — vis info + skift password
+│   │       ├── Brugere.tsx          # Bruger-styring (/brugere) for team_manager+
+│   │       ├── TeamSettings.tsx     # Holdindstillinger (/holdindstillinger) — skabeloner, sektionstyper, holdsport, AI
+│   │       └── Admin.tsx            # Admin (/admin) — hold-tab + brugere-tab
 │   ├── vite.config.ts
 │   └── index.html
 ├── CLAUDE.md
@@ -82,7 +134,7 @@ ajax-traening-v2/
 
 ---
 
-## Design — CFC-stil (lys tema, rød accent)
+## Design — Ajax-stil (lys tema, rød accent)
 
 Inline CSS via React `style`-props og CSS-variabler. **Ingen Tailwind.**
 
@@ -112,23 +164,66 @@ Inline CSS via React `style`-props og CSS-variabler. **Ingen Tailwind.**
 
   --font-body: 'DM Sans', sans-serif;
   --font-heading: 'Barlow Condensed', sans-serif;
+
+  --topbar-h: 56px;
+  --bottomnav-h: 56px;
 }
 ```
 
 ### Navigation
 - **Topbar** (desktop): Logo + nav-tabs (Træning · Årshjul · Katalog) + hold-switcher (hvis > 1 hold) + hamburger-menu
-- **Bundnav** (mobil): Træning · Katalog · Tavle + ☰ Mere-knap — hamburger i topbar skjult på mobil
-- **Mere-panel rækkefølge:** Årshjul · Arkiv · Holdindstillinger *(team_manager+)* · Profil · Brugere *(team_manager+)* · Admin *(admin)* · Skift hold · Log ud
+- **Bundnav** (mobil): Træning · Katalog · Tavle + ☰ Mere-knap — hamburger i topbar skjult på mobil (`display: none !important`)
+- **Mere-panel rækkefølge (faktisk implementeret):** Årshjul · Arkiv · Holdindstillinger *(team_manager+)* · Brugere *(team_manager+)* · Admin *(admin)* · **Profil** · Skift hold · Log ud
 - På mobil åbner Mere-panelet **nedefra** (over bundnav, `border-radius: 16px 16px 0 0`)
-- På desktop åbner det som dropdown fra topbar (højre side)
+- På desktop åbner det som dropdown fra topbar (højre side, `border-radius: 12px`)
 - Topbar: `border-bottom: 3px solid var(--accent)`
-- Aktiv tab: rød understregning
+- Aktiv tab: rød understregning (`borderBottom: '2px solid var(--accent)'`)
 - Bundnav: `paddingBottom: env(safe-area-inset-bottom)` for iPhone safe area
+- Hold-switcher i topbar (desktop) vises kun hvis bruger har > 1 hold — dropdown
+
+### Skeleton / Loading states
+```css
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-input) 25%, var(--border) 50%, var(--bg-input) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+```
+Brug `className="skeleton"` på div/span med `width` og `height` sat via inline style.
+
+### Modal-mønster (bottom sheet på mobil)
+```css
+.modal-overlay {
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+@media (max-width: 640px) {
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-sheet {
+    border-radius: 16px 16px 0 0 !important;
+    max-height: 92dvh !important;
+    width: 100% !important; max-width: 100% !important;
+  }
+}
+```
+**Alle modaler** bruger dette mønster:
+- Overlay-div: `className="modal-overlay"` + `onClick={close}` + `position: fixed; inset: 0; zIndex: ...; background: rgba(0,0,0,0.4)`
+- Indre div: `className="modal-sheet"` + `onClick={e => e.stopPropagation()}` + inline max-width/border-radius for desktop
+- `Toast`-komponenter placeres **uden for** overlay-div'en (ellers klikkes de væk)
+
+### Tomme states
+Opgraderede tomme states med 🔍 ikon + titel + kontekstuel hjælpetekst i:
+- `Catalog.tsx` — skelner mellem "intet match med filter" og "intet i katalog"
+- `SectionList.tsx` ExercisePicker — viser tip om at prøve at søge bredere
 
 ### Komponenter
 - Kort: `background: var(--bg-card); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06)`
 - Knapper: `min-height: 44px` (touch targets)
-- Inputs: `font-size: 16px` (undgår iOS auto-zoom), `min-height: 44px`
+- Inputs: `font-size: 16px` (undgår iOS auto-zoom), `min-height: 44px` (eller 40px i kompakte kontekster)
 - Primær knap: `background: var(--accent); color: #fff`
 - Sekundær knap: `background: var(--bg-input); color: var(--text)`
 
@@ -143,7 +238,7 @@ Undtagelse: `admin` er global og slår altid igennem uanset aktivt hold.
 |----------------|----------------------------------------------------------------------------------|
 | `guest`        | View-only: kan se træninger og katalog for tildelte hold                         |
 | `trainer`      | CRUD træninger og katalog. Holdsport-import. Årshjul (view). Opslagstavle.       |
-| `team_manager` | Alt trainer + redigere årshjul + styre brugere for eget hold                    |
+| `team_manager` | Alt trainer + redigere årshjul + styre brugere for eget hold + holdindstillinger |
 | `admin`        | Global rolle. CRUD hold. Se alle hold. Tildele alle roller via Admin-siden.      |
 
 ### Adgangskontrol pr. side
@@ -157,16 +252,25 @@ Undtagelse: `admin` er global og slår altid igennem uanset aktivt hold.
 | Katalog (view)          | ✓    | ✓      | ✓           | ✓     |
 | Katalog (CRUD)          | —    | ✓      | ✓           | ✓     |
 | Tavle                   | ✓    | ✓      | ✓           | ✓     |
-| Spillere (`/brugere`)   | —    | —      | ✓           | ✓     |
-| Indstillinger           | —    | —      | ✓           | ✓     |
+| Brugere (`/brugere`)    | —    | —      | ✓           | ✓     |
+| Holdindstillinger       | —    | —      | ✓           | ✓     |
 | Admin (`/admin`)        | —    | —      | —           | ✓     |
 
-### Hold-roller i `user_teams`
+### Hold-roller og auth-kontekst
 - `user_teams.role`: `guest | trainer | team_manager` — hold-specifik
-- `users.role`: kun til global `admin`-status
-- `currentTeamRole` udledes i frontend fra aktivt holds `user_teams.role` (eller `'admin'` hvis global admin)
-- En bruger oprettes **kun på ét hold** — admin kan efterfølgende tilføje dem til flere hold med forskellig rolle
-- Brugere der ikke er i `user_teams` for et hold, ses **ikke** på det hold — aldrig automatisk tilføjet som gæst
+- `users.role`: kun til global `admin`-status (gemmes i JWT)
+- `currentTeamRole` udledes i `useAuth()` fra aktivt holds `user_teams.role` (eller `'admin'` hvis global admin)
+- `hasRole(user, minRole, currentTeamRole)` — tjekker ROLE_LEVEL hierarki
+- `ROLE_LABELS` — dansk oversættelse af roller til visning
+- En bruger oprettes **kun på ét hold** — admin kan efterfølgende tilføje dem til flere hold
+- Brugere der ikke er i `user_teams` for et hold, ses **ikke** på det hold
+
+### Auth-flow (faktisk implementeret)
+- JWT i `localStorage['ajax_token']`; bruger-objekt i `localStorage['ajax_user']`; aktivt hold i `localStorage['ajax_current_team']`
+- `useAuth()` returnerer `{ user, token, currentTeamId, currentTeamRole, login, loginWithToken, logout, setCurrentTeam, refreshUser }`
+- `api.ts` indsætter automatisk `Authorization: Bearer <token>` på alle requests
+- Invitationsflow: team_manager kalder `POST /api/auth/invite` → modtager åbner `/invite/:token` (AcceptInvite.tsx) → henter navn/email via `GET /api/auth/invite-info/:token` → sætter password via `POST /api/auth/accept-invite` → logges ind med `loginWithToken()`
+- `refreshUser()` kalder `GET /api/auth/me` og opdaterer localStorage + state
 
 ---
 
@@ -221,12 +325,12 @@ CREATE TABLE trainings (
   end_time     TEXT,
   location     TEXT,
   lead_trainer TEXT,
-  trainers     TEXT,          -- JSON array
-  themes       TEXT,          -- JSON array
+  trainers     TEXT,          -- JSON array af navne (strings)
+  themes       TEXT,          -- JSON array af temastrenge
   focus_points TEXT,
   notes        TEXT,
   participant_count INTEGER,
-  sections     TEXT NOT NULL DEFAULT '[]',  -- JSON array af sektioner
+  sections     TEXT NOT NULL DEFAULT '[]',  -- JSON array af Section[]
   stars        INTEGER DEFAULT 0,
   archived     INTEGER DEFAULT 0,
   holdsport_id TEXT,
@@ -264,7 +368,7 @@ CREATE TABLE exercises (
 CREATE TABLE quarters (
   id        TEXT PRIMARY KEY,
   team_id   TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-  quarter   INTEGER NOT NULL,
+  quarter   INTEGER NOT NULL,   -- 1–6 (Q2, Q3, Q4, Q1, Overgang, Q2-næste)
   themes    TEXT NOT NULL DEFAULT '[]',
   UNIQUE(team_id, quarter)
 );
@@ -290,38 +394,35 @@ CREATE TABLE section_types (
 **Regler:**
 - Globale defaults: `team_id = NULL` — redigeres aldrig af brugere
 - Kopieres til hvert hold ved oprettelse (temaer = `[]`)
-- Hold redigerer kun egne rækker
+- Hold redigerer **kun** egne rækker (team_id = holdets id)
 
-### `board_posts`
+### `board_posts` + `board_comments`
 ```sql
 CREATE TABLE board_posts (
   id TEXT PRIMARY KEY, team_id TEXT NOT NULL, user_id TEXT NOT NULL,
   title TEXT, body TEXT NOT NULL, pinned INTEGER DEFAULT 0,
   archived INTEGER DEFAULT 0, created_at TEXT NOT NULL, edited_at TEXT
 );
-```
-
-### `board_comments`
-```sql
 CREATE TABLE board_comments (
   id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
   body TEXT NOT NULL, created_at TEXT NOT NULL, edited_at TEXT
 );
 ```
+Tabellerne eksisterer men `Board.tsx` er en placeholder — ikke implementeret endnu.
 
 ### `templates`
 ```sql
 CREATE TABLE templates (
-  id          TEXT PRIMARY KEY,
-  team_id     TEXT,
-  name        TEXT NOT NULL,
-  type        TEXT NOT NULL DEFAULT 'training',  -- 'training' | 'section' (migration 0010)
-  section_type TEXT,                              -- sektionstype-id hvis type='section'
-  themes      TEXT NOT NULL DEFAULT '[]',         -- JSON array
-  description TEXT,
-  sections    TEXT NOT NULL DEFAULT '[]',         -- JSON array af Section[]
-  created_by  TEXT,
-  created_at  TEXT NOT NULL
+  id           TEXT PRIMARY KEY,
+  team_id      TEXT,
+  name         TEXT NOT NULL,
+  type         TEXT NOT NULL DEFAULT 'training',  -- 'training' | 'section'
+  section_type TEXT,                               -- sektionstype-id hvis type='section'
+  themes       TEXT NOT NULL DEFAULT '[]',         -- JSON array
+  description  TEXT,
+  sections     TEXT NOT NULL DEFAULT '[]',         -- JSON array af Section[]
+  created_by   TEXT,
+  created_at   TEXT NOT NULL
 );
 ```
 
@@ -330,122 +431,359 @@ CREATE TABLE templates (
 ## Worker API — Routes
 
 ### Auth (`/api/auth`)
-| Method | Path                          | Rolle        | Beskrivelse                                        |
-|--------|-------------------------------|--------------|-----------------------------------------------------|
-| POST   | `/api/auth/login`             | —            | `{email, password}` → JWT + teams med hold-roller  |
-| POST   | `/api/auth/invite`            | team_manager | Opret invite til nyt hold-medlem                   |
-| POST   | `/api/auth/accept-invite`     | —            | Acceptér invitation, sæt password                  |
-| POST   | `/api/auth/regenerate-invite` | team_manager | Ny invite-token til eksisterende bruger            |
-| POST   | `/api/auth/reset-password`    | auth         | Skift password                                     |
-| GET    | `/api/auth/me`                | auth         | Aktuel bruger + hold med hold-roller               |
+| Method | Path                           | Rolle        | Beskrivelse                                         |
+|--------|--------------------------------|--------------|-----------------------------------------------------|
+| POST   | `/api/auth/login`              | —            | `{email, password}` → JWT + teams med hold-roller   |
+| GET    | `/api/auth/me`                 | auth         | Aktuel bruger + hold. Opdaterer `last_seen`.        |
+| POST   | `/api/auth/invite`             | team_manager | Opret invite til nyt hold-medlem                    |
+| GET    | `/api/auth/invite-info/:token` | —            | Hent navn + email fra invite-token (til AcceptInvite)|
+| POST   | `/api/auth/accept-invite`      | —            | Acceptér invitation, sæt password → JWT             |
+| POST   | `/api/auth/regenerate-invite`  | team_manager | Ny invite-token til eksisterende bruger             |
+| POST   | `/api/auth/reset-password`     | auth         | Skift password (`{current_password, new_password}`) |
 
 ### Teams (`/api/teams`)
-| Method | Path             | Rolle        | Beskrivelse                                           |
-|--------|------------------|--------------|-------------------------------------------------------|
-| GET    | `/api/teams`     | auth         | Admin: alle hold. Øvrige: egne hold.                  |
-| POST   | `/api/teams`     | admin        | Opret hold — kopierer globale sektionstyper til holdet|
-| PATCH  | `/api/teams/:id` | team_manager | Opdater hold                                          |
-| DELETE | `/api/teams/:id` | admin        | Slet hold + al tilknyttet data                        |
+| Method | Path             | Rolle        | Beskrivelse                                             |
+|--------|------------------|--------------|---------------------------------------------------------|
+| GET    | `/api/teams`     | auth         | Admin: alle hold. Øvrige: egne hold.                    |
+| POST   | `/api/teams`     | admin        | Opret hold — kopierer globale sektionstyper til holdet  |
+| PATCH  | `/api/teams/:id` | team_manager | Opdater hold (inkl. holdsport_worker_url, holdsport_token) |
+| DELETE | `/api/teams/:id` | admin        | Slet hold + al tilknyttet data                          |
 
 ### Users (`/api/users`)
-| Method | Path                        | Rolle        | Beskrivelse                                                               |
-|--------|-----------------------------|--------------|---------------------------------------------------------------------------|
-| GET    | `/api/users`                | team_manager | Admin+`?team_id`: kun det hold. Admin uden: alle brugere. team_manager: `?team_id` påkrævet |
-| GET    | `/api/users/team-members`   | auth         | `?team_id=X` — navne til ansvarlig/træner-dropdown                       |
-| GET    | `/api/users/:id`            | auth         | Sig selv eller admin                                                      |
-| PATCH  | `/api/users/:id`            | admin        | Global rolle eller navn                                                   |
-| DELETE | `/api/users/:id`            | admin        | Slet bruger                                                               |
-| POST   | `/api/users/:id/teams`      | team_manager | Tilføj eksisterende bruger til hold med rolle                             |
-| PATCH  | `/api/users/:id/teams/:tid` | team_manager | Opdater hold-rolle (team_manager maks team_manager, admin kan alt)        |
-| DELETE | `/api/users/:id/teams/:tid` | team_manager | Fjern bruger fra hold                                                     |
+| Method | Path                        | Rolle        | Beskrivelse                                                                     |
+|--------|-----------------------------|--------------|---------------------------------------------------------------------------------|
+| GET    | `/api/users`                | team_manager | `?team_id=X` — brugere på holdet. Admin uden `?team_id`: alle brugere.         |
+| GET    | `/api/users/team-members`   | auth         | `?team_id=X` — navne + team_role til ansvarlig/træner-dropdown                 |
+| GET    | `/api/users/:id`            | auth         | Sig selv eller admin                                                            |
+| PATCH  | `/api/users/:id`            | admin        | Global rolle eller navn                                                         |
+| DELETE | `/api/users/:id`            | admin        | Slet bruger                                                                     |
+| POST   | `/api/users/:id/teams`      | team_manager | Tilføj eksisterende bruger til hold med rolle                                   |
+| PATCH  | `/api/users/:id/teams/:tid` | team_manager | Opdater hold-rolle (team_manager maks team_manager, admin kan alt)              |
+| DELETE | `/api/users/:id/teams/:tid` | team_manager | Fjern bruger fra hold                                                           |
 
 ### Trainings (`/api/trainings`)
-| Method | Path                 | Rolle   | Beskrivelse                              |
+| Method | Path                 | Rolle   | Beskrivelse                               |
 |--------|----------------------|---------|-------------------------------------------|
-| GET    | `/api/trainings`     | auth    | `?team_id=X&archived=0` — list træninger |
+| GET    | `/api/trainings`     | auth    | `?team_id=X&archived=0` — list træninger  |
 | POST   | `/api/trainings`     | trainer | Opret træning                             |
 | GET    | `/api/trainings/:id` | auth    | Hent enkelt træning                       |
-| PATCH  | `/api/trainings/:id` | trainer | Opdater træning (auto-gem)                |
+| PATCH  | `/api/trainings/:id` | trainer | Opdater træning (auto-gem). Opdaterer `last_seen`. |
 | DELETE | `/api/trainings/:id` | trainer | Slet træning                              |
 
 ### Exercises (`/api/exercises`)
-| Method | Path                       | Rolle   | Beskrivelse                                |
-|--------|----------------------------|---------|--------------------------------------------|
-| GET    | `/api/exercises`           | auth    | `?catalog=hal&age_group=U11`               |
-| GET    | `/api/exercises/tags`      | auth    | Alle unikke tags                           |
-| POST   | `/api/exercises`           | trainer | Opret øvelse                               |
-| PATCH  | `/api/exercises/:id`       | trainer | Opdater øvelse (kun opretter eller admin)  |
-| DELETE | `/api/exercises/:id`       | trainer | Slet øvelse                                |
-| POST   | `/api/exercises/:id/image` | trainer | Upload billede → R2                        |
-| DELETE | `/api/exercises/:id/image` | trainer | Slet billede fra R2                        |
+| Method | Path                       | Rolle   | Beskrivelse                                  |
+|--------|----------------------------|---------|----------------------------------------------|
+| GET    | `/api/exercises`           | auth    | `?catalog=hal&age_group=U11`                 |
+| GET    | `/api/exercises/tags`      | auth    | Alle unikke tags (globalt)                   |
+| POST   | `/api/exercises`           | trainer | Opret øvelse                                 |
+| PATCH  | `/api/exercises/:id`       | trainer | Opdater øvelse (kun opretter eller admin)    |
+| DELETE | `/api/exercises/:id`       | trainer | Slet øvelse                                  |
+| POST   | `/api/exercises/:id/image` | trainer | Upload billede → R2 (multipart/form-data)    |
+| DELETE | `/api/exercises/:id/image` | trainer | Slet billede fra R2                          |
 
 ### Quarters (`/api/quarters`)
-| Method | Path                | Rolle        | Beskrivelse           |
-|--------|---------------------|--------------|-----------------------|
-| GET    | `/api/quarters`     | auth         | `?team_id=X`          |
-| PUT    | `/api/quarters/:id` | team_manager | Opdater kvartal-temaer|
+| Method | Path                | Rolle        | Beskrivelse                    |
+|--------|---------------------|--------------|--------------------------------|
+| GET    | `/api/quarters`     | auth         | `?team_id=X` — 6 kvartaler    |
+| PUT    | `/api/quarters/:id` | team_manager | Opdater kvartal-temaer         |
 
 ### Section Types (`/api/section-types`)
-| Method | Path                          | Rolle        | Beskrivelse                   |
-|--------|-------------------------------|--------------|-------------------------------|
-| GET    | `/api/section-types`          | auth         | `?team_id=X`                  |
-| POST   | `/api/section-types`          | team_manager | Opret ny type                 |
-| PATCH  | `/api/section-types/:id`      | team_manager | Opdater (label, farve, tags)  |
-| DELETE | `/api/section-types/:id`      | team_manager | Slet                          |
-| PUT    | `/api/section-types/reorder`  | team_manager | Gem ny rækkefølge             |
+| Method | Path                         | Rolle        | Beskrivelse                    |
+|--------|------------------------------|--------------|--------------------------------|
+| GET    | `/api/section-types`         | auth         | `?team_id=X` — holdets typer  |
+| POST   | `/api/section-types`         | team_manager | Opret ny type                  |
+| PATCH  | `/api/section-types/:id`     | team_manager | Opdater (label, farve, tags, temaer, required) |
+| DELETE | `/api/section-types/:id`     | team_manager | Slet                           |
+| PUT    | `/api/section-types/reorder` | team_manager | Gem ny rækkefølge              |
 
 ### Board (`/api/board`)
-| Method | Path                      | Rolle        | Beskrivelse               |
-|--------|---------------------------|--------------|---------------------------|
-| GET    | `/api/board`              | auth         | `?team_id=X`              |
-| POST   | `/api/board`              | trainer      | Opret opslag              |
-| PATCH  | `/api/board/:id`          | trainer      | Rediger eget opslag       |
-| DELETE | `/api/board/:id`          | trainer      | Slet eget opslag          |
-| POST   | `/api/board/:id/pin`      | team_manager | Fastgør/frigør            |
-| GET    | `/api/board/:id/comments` | auth         | Kommentarer               |
-| POST   | `/api/board/:id/comments` | auth         | Tilføj kommentar          |
+| Method | Path                      | Rolle        | Beskrivelse                            |
+|--------|---------------------------|--------------|----------------------------------------|
+| GET    | `/api/board`              | auth         | `?team_id=X` — opslag (route findes)  |
+| POST   | `/api/board`              | trainer      | Opret opslag                           |
+| PATCH  | `/api/board/:id`          | trainer      | Rediger eget opslag                    |
+| DELETE | `/api/board/:id`          | trainer      | Slet eget opslag                       |
+| POST   | `/api/board/:id/pin`      | team_manager | Fastgør/frigør                         |
+| GET    | `/api/board/:id/comments` | auth         | Kommentarer                            |
+| POST   | `/api/board/:id/comments` | auth         | Tilføj kommentar                       |
 
 ### Holdsport (`/api/holdsport`)
-| Method | Path                       | Rolle   | Beskrivelse                                      |
-|--------|----------------------------|---------|--------------------------------------------------|
-| GET    | `/api/holdsport/config`    | trainer | Returnerer `{ workerUrl, token }` til frontend   |
+| Method | Path                    | Rolle   | Beskrivelse                                       |
+|--------|-------------------------|---------|---------------------------------------------------|
+| GET    | `/api/holdsport/config` | trainer | `?team_id=X` → `{ workerUrl, token }` til frontend|
 
 ### AI (`/api/ai`)
-| Method | Path              | Rolle   | Beskrivelse                                             |
-|--------|-------------------|---------|---------------------------------------------------------|
-| POST   | `/api/ai/suggest` | trainer | To tilstande: simpel prompt-proxy eller section-baseret |
+| Method | Path              | Rolle   | Beskrivelse                                              |
+|--------|-------------------|---------|----------------------------------------------------------|
+| POST   | `/api/ai/suggest` | trainer | To tilstande: simpel prompt-proxy eller section-baseret  |
+
+### Templates (`/api/templates`)
+| Method | Path               | Rolle   | Beskrivelse                                                      |
+|--------|--------------------|---------|------------------------------------------------------------------|
+| GET    | `/api/templates`   | auth    | `?team_id=X[&type=training|section][&section_type=opvarmning]`   |
+| POST   | `/api/templates`   | trainer | Opret skabelon                                                   |
+| DELETE | `/api/templates/:id` | trainer | Slet skabelon                                                  |
 
 ---
 
-## Auth-flow
+## Frontend-sider
 
-- JWT i `localStorage` under nøglen `ajax_token`
-- `useAuth()` returnerer `{ user, token, currentTeamId, currentTeamRole, login, logout }`
-- `api.ts` indsætter automatisk `Authorization: Bearer <token>`
-- Invitationsflow: team_manager genererer link → modtager åbner `/invite/:token` → sætter password → logges ind
-- `currentTeamId` gemmes i `localStorage` under `ajax_current_team`
+### `Login.tsx` (`/login`)
+- Email + password formular
+- Redirect til `/` ved login — redirect til `/login` hvis ikke logget ind
+
+### `AcceptInvite.tsx` (`/invite/:token`)
+- Henter navn + email fra token via `GET /api/auth/invite-info/:token`
+- Viser fejl ved ugyldigt/udløbet token
+- Formular: navn (pre-udfyldt, readonly), email (pre-udfyldt), password + bekræft
+- `POST /api/auth/accept-invite` → `loginWithToken()` → navigate til `/`
+
+### `Trainings.tsx` (`/`)
+- Liste over kommende (ikke-arkiverede) træninger for `currentTeamId`
+- `SkeletonCard` med shimmer loading (3 kort) mens data hentes
+- Dato-boks (`DateBox`): dag/måned/ugedag med rød accent
+- Trænings-kort: tid, varighed, sted, ansvarlig, tema-pills, sektioner-count
+- "Ny træning"-knap (trainer+) → POST → navigate til editor
+- `HoldsportImportModal` til at importere træninger fra Holdsport
+- Tom state: opfordring til at oprette første træning
+- Toast ved fejl (rød, 3s)
+
+### `TrainingEditor.tsx` (`/traininger/:id`)
+- Auto-gem med debounce 1200ms — `SaveIndicator` viser Gemmer…/✓ Gemt/✗ Fejl
+- Collapsible header-kort med ▾/▴ toggle:
+  - Dato, start/slut-tid, sted, antal spillere (+↺ Opdater-knap ved holdsport_id)
+  - Ansvarlig (`UserSelect` — dropdown), Trænere (`UserMultiSelect` — chips + dropdown)
+  - Temaer (fra årshjulet — dropdown + Chip-komponenter)
+  - Fokuspunkter, noter (textarea), stjerne-vurdering (1–5 klik)
+- Toolbar: ← Tilbage · `SaveIndicator` · 💾 Skabelon · 📦 Arkivér · 🗑 Slet
+  - "💾 Skabelon" åbner `SaveTemplateModal` — kun på gemte træninger med sektioner
+  - Mini-toast: "Skabelon gemt ✓" grøn, 2.8s, fixed bottom 90px
+- Holdsport-knap (kun trainer+): åbner `HoldsportImportModal`
+- ↺ Opdater ved `holdsport_id`: henter ny `participant_count` + `trainers` fra Holdsport
+- `SectionList`-komponent for sektioner og øvelser
+- Navigerer til `/traininger/ny` → opretter tom træning → redirect til `/traininger/:id`
+
+### `SaveTemplateModal.tsx` (komponent)
+- Åbnes fra TrainingEditor toolbar
+- Bruger `.modal-overlay` / `.modal-sheet` bottom-sheet mønster
+- Tab-vælger: **Fuld træning** | **Enkelt sektion**
+- **Fuld træning**: navn-input, beskrivelse, tema-pills fra årshjul, preview (sektionsliste med farvet dot)
+- **Enkelt sektion**: klikbar kortliste over sektioner (farvet kant + ✓), auto-udfylder navn fra sektionstype-label + træningens første tema, beskrivelse, tema-pills, preview (øvelsesnavne, max 5 + "+ X flere")
+- Gem disablet hvis navn tomt eller ingen sektion valgt (for section-tab)
+- Kalder `api.createTemplate()` → `onSaved()` callback
+
+### `SectionList.tsx` (komponent i TrainingEditor)
+- Sektioner med farvet venstre-kant og collapsible body (▾/▴)
+- Sektion-header: drag op/ned (▲▼ knapper), type-label (farvet), øvelse-tæller, gruppe-badge, minutter, gruppe-select, slet
+- `DurationBar`: planlagt vs. tilgængelig tid — grøn (<90%), gul (<110%), rød (>110%)
+- **ExercisePicker** (bottom sheet på mobil, `visualViewport` API til iOS keyboard):
+  - Sticky header: søgefelt + tag-filter pills
+  - Øvelser som liste-rækker — titel, tags, default_mins, stjerner
+  - Klik på øvelse-navn → `ExerciseDetailModal` (beskrivelse, varianter, link, billede)
+  - "+ Fri øvelse"-knap i bunden (`calc(80px + env(safe-area-inset-bottom))` padding)
+- **ExerciseRow**: afkrydsning (cirkel, `done`-toggle), op/ned, navn/tags, minutter-input, 📚 gem til katalog, slet
+  - Fri øvelse med navn → 📚-knap → `SaveToCatalogModal` → `POST /api/exercises` → konverter til katalogøvelse
+- **Sektionsskabeloner**: 📋-knap per sektion → `LoadSectionTemplateModal` (filtrerer `type=section&section_type=X`)
+- **Fulde skabeloner**: 📋-knap i card-header → `LoadTemplateModal` (filtrerer `type=training`)
+- "Nulstil alle afkrydsninger"-knap → toast "Afkrydsninger nulstillet ✓"
+- Tom ExercisePicker: 🔍 ikon + hjælpetekst (kontekstuel: filter vs. tom)
+- Alle interne modaler bruger `.modal-overlay` / `.modal-sheet` mønster:
+  `ExerciseDetailModal`, `AddSectionModal`, `FreeExerciseModal`, `SaveToCatalogModal`, `LoadTemplateModal`, `LoadSectionTemplateModal`
+- `MiniToast` (intern) til kortvarige beskeder inde i editoren
+- AI-knapper eksisterer men er deaktiveret (disabled)
+
+### `HoldsportImportModal.tsx` (komponent)
+- Åbnes fra Trainings.tsx og TrainingEditor.tsx
+- Henter `workerUrl + token` via `api.fetchHoldsportConfig(teamId)`
+- Trin 1: vælg Holdsport-hold fra dropdown
+- Trin 2: vælg aktivitet (filtreret på dato-interval) fra liste
+- Trin 3: bekræft import → populerer træning med dato, tid, sted, deltagere (kun `status_code === 1`), trænere (navn-match mod app-brugere med trainer/team_manager-rolle)
+- Bruger `.modal-overlay` / `.modal-sheet` mønster
+
+### `Archive.tsx` (`/arkiv`)
+- Shimmer skeleton mens data hentes (5 rækker)
+- Filtre: Vurdering (stjerner, ≥N) · Sted (dropdown) · Træner (dropdown)
+- **Desktop** (≥640px): tabel — Dato | Træning | Sted | Varighed | Trænere | Vurdering | Handlinger
+  - Trænere-badges: rød (lead_trainer) / blå (øvrige)
+- **Mobil**: kortliste med "📦 Arkiveret"-badge øverst
+- Handlinger: ⎘ Kopi (duplikér som ny aktiv → navigate til editor), ↩ Genskab (archived=0), ✕ Permanent slet
+- Kopi stripper: id, created_at, updated_at, archived, holdsport_id
+- Toast (grøn/rød, 3s) ved alle handlinger
+
+### `Aarshjul.tsx` (`/aarshjul`)
+- 6 kvartaler: Q2 (Maj–Jun), Q3 (Aug–Sep), Q4 (Okt–Dec), Q1 (Jan–Mar), Overgang (Apr), Q2 næste (Maj–Jun)
+- Farver: grøn, blå, lilla, gul, pink, grøn
+- Debounce-gem 800ms per kvartal — `saving`-indikator per kvartal
+- Redigerbart for `team_manager+` (input + tag-pills + slet-knapper)
+- Readonly visning for trainer (pills-visning)
+
+### `Catalog.tsx` (`/katalog`)
+- Tabs: **Hal** (catalog=hal, ekskl. keeper-tag) · **Keeper** (catalog=hal + tag=keeper) · **Fysisk** (catalog=fys)
+- Sticky søgefelt på mobil (`.catalog-search-bar` CSS-klasse)
+- Filter-toggle på mobil (`.catalog-filter-toggle` / `.catalog-filters` CSS-klasser)
+- Filtre: søgetekst, tag-filter (pills), aldersgruppe (U9–U19), stjerner (≥N)
+- Shimmer skeleton (8 rækker med varierende bredder) mens data hentes
+- Tom state med 🔍: skelner "intet match" vs "tomt katalog" — kontekstuel tekst
+- Øvelseskort: billede (eller placeholder), navn, beskrivelse, tags, aldersgrupper, stjerner
+- Redigér/slet: kun opretter eller admin (vises som ✏️/🗑-knapper)
+- Upload billede: resize på client (canvas, max 800px, JPEG 0.75, max 2MB) → `POST /api/exercises/:id/image`
+- AI-forslag fra katalog: simpel prompt via `POST /api/ai/suggest` med `{ prompt }`
+
+### `Board.tsx` (`/tavle`)
+- Placeholder — viser kun heading og en grå kortboks med tekst
+
+### `Profile.tsx` (`/profil`)
+- Initialbogstav-avatar (rød cirkel)
+- Vis: navn, email, global rolle-badge, alle holdtildelinger med hold-specifik rolle
+- `last_seen` hentes via `GET /api/auth/me`
+- Skift password: current, new, confirm → `POST /api/auth/reset-password`
+- Success/fejl-beskeder inline
+
+### `Brugere.tsx` (`/brugere`)
+Kun `team_manager+`. Viser **kun** brugere tilknyttet det aktive hold.
+- Shimmer skeleton mens data hentes
+- Invitér ny bruger: navn, email, rolle (maks team_manager) → genererer invite-link → kopi-knap
+- Inviteringslink vises i inputfelt med kopi-knap (auto-select via ref)
+- Bruger-liste: navn, email, last_seen, hold-rolle
+  - Rolleskift med knapper: Gæst / Træner / Årgangansvarlig (optimistisk UI)
+  - Fjern fra hold (bekræftelsesfase)
+  - Nulstil adgangskode (regenerate invite-link → kopi)
+- Viser ikke global `admin`-rolle som hold-rolle (brug `teamEntry?.role ?? 'guest'`)
+
+### `TeamSettings.tsx` (`/holdindstillinger`)
+Kun `team_manager+`. Fire sektioner i rækkefølgen:
+
+**1. Skabeloner (`SkabelonerSection`)**
+- To subtabs: Fulde træninger / Sektioner (med count-badge)
+- Fulde træninger: kortliste med navn, beskrivelse, sektioner-count, slet (optimistisk + toast)
+- Sektioner: grupperet per sektionstype med farvet dot og type-label
+  - Grupper vises kun for kendte sektionstyper
+  - Slet med toast
+- Tom state per tab
+- Loading state (simpel tekst — ikke skeleton)
+
+**2. Sektionstyper**
+- Liste over holdets sektionstyper med farvet venstre-kant
+- Drag-to-reorder med ▲▼ knapper → `PUT /api/section-types/reorder`
+- Rediger: label, farve (color-picker), tags (tekst med komma), temaer, påkrævet-toggle
+- `SectionTypeModal` bruger `.modal-overlay` / `.modal-sheet` mønster
+- Slet (ikke required-typer)
+- Opret ny type
+
+**3. Holdsport (`HoldsportSection`)**
+- Worker URL + App Token (password-felt med show/hide-toggle)
+- Test-knap: gemmer credentials → kalder Holdsport-workeren direkte → viser resultat
+- Gem-knap: `PATCH /api/teams/:id`
+
+**4. AI-forslag**
+- Ghostet sektion med opacity: 0.5
+- Info-tekst: API-nøgle vedligeholdes af admin i Cloudflare (BETA)
+
+### `Admin.tsx` (`/admin`)
+Kun `admin`. To tabs:
+
+**Hold-tab:**
+- Formular: navn, aldersgruppe (select), sæson → `POST /api/teams` — kopierer globale sektionstyper
+- Liste alle hold: navn, aldersgruppe, sæson, member-count
+- Slet hold (bekræftelsesfase)
+
+**Brugere-tab:**
+- Alle brugere med holdtilknytninger
+- Søgning på navn/email
+- Klik udvider: alle hold med aktuel rolle + **seneste aktivitet** (formatDate) + oprettelsesdato
+- Inline navn-redigering (✏️ → input → ✓/✗) til at matche Holdsport-navne
+- Rolleskift per hold: knapper (Gæst / Træner / Årgangansvarlig)
+- Tilføj eksisterende bruger til yderligere hold: søg email + vælg hold + vælg rolle
+- Fjern bruger fra specifikt hold
+- Slet bruger (permanent)
 
 ---
 
-## Hold-koncept
+## TypeScript-typer (frontend/src/lib/types.ts)
 
-- Alle træninger, årshjul og board-indlæg er **team-scoped** (`team_id` FK)
-- Øvelseskataloget er **globalt** (filtreres kun på `age_group`)
-- Brugere tilknyttes hold via `user_teams` — **ikke automatisk**
-- Admin ser alle hold; øvrige ser kun egne hold
-- Hold-vælger i nav hvis bruger har > 1 hold
+```typescript
+interface Training {
+  id: string; team_id: string; title?: string; date?: string;
+  start_time?: string; end_time?: string; location?: string;
+  lead_trainer?: string; trainers: string[]; themes: string[];
+  focus_points?: string; notes?: string; participant_count?: number;
+  sections: Section[]; stars: number; archived: boolean;
+  holdsport_id?: string; created_by?: string; created_at: string; updated_at: string;
+}
+
+interface Section {
+  id: string; type: string; mins: number; group?: string;
+  exercises: SectionExercise[]; note?: string;
+}
+
+interface SectionExercise {
+  id?: string;          // undefined = fri øvelse
+  customName?: string;  // bruges ved fri øvelse
+  mins: number; done: boolean;
+}
+
+interface Template {
+  id: string; team_id: string; name: string;
+  type: 'training' | 'section';
+  section_type?: string;  // sektionstype-id hvis type='section'
+  themes: string[]; description?: string;
+  sections: Section[];  // type='section': kun ét element
+  created_by?: string; created_at: string;
+}
+
+interface Exercise {
+  id: string; name: string; description?: string;
+  catalog: 'hal' | 'fys'; category?: string;
+  tags: string[]; age_groups: string[]; stars: number;
+  variants?: string; link?: string; default_mins?: number;
+  image_url?: string; image_r2_key?: string;
+  created_by?: string; created_by_email?: string;
+  created_at: string; updated_at: string;
+}
+
+interface SectionType {
+  id: string; label: string; color: string; cls: string;
+  tags: string[]; themes: string[];
+  required: number;     // D1 integer — brug === 1 (aldrig === true)
+  sort_order: number; team_id: string | null;
+}
+
+interface HoldsportActivity {
+  id: string | number; name?: string; title?: string;
+  starttime?: string; endtime?: string;
+  place?: string; location?: string;
+  attendance_count?: number; signups_count?: number;
+  _teamId?: string | number; _teamName?: string;
+  [key: string]: unknown;
+}
+```
+
+### Auth-typer (frontend/src/lib/auth.tsx)
+```typescript
+interface Team {
+  id: string; name: string; age_group: string; season: string;
+  role: 'guest' | 'trainer' | 'team_manager';  // hold-specifik rolle
+  holdsport_worker_url?: string; holdsport_token?: string;
+}
+
+interface AuthUser {
+  id: string; name: string; email: string;
+  role: 'guest' | 'trainer' | 'team_manager' | 'admin';  // global (kun 'admin' er meningsfuld)
+  teams: Team[]; last_seen?: string | null;
+}
+```
 
 ---
 
 ## AI-forslag
 
 **Model:** `claude-haiku-4-5-20251001`
-**API-nøgle:** Global Cloudflare Worker Secret (`ANTHROPIC_API_KEY`) — deles på tværs af alle hold i BETA. Vises som ghostet felt i Holdindstillinger med note om at det vedligeholdes af admin.
+**API-nøgle:** Global Cloudflare Worker Secret (`ANTHROPIC_API_KEY`) — deles på tværs af alle hold i BETA.
 
 ### To tilstande i `POST /api/ai/suggest`
 
 **Simpel prompt-proxy** (`{ prompt: string }`):
-- Proxyer direkte til Anthropic — bruges fra katalog
+- Proxyer direkte til Anthropic — bruges fra Catalog.tsx
 
 **Section-baseret** (`{ team_id, sections[], themes[], vary }`):
 1. Henter sektionstyper for holdet
@@ -455,14 +793,13 @@ CREATE TABLE templates (
 5. AI's `type`-felt **ignoreres** — matcher på position i stedet
 6. Returnerer valideret array (ukendte øvelses-ID'er filtreres fra)
 
-### Hvorfor position og ikke type?
-AI returnerer konsekvent `"type": "fysisk"` uanset instruktion. Løsningen er nummererede sektioner og position-matching.
+**Vigtigt:** AI returnerer konsekvent `"type": "fysisk"` uanset instruktion. Løsningen er nummererede sektioner og position-matching. AI-knapper i SectionList er deaktiverede.
 
 ---
 
 ## Sektionstyper (globale defaults)
 
-Defineret i `database/schema.sql` (team_id = NULL). Kopieres til hvert hold ved oprettelse.
+Defineret i `database/schema.sql` (team_id = NULL). Kopieres til hvert hold ved `POST /api/teams`.
 
 ```
 opvarmning   → tags: [opvarmning]            → farve: #22c55e
@@ -479,187 +816,29 @@ fysisk       → tags: [styrke, plyometrik]    → farve: #f59e0b   required: tr
 
 ## Holdsport-integration
 
-Arkitektur: Cloudflare worker-to-worker kald på samme konto er blokeret. Løsning: worker eksponerer kun konfiguration (`workerUrl` + `token`) via `GET /api/holdsport/config`, og **frontend kalder Holdsport-workeren direkte fra browser**.
+**Arkitektur:** Cloudflare worker-to-worker kald på samme konto er blokeret. Løsning: worker eksponerer kun konfiguration via `GET /api/holdsport/config`, og **frontend kalder Holdsport-workeren direkte fra browser**.
 
-- `holdsport_worker_url` og `holdsport_token` gemmes på `teams`-tabellen (migration 0009)
-- Frontend henter config → kalder `https://<workerUrl>/teams` og `/teams/:id/activities` direkte
-- `api.ts` har hjælpere: `fetchHoldsportConfig`, `fetchHoldsportTeams`, `fetchHoldsportActivitiesForTeam`, `fetchHoldsportActivity`
-- `HoldsportImportModal.tsx` håndterer import-flow: vælg hold → vælg aktivitet → importer til træning
-- Ved import populeres `participant_count` (kun `status_code === 1` tæller) og `trainers[]` (matchet mod app-brugere med trainer/team_manager-rolle på holdet via navn-match)
-- `TrainingEditor.tsx` har "↺ Opdater"-knap ved `participant_count`-feltet for træninger med `holdsport_id`
-- `GET /api/users/team-members` returnerer nu `team_role` (brugt til træner-filtrering)
+- `holdsport_worker_url` og `holdsport_token` gemmes på `teams`-tabellen
+- Frontend henter config → kalder `https://<workerUrl>/teams` og `/teams/:id/activities` direkte med `X-Token` header
+- `api.ts` hjælpere: `fetchHoldsportConfig`, `fetchHoldsportTeams`, `fetchHoldsportActivitiesForTeam`, `fetchHoldsportActivity`
+- `HoldsportImportModal.tsx` håndterer import-flow
+- `fetchHoldsportActivity` finder specifik aktivitet ved at filtrere med dato og matche på `id`
+- Ved import: `participant_count` tæller kun `status_code === 1` (mødte op); `trainers[]` matches mod app-brugere med trainer/team_manager-rolle via navn-match (case-insensitive)
+- `GET /api/users/team-members` returnerer `team_role` — bruges til at filtrere ud kun trainer/team_manager
 
-### Secrets
-```bash
-wrangler secret put HS_TOKEN   # bruges ikke længere direkte — token gemmes per hold i DB
+---
+
+## Årshjul-konfiguration
+
+6 kvartaler med fast config (label/måneder/farve — ikke gemt i DB):
+
 ```
-
----
-
-## Frontend-sider
-
-### `Trainings.tsx` (`/`)
-- Liste over kommende (ikke-arkiverede) træninger for `currentTeamId`
-- Dato-boks med dag/måned/ugedag, meta-info, tema-pills
-- Klik → `TrainingEditor`
-
-### `TrainingEditor.tsx` (`/traininger/:id` + `/traininger/ny`)
-- Auto-gem med debounce 1200ms — `SaveIndicator` viser Gemmer/Gemt/Fejl
-- Collapsible header-kort: dato, start/slut-tid, sted, antal spillere, ansvarlig, trænere, temaer, fokuspunkter, noter, stjerne-vurdering
-- Ansvarlig og trænere vælges fra hold-medlemmer (dropdown fra `/api/users/team-members`)
-- Temaer vælges fra årshjulet for det aktive hold
-- `SectionList`-komponent for sektioner og øvelser
-- Toolbar: ← Tilbage · 💾 Skabelon · 📦 Arkivér · 🗑 Slet
-  - "💾 Skabelon" åbner `SaveTemplateModal` (kun synlig på gemte træninger med sektioner)
-- **Holdsport**: "Holdsport"-knap åbner `HoldsportImportModal`. For træninger med `holdsport_id`: "↺ Opdater"-knap ved antal spillere opdaterer `participant_count` + `trainers` fra Holdsport
-
-### `SaveTemplateModal.tsx` (komponent — åbnes fra TrainingEditor toolbar)
-- Tab-vælger: **Fuld træning** | **Enkelt sektion**
-- Fuld træning: navn, beskrivelse, tema-pills fra årshjul, preview (sektionsliste med farvet dot)
-- Enkelt sektion: klikbar kortliste over sektioner med farvet kant + ✓-markering, auto-udfylder navn fra sektionstype-label + træningens første tema, beskrivelse, tema-pills, preview (øvelsenavne, max 5 + "+ X flere")
-- Gem-knap disablet hvis navn tomt eller ingen sektion valgt
-
-### `SectionList.tsx` (komponent i TrainingEditor)
-- Sektioner med farvet venstre-kant og collapsible body
-- Sektion-header: drag op/ned, type-label, øvelse-tæller, gruppe-badge, minutter, gruppe-select, slet
-- `DurationBar`: viser planlagt vs. tilgængelig tid (grøn/gul/rød)
-- Øvelses-picker (`ExercisePicker`): bottom-sheet på mobil
-  - Søgefelt + tag-filter pills i sticky header
-  - Øvelser som **liste-rækker** (ikke grid) — titel, tags, minutter, stjerner
-  - Klik på øvelse-navn åbner `ExerciseDetailModal`
-  - "+ Fri øvelse" i bunden (med `calc(80px + env(safe-area-inset-bottom))` padding for bundnav)
-- `ExerciseRow`: afkrydsning (cirkel), op/ned, navn/tags, minutter, 📚 gem til katalog, slet
-  - Fri øvelse med navn viser 📚-knap → `SaveToCatalogModal` (vælg hal/fys + tags → `POST /api/exercises`)
-  - Efter gem linkes rækken til den nye katalogøvelse (id sættes, customName fjernes)
-- Sektionsskabeloner: 📋 indlæs (`LoadSectionTemplateModal`) per sektion — filtrerer på `type=section&section_type=X`
-- Fuld træning-skabeloner: 📋 indlæs (`LoadTemplateModal`) fra card-header — filtrerer på `type=training`
-- Nulstil alle afkrydsninger
-- AI-forslag knapper (deaktiverede til session 5)
-
-### `Archive.tsx` (`/arkiv`)
-- Viser alle arkiverede træninger for `currentTeamId`
-- Filtre: Vurdering (stjerner) · Sted · Træner
-- **Desktop**: tabel — Dato | Træning | Sted | Varighed | Trænere | Vurdering | Handlinger
-  - Trænere-badges: rød (lead_trainer) / blå (øvrige)
-- **Mobil**: kortliste med "📦 Arkiveret"-badge øverst på hvert kort
-- Handlinger: ⎘ Kopi (duplikér som ny aktiv træning), ↩ Genskab (fjern fra arkiv), ✕ Permanent slet
-- Kopi stripper: id, created_at, updated_at, archived, holdsport_id — navigerer til ny træning
-
-### `Aarshjul.tsx` (`/aarshjul`)
-- 4 kvartaler med temaer for `currentTeamId`
-- Redigerbart for `team_manager`+
-
-### `Catalog.tsx` (`/katalog`)
-- Tabs: Hal · Keeper · Fysisk
-- Keeper: `catalog='hal'` + tag `keeper`
-- Søgning, tag-filter, aldersgruppe-filter (U9–U19), stjerne-filter
-- Øvelseskort med billede, beskrivelse, tags, aldersgrupper
-- Kun opretter eller admin kan redigere/slette
-- Upload billede til R2 (max 800px, JPEG 0.75, 2MB)
-
-### `Board.tsx` (`/tavle`)
-- Opslagstavle for `currentTeamId`
-- Fastgjorte opslag øverst
-- Kommentarer inline per opslag
-- Fastgør/arkivér (team_manager+)
-
-### `Profile.tsx` (`/profil`)
-- Navn, email, rolle, holdtildelinger med roller
-- Skift password
-
-### `Brugere.tsx` (`/brugere`)
-Kun `team_manager+`. Viser **kun** brugere tilknyttet det aktive hold.
-- Invitér ny bruger (genererer link, maks team_manager)
-- Rediger hold-rolle med knapper (guest / træner / årgangansvarlig)
-- Fjern bruger fra hold
-- Nulstil adgangskode (regenerate invite-link)
-
-### `TeamSettings.tsx` (`/holdindstillinger`)
-Kun `team_manager+`.
-- **Sektionstyper**: opret, rediger (label, farve, tags, temaer, påkrævet), slet, drag-to-reorder
-- **AI-forslag**: ghostet sektion med info om at Anthropic API-nøgle vedligeholdes i Cloudflare af admin (BETA)
-
-### `Admin.tsx` (`/admin`)
-Kun `admin`. To tabs:
-
-**Hold-tab:**
-- Opret hold (navn, aldersgruppe, sæson) — kopierer globale sektionstyper
-- List alle hold med members
-- Slet hold
-
-**Brugere-tab:**
-- Alle brugere med holdtilknytninger
-- Klik udvider: vis alle hold med aktuel rolle + **seneste aktivitet** + oprettelsesdato
-- Inline navn-redigering (til at matche Holdsport-navne)
-- Rolleskift per hold (knapper: Gæst / Træner / Årgangansvarlig)
-- Tilføj eksisterende bruger til yderligere hold med valgt rolle
-- Fjern bruger fra specifikt hold
-
----
-
-## Øvelseskatalog — TypeScript-typer
-
-```typescript
-interface Exercise {
-  id: string
-  name: string
-  description?: string
-  catalog: 'hal' | 'fys'
-  category?: string
-  tags: string[]
-  age_groups: string[]
-  stars: number
-  variants?: string
-  link?: string
-  default_mins?: number
-  image_url?: string
-  image_r2_key?: string
-  created_by?: string
-  created_by_email?: string
-  created_at: string
-  updated_at: string
-}
-
-interface Section {
-  id: string
-  type: string        // sektionstype-id
-  mins: number
-  group?: string      // "A" | "B" | ...
-  exercises: SectionExercise[]
-  note?: string
-}
-
-interface SectionExercise {
-  id?: string         // undefined = fri øvelse
-  customName?: string
-  mins: number
-  done: boolean       // afkrydsning under træning
-}
-
-interface Template {
-  id: string
-  team_id: string
-  name: string
-  type: 'training' | 'section'   // 'training' = fuld træning, 'section' = én sektion
-  section_type?: string           // sektionstype-id hvis type='section'
-  themes: string[]
-  description?: string
-  sections: Section[]
-  created_by?: string
-  created_at: string
-}
-
-interface SectionType {
-  id: string
-  label: string
-  color: string
-  cls: string
-  tags: string[]
-  themes: string[]
-  required: number    // D1 integer — brug === 1
-  sort_order: number
-  team_id: string | null
-}
+quarter=1 → Q2, Maj–Jun,  #22c55e, Sæsonstart
+quarter=2 → Q3, Aug–Sep,  #3b82f6, Efterår
+quarter=3 → Q4, Okt–Dec,  #8b5cf6, Vinter
+quarter=4 → Q1, Jan–Mar,  #f59e0b, Forår
+quarter=5 → Overgang, Apr, #ec4899, Overgangsperiode
+quarter=6 → Q2, Maj–Jun,  #22c55e, Næste sæsonstart
 ```
 
 ---
@@ -676,35 +855,39 @@ Worker parser/serialiserer — frontend modtager parsed arrays.
 ### Optimistisk UI
 Opdater lokal state straks, API i baggrunden. Revert + toast ved fejl.
 
-### Admin + team_id i GET /api/users
-`GET /api/users?team_id=X` for admin returnerer **kun** brugere på det hold (ligesom team_manager).
-`GET /api/users` uden team_id (kun admin) returnerer alle brugere med alle hold.
-
-### PATCH /api/users/:id/teams/:tid
-Åben for `team_manager` (med hold-tjek) og `admin`.
-`team_manager` kan maks tildele `team_manager`-niveau.
-
-### displayRole i Brugere.tsx
+### `displayRole` i `Brugere.tsx`
 Brug `teamEntry?.role ?? 'guest'` — aldrig `user.role` som fallback (giver falske holdtilknytninger).
 
-### last_seen opdateres ved
-`POST /api/auth/login`, `GET /api/auth/me` (app-load) og `PATCH /api/trainings/:id` (auto-gem). Vises i Admin-siden under brugerens udvidede sektion som "Seneste aktivitet".
+### `last_seen` opdateres ved
+`POST /api/auth/login`, `GET /api/auth/me` (app-load), `PATCH /api/trainings/:id` (auto-gem). Vises i Admin som "Seneste aktivitet".
 
 ### Skabeloner — to typer
-- `type='training'`: fuld træning, alle sektioner. Indlæses via 📋 i SectionList card-header.
-- `type='section'`: én sektion, filtreres på `section_type`. Indlæses via 📋 i hvert SectionBlock.
-- Gem sker via "💾 Skabelon" i TrainingEditor toolbar → `SaveTemplateModal` (håndterer begge typer).
+- `type='training'`: fuld træning. Indlæses via 📋 i SectionList card-header.
+- `type='section'`: én sektion, filtreres på `section_type`. Indlæses via 📋 per SectionBlock.
+- Gem via "💾 Skabelon" toolbar → `SaveTemplateModal`.
 - `fetchTemplates(teamId, { type, section_type })` — worker filtrerer på begge parametre.
 
 ### Fri øvelse → katalog
-📚-knap på `ExerciseRow` når `isFree && ex.customName?.trim()` → `SaveToCatalogModal` → `POST /api/exercises` returnerer `{ id }` → rækken konverteres til katalogøvelse (id sættes, customName fjernes).
+📚-knap på `ExerciseRow` når `isFree && ex.customName?.trim()` → `SaveToCatalogModal` → `POST /api/exercises` returnerer `{ id }` → rækken konverteres (id sættes, customName fjernes).
 
 ### Øvelsesbilleder (R2)
-- Upload: `POST /api/exercises/:id/image` med `multipart/form-data`
-- Max 2MB, resize på client (max 800px, JPEG 0.75)
+- Upload: `POST /api/exercises/:id/image` med `multipart/form-data` — `api.upload()` helper
+- Max 2MB, canvas-resize på client (max 800px, JPEG 0.75)
 - R2-nøgle: `exercises/{exerciseId}.jpg`
 
-### wrangler.toml bindings
+### `requireAuth()` middleware
+- Adminrolle er global — altid adgang
+- Ellers: slår hold-rolle op fra `user_teams` via `team_id` i query-params eller JSON-body
+- Fallback til JWT-rollen hvis ingen `team_id`
+
+### Admin + team_id i GET /api/users
+`GET /api/users?team_id=X` for admin returnerer **kun** brugere på det hold.
+`GET /api/users` uden team_id (kun admin) returnerer alle brugere med alle hold.
+
+### PATCH /api/users/:id/teams/:tid
+`team_manager` kan maks tildele `team_manager`-niveau.
+
+### `wrangler.toml` bindings
 ```toml
 [[d1_databases]]
 binding = "DB"
@@ -720,7 +903,7 @@ bucket_name = "ajax-traening-storage"
 ```bash
 wrangler secret put JWT_SECRET
 wrangler secret put ANTHROPIC_API_KEY
-wrangler secret put HS_TOKEN
+wrangler secret put HS_TOKEN   # ikke i aktiv brug — token gemmes per hold i DB
 ```
 
 ---
@@ -734,7 +917,6 @@ wrangler d1 execute ajax-traening --file=database/schema.sql
 wrangler r2 bucket create ajax-traening-storage
 wrangler secret put JWT_SECRET
 wrangler secret put ANTHROPIC_API_KEY
-wrangler secret put HS_TOKEN
 cd worker && wrangler deploy
 cd frontend && npm run build
 # Push til GitHub → GitHub Actions deployer til Cloudflare Pages
