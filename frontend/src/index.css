@@ -63,3 +63,52 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* ─── Catalog mobil-UX ────────────────────────────────────────────────────── */
+
+/* Fix 1 — sticky søgefelt på mobil */
+@media (max-width: 640px) {
+  .catalog-search-bar {
+    position: sticky;
+    top: var(--topbar-h);
+    z-index: 10;
+    background: var(--bg);
+    padding: 8px 16px 4px;
+    margin: 0 -16px;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* Fix 2 — filter toggle knap: kun synlig på mobil */
+.catalog-filter-toggle {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .catalog-filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+}
+
+/* Fix 2 — filter panel: altid synlig på desktop, toggle på mobil */
+.catalog-filters {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .catalog-filters {
+    display: none;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+
+  .catalog-filters.open {
+    display: block;
+  }
+}

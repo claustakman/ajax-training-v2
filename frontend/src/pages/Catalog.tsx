@@ -81,6 +81,7 @@ export default function Catalog() {
   const [starsOnly, setStarsOnly] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>('name');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [editingEx, setEditingEx] = useState<Exercise | null>(null);
@@ -126,12 +127,32 @@ export default function Catalog() {
     return list;
   }, [exercises, tab, search, selectedTags, selectedAge, starsOnly, sortOrder]);
 
+  // Fix 2 — tæl aktive filtre
+  const activeFilterCount =
+    selectedTags.length +
+    (selectedAge ? 1 : 0) +
+    (starsOnly ? 1 : 0) +
+    (sortOrder !== 'name' ? 1 : 0);
+
   function toggleTag(tag: string) {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   }
 
   function clearFilters() {
     setSearch(''); setSelectedTags([]); setSelectedAge(''); setStarsOnly(false);
+  }
+
+  // Fix 2 — nulstil alle filtre inkl. sortering
+  function clearAllFilters() {
+    setSearch(''); setSelectedTags([]); setSelectedAge(''); setStarsOnly(false); setSortOrder('name');
+  }
+
+  // Fix 3 — luk filtre automatisk når søgning starter
+  function handleSearchInput(value: string) {
+    setSearch(value);
+    if (value.length > 0 && filtersOpen) {
+      setFiltersOpen(false);
+    }
   }
 
   function canEditExercise(ex: Exercise) {
@@ -189,42 +210,91 @@ export default function Catalog() {
         ))}
       </div>
 
-      {/* Søgning */}
-      <input type="search" placeholder="Søg øvelse…" value={search} onChange={e => setSearch(e.target.value)}
-        style={{ width: '100%', padding: '10px 12px', marginBottom: 12, background: 'var(--bg-card)', border: '1px solid var(--border2)', borderRadius: 10, fontSize: 16, color: 'var(--text)', boxSizing: 'border-box' }} />
+      {/* Fix 1 — Sticky søgefelt på mobil */}
+      <div className="catalog-search-bar">
+        <input
+          type="search"
+          inputMode="search"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          placeholder="Søg øvelse…"
+          value={search}
+          onChange={e => handleSearchInput(e.target.value)}
+          style={{ width: '100%', padding: '10px 12px', marginBottom: 8, background: 'var(--bg-card)', border: '1px solid var(--border2)', borderRadius: 10, fontSize: 16, color: 'var(--text)', boxSizing: 'border-box' }}
+        />
 
-      {/* Tags */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-        {tags.map(tag => (
-          <button key={tag} onClick={() => toggleTag(tag)}
-            style={{ padding: '5px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500, background: selectedTags.includes(tag) ? 'var(--accent)' : 'var(--bg-card)', color: selectedTags.includes(tag) ? '#fff' : 'var(--text2)', border: `1px solid ${selectedTags.includes(tag) ? 'var(--accent)' : 'var(--border2)'}` }}>
-            {tag}
+        {/* Fix 2 — Mobil: filter-toggle knap */}
+        <div className="catalog-filter-toggle">
+          <button
+            onClick={() => setFiltersOpen(o => !o)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 8, fontSize: 14,
+              background: filtersOpen ? 'var(--bg-input)' : 'var(--bg-card)',
+              color: 'var(--text2)', border: '1px solid var(--border2)',
+              cursor: 'pointer',
+            }}
+          >
+            <span>Filtre</span>
+            {activeFilterCount > 0 && (
+              <span style={{
+                background: 'var(--accent)', color: '#fff',
+                borderRadius: 10, fontSize: 11, fontWeight: 700,
+                padding: '1px 6px', lineHeight: 1.4,
+              }}>{activeFilterCount}</span>
+            )}
+            <span style={{ fontSize: 11 }}>{filtersOpen ? '▲' : '▼'}</span>
           </button>
-        ))}
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearAllFilters}
+              style={{
+                padding: '7px 12px', borderRadius: 8, fontSize: 12,
+                background: 'none', color: 'var(--text3)', border: '1px solid var(--border)',
+                cursor: 'pointer',
+              }}
+            >Ryd</button>
+          )}
+        </div>
       </div>
 
-      {/* Filtre + sortering */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
-        <select value={selectedAge} onChange={e => setSelectedAge(e.target.value)}
-          style={{ padding: '0 12px', height: 36, borderRadius: 8, fontSize: 14, background: 'var(--bg-card)', border: '1px solid var(--border2)', color: selectedAge ? 'var(--text)' : 'var(--text3)' }}>
-          <option value="">Alle aldersgrupper</option>
-          {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
-        <button onClick={() => setStarsOnly(o => !o)}
-          style={{ height: 36, padding: '0 12px', borderRadius: 8, fontSize: 14, background: starsOnly ? 'var(--accent-light)' : 'var(--bg-card)', color: starsOnly ? 'var(--accent)' : 'var(--text2)', border: `1px solid ${starsOnly ? 'var(--accent)' : 'var(--border2)'}` }}>
-          ⭐ Favoritter
-        </button>
-        <select value={sortOrder} onChange={e => setSortOrder(e.target.value as SortOrder)}
-          style={{ padding: '0 12px', height: 36, borderRadius: 8, fontSize: 14, background: 'var(--bg-card)', border: '1px solid var(--border2)', color: 'var(--text2)' }}>
-          <option value="name">Navn A–Å</option>
-          <option value="newest">Nyeste først</option>
-          <option value="oldest">Ældste først</option>
-        </select>
-        {hasFilters && (
-          <button onClick={clearFilters} style={{ height: 36, padding: '0 12px', borderRadius: 8, fontSize: 13, background: 'none', color: 'var(--text3)', border: '1px solid var(--border)' }}>
-            Ryd filtre
+      {/* Fix 2 — Filter-panel (altid synlig på desktop, toggle på mobil) */}
+      <div className={`catalog-filters${filtersOpen ? ' open' : ''}`}>
+        {/* Tags */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          {tags.map(tag => (
+            <button key={tag} onClick={() => toggleTag(tag)}
+              style={{ padding: '5px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500, background: selectedTags.includes(tag) ? 'var(--accent)' : 'var(--bg-card)', color: selectedTags.includes(tag) ? '#fff' : 'var(--text2)', border: `1px solid ${selectedTags.includes(tag) ? 'var(--accent)' : 'var(--border2)'}` }}>
+              {tag}
+            </button>
+          ))}
+        </div>
+
+        {/* Aldersgruppe + favoritter + sortering */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>
+          <select value={selectedAge} onChange={e => setSelectedAge(e.target.value)}
+            style={{ padding: '0 12px', height: 36, borderRadius: 8, fontSize: 14, background: 'var(--bg-card)', border: '1px solid var(--border2)', color: selectedAge ? 'var(--text)' : 'var(--text3)' }}>
+            <option value="">Alle aldersgrupper</option>
+            {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <button onClick={() => setStarsOnly(o => !o)}
+            style={{ height: 36, padding: '0 12px', borderRadius: 8, fontSize: 14, background: starsOnly ? 'var(--accent-light)' : 'var(--bg-card)', color: starsOnly ? 'var(--accent)' : 'var(--text2)', border: `1px solid ${starsOnly ? 'var(--accent)' : 'var(--border2)'}` }}>
+            ⭐ Favoritter
           </button>
-        )}
+          <select value={sortOrder} onChange={e => setSortOrder(e.target.value as SortOrder)}
+            style={{ padding: '0 12px', height: 36, borderRadius: 8, fontSize: 14, background: 'var(--bg-card)', border: '1px solid var(--border2)', color: 'var(--text2)' }}>
+            <option value="name">Navn A–Å</option>
+            <option value="newest">Nyeste først</option>
+            <option value="oldest">Ældste først</option>
+          </select>
+          {hasFilters && (
+            <button onClick={clearFilters} style={{ height: 36, padding: '0 12px', borderRadius: 8, fontSize: 13, background: 'none', color: 'var(--text3)', border: '1px solid var(--border)' }}>
+              Ryd filtre
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Liste */}
