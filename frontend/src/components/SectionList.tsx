@@ -217,12 +217,13 @@ function AddSectionModal({ sectionTypes, onAdd, onClose }: {
 
 // ─── FreeExerciseModal ────────────────────────────────────────────────────────
 
-function FreeExerciseModal({ onAddFree, onAddCatalog, onClose }: {
+function FreeExerciseModal({ initialName = '', onAddFree, onAddCatalog, onClose }: {
+  initialName?: string;
   onAddFree: (name: string) => void;
   onAddCatalog: (ex: Exercise) => void;
   onClose: () => void;
 }) {
-  const [name, setName] = useState('');
+  const [name, setName] = useState(initialName);
   const [showCatalogEditor, setShowCatalogEditor] = useState(false);
 
   // Blank øvelse til katalogeditor
@@ -238,6 +239,7 @@ function FreeExerciseModal({ onAddFree, onAddCatalog, onClose }: {
       <ExerciseEditor
         ex={{ ...blankExercise, name: name.trim() }}
         isNew
+        zIndex={600}
         onSaved={(saved) => {
           // Konvertér CatalogExercise → SectionList Exercise og tilføj til sektion
           onAddCatalog({
@@ -460,6 +462,7 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
 
       {showFree && (
         <FreeExerciseModal
+          initialName={search}
           onAddFree={name => {
             onPick({ id: '', name, default_mins: 5 } as Exercise);
             setShowFree(false);

@@ -344,9 +344,9 @@ function ExerciseCard({ ex, isExpanded, onToggle, canEdit, onEdit }: {
 
 // ─── Øvelses-editor modal ─────────────────────────────────────────────────────
 
-export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
+export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex = 300 }: {
   ex: Exercise; isNew: boolean; onSaved: (ex: Exercise) => void;
-  onDeleted: (id: string) => void; onClose: () => void;
+  onDeleted: (id: string) => void; onClose: () => void; zIndex?: number;
 }) {
   const [form, setForm] = useState<Exercise>({ ...ex });
   const [saving, setSaving] = useState(false);
@@ -448,7 +448,7 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose }: {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,0.4)' }}
+    <div style={{ position: 'fixed', inset: 0, zIndex, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,0.4)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: 'var(--bg-card)', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '92dvh', overflowY: 'auto' }}
         onPaste={onPaste}>
