@@ -286,26 +286,27 @@ function FreeExerciseModal({ onAddFree, onAddCatalog, onClose }: {
           placeholder="Navn på øvelse…"
           style={{ ...inputSm, fontSize: 15, marginBottom: 14, minHeight: 42 }}
         />
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
-          <button
-            onClick={() => { if (name.trim()) setShowCatalogEditor(true); }}
-            disabled={!name.trim()}
-            style={{
-              background: 'var(--bg-input)', color: 'var(--text)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '7px 14px', fontSize: 14, cursor: name.trim() ? 'pointer' : 'not-allowed',
-              opacity: name.trim() ? 1 : 0.4,
-            }}
-          >Opret i katalog</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ ...btnGhost, padding: '7px 12px', whiteSpace: 'nowrap' }}>Annuller</button>
           <button
             onClick={() => { if (name.trim()) { onAddFree(name.trim()); onClose(); } }}
             disabled={!name.trim()}
             style={{
-              background: 'var(--accent)', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: name.trim() ? 'pointer' : 'not-allowed',
-              opacity: name.trim() ? 1 : 0.4,
+              flex: 1, background: 'var(--bg-input)', color: 'var(--text)', border: '1px solid var(--border2)',
+              borderRadius: 8, padding: '7px 10px', fontSize: 13, cursor: name.trim() ? 'pointer' : 'not-allowed',
+              opacity: name.trim() ? 1 : 0.4, whiteSpace: 'nowrap',
             }}
           >Opret fritekst</button>
+          <button
+            onClick={() => { if (name.trim()) setShowCatalogEditor(true); }}
+            disabled={!name.trim()}
+            style={{
+              flex: 1, background: 'var(--accent)', color: '#fff', border: 'none',
+              borderRadius: 8, padding: '7px 10px', fontSize: 13, fontWeight: 600,
+              cursor: name.trim() ? 'pointer' : 'not-allowed',
+              opacity: name.trim() ? 1 : 0.4, whiteSpace: 'nowrap',
+            }}
+          >Opret i katalog</button>
         </div>
       </div>
     </div>
