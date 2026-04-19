@@ -912,10 +912,11 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
       {/* Header */}
       <div
         style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '9px 13px', background: 'var(--bg-input)',
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '9px 10px 9px 13px', background: 'var(--bg-input)',
           cursor: 'pointer',
           borderBottom: collapsed ? 'none' : '1px solid var(--border)',
+          flexWrap: 'nowrap',
         }}
         onClick={() => setCollapsed(c => !c)}
       >
@@ -936,11 +937,11 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
           transition: 'transform 0.2s', display: 'inline-block',
         }}>▾</span>
 
-        {/* Label */}
+        {/* Label — kan bre op på flere linjer */}
         <span style={{
           fontFamily: 'var(--font-heading)', fontSize: 13, fontWeight: 700,
           letterSpacing: '0.07em', textTransform: 'uppercase',
-          color, flexShrink: 0,
+          color, flex: 1, minWidth: 0, wordBreak: 'break-word',
         }}>
           {sectionIndex}. {label}
         </span>
@@ -952,29 +953,40 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
             color: allDone ? 'var(--green)' : 'var(--text3)',
             fontWeight: allDone ? 700 : 400,
           }}>
-            {allDone ? '✓ Færdig' : `${doneCount}/${total}`}
+            {allDone ? '✓' : `${doneCount}/${total}`}
           </span>
         )}
 
-        {/* Gruppe-badge */}
-        {section.group && groupStyle && (
+        {/* Gruppe-badge — altid synlig, viser '–' hvis ingen gruppe */}
+        {canEdit && (
           <span style={{
-            fontSize: 11, fontWeight: 700,
+            fontSize: 11, fontWeight: 700, flexShrink: 0,
+            background: groupStyle ? groupStyle.bg : 'var(--bg-input)',
+            color: groupStyle ? groupStyle.text : 'var(--text3)',
+            border: groupStyle ? 'none' : '1px solid var(--border2)',
+            borderRadius: 4, padding: '1px 6px',
+          }}>
+            {section.group ?? '–'}
+          </span>
+        )}
+        {!canEdit && section.group && groupStyle && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, flexShrink: 0,
             background: groupStyle.bg, color: groupStyle.text,
-            borderRadius: 4, padding: '1px 7px', flexShrink: 0,
-          }}>Gruppe {section.group}</span>
+            borderRadius: 4, padding: '1px 6px',
+          }}>Gr. {section.group}</span>
         )}
 
         {/* Collapsed: vis antal + tid */}
         {collapsed && (
-          <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: 'var(--text3)', flexShrink: 0 }}>
             {total > 0 ? `${total} øv · ` : ''}{section.mins} min
           </span>
         )}
 
-        {/* Ikke collapsed: mins + gruppe + slet (kun disse i headeren) */}
+        {/* Ikke collapsed: mins + slet — gruppe er rykket til body */}
         {!collapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
             {/* Minutter */}
             {canEdit ? (
               <input
@@ -982,28 +994,16 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
                 value={section.mins || ''}
                 onChange={e => onUpdate({ mins: Number(e.target.value) || 0 })}
                 min={1} max={240}
-                style={{ ...inputSm, width: 52, textAlign: 'center', padding: '3px 6px', fontSize: 15, fontWeight: 700 }}
+                style={{ ...inputSm, width: 44, textAlign: 'center', padding: '3px 4px', fontSize: 15, fontWeight: 700 }}
               />
             ) : (
               <span style={{ fontSize: 14, fontWeight: 700, color }}>{section.mins}</span>
             )}
             <span style={{ fontSize: 12, color: 'var(--text2)' }}>min</span>
 
-            {/* Gruppe-select */}
+            {/* Slet sektion — altid synlig, flexShrink: 0 */}
             {canEdit && (
-              <select
-                value={section.group ?? ''}
-                onChange={e => onUpdate({ group: e.target.value || undefined })}
-                style={{ ...inputSm, width: 'auto', fontSize: 11, padding: '3px 6px', minHeight: 'auto' }}
-              >
-                <option value="">Gruppe –</option>
-                {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            )}
-
-            {/* Slet sektion */}
-            {canEdit && (
-              <button onClick={onRemove} style={{ ...btnGhost, padding: '3px 8px', color: 'var(--red)', fontSize: 15 }}>✕</button>
+              <button onClick={onRemove} style={{ ...btnGhost, padding: '4px 8px', color: 'var(--red)', fontSize: 15, flexShrink: 0 }}>✕</button>
             )}
           </div>
         )}
@@ -1012,14 +1012,27 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
       {/* Body */}
       {!collapsed && (
         <div style={{ padding: '10px 12px 12px', background: 'var(--bg-card)' }}>
-          {/* Note */}
+          {/* Note + Gruppe — side om side */}
           {canEdit && (
-            <input
-              value={section.note ?? ''}
-              onChange={e => onUpdate({ note: e.target.value })}
-              placeholder="Note til sektionen…"
-              style={{ ...inputSm, marginBottom: 8, fontSize: 13 }}
-            />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-end' }}>
+              <input
+                value={section.note ?? ''}
+                onChange={e => onUpdate({ note: e.target.value })}
+                placeholder="Note til sektionen…"
+                style={{ ...inputSm, flex: 1, fontSize: 13 }}
+              />
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>Gruppe</div>
+                <select
+                  value={section.group ?? ''}
+                  onChange={e => onUpdate({ group: e.target.value || undefined })}
+                  style={{ ...inputSm, width: 'auto', fontSize: 13, padding: '3px 6px', minHeight: 'auto' }}
+                >
+                  <option value="">–</option>
+                  {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+            </div>
           )}
           {!canEdit && section.note && (
             <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>{section.note}</p>
