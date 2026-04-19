@@ -9,6 +9,13 @@ import type { Section, SectionExercise, SectionType, Exercise, Training } from '
 
 // ─── Hjælpefunktioner ────────────────────────────────────────────────────────
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787';
+
+function exerciseImageUrl(ex: Exercise): string | null {
+  if (!ex.image_r2_key) return null;
+  return `${BASE_URL}/api/exercises/${encodeURIComponent(ex.id)}/image?key=${encodeURIComponent(ex.image_r2_key)}`;
+}
+
 function uid() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -110,9 +117,9 @@ function ExerciseDetailModal({ ex, onClose }: { ex: Exercise; onClose: () => voi
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', flexShrink: 0 }}>×</button>
         </div>
 
-        {ex.image_url?.trim() && (
+        {exerciseImageUrl(ex) && (
           <img
-            src={ex.image_url} alt={ex.name}
+            src={exerciseImageUrl(ex)!} alt={ex.name}
             style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 14 }}
           />
         )}
