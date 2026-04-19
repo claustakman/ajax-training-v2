@@ -110,7 +110,7 @@ function ExerciseDetailModal({ ex, onClose }: { ex: Exercise; onClose: () => voi
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', flexShrink: 0 }}>×</button>
         </div>
 
-        {ex.image_url && (
+        {ex.image_url?.trim() && (
           <img
             src={ex.image_url} alt={ex.name}
             style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 14 }}
@@ -429,19 +429,6 @@ function ExercisePickerCard({ ex, added, accentColor, onPick, onDetail }: {
       background: added ? 'var(--bg-input)' : 'var(--bg-card)',
       opacity: added ? 0.65 : 1,
     }}>
-      {/* Thumbnail */}
-      {ex.image_url && (
-        <img
-          src={ex.image_url}
-          alt=""
-          onClick={onDetail}
-          style={{
-            width: 44, height: 44, borderRadius: 8,
-            objectFit: 'cover', flexShrink: 0, cursor: 'pointer',
-          }}
-        />
-      )}
-
       {/* Venstre: navn + tags — klik åbner detalje */}
       <div
         onClick={onDetail}
