@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api, ApiError } from '../lib/api';
+import type { Template } from '../lib/types';
 
 // ─── Holdsport-sektion ────────────────────────────────────────────────────────
 
@@ -151,6 +152,246 @@ function HoldsportSection({ teamId, initialUrl, initialToken }: {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Skabeloner-sektion ───────────────────────────────────────────────────────
+
+interface SectionTypeMini {
+  id: string;
+  label: string;
+  color: string;
+}
+
+function SkabelonerSection({ teamId, sectionTypes }: {
+  teamId: string;
+  sectionTypes: SectionTypeMini[];
+}) {
+  const [tab, setTab] = useState<'training' | 'section'>('training');
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    api.fetchTemplates(teamId)
+      .then(setTemplates)
+      .catch(() => { /* ignore */ })
+      .finally(() => setLoading(false));
+  }, [teamId]);
+
+  async function handleDelete(t: Template) {
+    const label = t.name;
+    setTemplates(prev => prev.filter(x => x.id !== t.id));
+    try {
+      await api.deleteTemplate(t.id);
+      setToast(`"${label}" slettet`);
+      setTimeout(() => setToast(null), 2800);
+    } catch {
+      setTemplates(prev => [...prev, t].sort((a, b) => a.created_at.localeCompare(b.created_at)));
+      setToast('Sletning fejlede');
+      setTimeout(() => setToast(null), 2800);
+    }
+  }
+
+  const trainingTemplates = templates.filter(t => t.type === 'training');
+  const sectionTemplates = templates.filter(t => t.type === 'section');
+
+  // Group section templates by section_type
+  const sectionGroups: Record<string, Template[]> = {};
+  for (const t of sectionTemplates) {
+    const key = t.section_type ?? '_unknown';
+    if (!sectionGroups[key]) sectionGroups[key] = [];
+    sectionGroups[key].push(t);
+  }
+
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    padding: '6px 16px',
+    borderRadius: 20,
+    fontSize: 13,
+    fontWeight: active ? 600 : 400,
+    background: active ? 'var(--accent)' : 'transparent',
+    color: active ? '#fff' : 'var(--text2)',
+    border: active ? 'none' : '1px solid var(--border2)',
+    cursor: 'pointer',
+    minHeight: 34,
+  });
+
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border2)',
+    borderRadius: 10,
+    padding: '12px 14px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  };
+
+  return (
+    <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 16 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700 }}>Skabeloner</div>
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
+          Gem og genbrug træningsplaner for dette hold
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button style={tabStyle(tab === 'training')} onClick={() => setTab('training')}>
+          Fulde træninger
+          {trainingTemplates.length > 0 && (
+            <span style={{ marginLeft: 6, background: tab === 'training' ? 'rgba(255,255,255,0.25)' : 'var(--accent-light)', color: tab === 'training' ? '#fff' : 'var(--accent)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
+              {trainingTemplates.length}
+            </span>
+          )}
+        </button>
+        <button style={tabStyle(tab === 'section')} onClick={() => setTab('section')}>
+          Sektioner
+          {sectionTemplates.length > 0 && (
+            <span style={{ marginLeft: 6, background: tab === 'section' ? 'rgba(255,255,255,0.25)' : 'var(--accent-light)', color: tab === 'section' ? '#fff' : 'var(--accent)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
+              {sectionTemplates.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div style={{ color: 'var(--text3)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Henter…</div>
+      ) : tab === 'training' ? (
+        trainingTemplates.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '28px 0' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+            <div style={{ fontSize: 14, color: 'var(--text3)' }}>
+              Ingen træningsskabeloner endnu.<br />
+              Gem en fra trænings-editoren.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {trainingTemplates.map(t => (
+              <div key={t.id} style={cardStyle}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{t.name}</div>
+                    {t.description && (
+                      <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {t.description}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDelete(t)}
+                    title="Slet skabelon"
+                    style={{
+                      padding: '4px 10px', borderRadius: 8, fontSize: 12,
+                      background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
+                      border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
+                      flexShrink: 0, minHeight: 32,
+                    }}
+                  >Slet</button>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {t.themes.length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {t.themes.map(th => (
+                        <span key={th} style={{ fontSize: 11, padding: '1px 8px', background: 'var(--accent-light)', color: 'var(--accent)', borderRadius: 20, fontWeight: 500 }}>{th}</span>
+                      ))}
+                    </div>
+                  )}
+                  <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto' }}>
+                    {t.sections.length} sektion{t.sections.length !== 1 ? 'er' : ''}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        Object.keys(sectionGroups).length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '28px 0' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+            <div style={{ fontSize: 14, color: 'var(--text3)' }}>
+              Ingen sektionsskabeloner endnu.<br />
+              Gem en fra en sektion i trænings-editoren.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {Object.entries(sectionGroups).map(([stId, group]) => {
+              const stDef = sectionTypes.find(s => s.id === stId);
+              const color = stDef?.color ?? '#a8a8a8';
+              const label = stDef?.label ?? stId;
+              return (
+                <div key={stId}>
+                  {/* Group header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {group.map(t => {
+                      const exerciseCount = t.sections.length > 0 ? t.sections[0].exercises.length : 0;
+                      return (
+                        <div key={t.id} style={{ ...cardStyle, borderLeft: `3px solid ${color}` }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{t.name}</div>
+                              {t.description && (
+                                <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                  {t.description}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleDelete(t)}
+                              title="Slet skabelon"
+                              style={{
+                                padding: '4px 10px', borderRadius: 8, fontSize: 12,
+                                background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
+                                border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
+                                flexShrink: 0, minHeight: 32,
+                              }}
+                            >Slet</button>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            {t.themes.length > 0 && (
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {t.themes.map(th => (
+                                  <span key={th} style={{ fontSize: 11, padding: '1px 8px', background: 'var(--accent-light)', color: 'var(--accent)', borderRadius: 20, fontWeight: 500 }}>{th}</span>
+                                ))}
+                              </div>
+                            )}
+                            <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto' }}>
+                              {exerciseCount} øvelse{exerciseCount !== 1 ? 'r' : ''}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 700, padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+          background: toast.includes('fejl') ? 'var(--red)' : 'var(--green)',
+          color: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          pointerEvents: 'none',
+        }}>
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
@@ -436,6 +677,14 @@ export default function TeamSettings() {
           teamId={currentTeamId}
           initialUrl={hsWorkerUrl}
           initialToken={hsToken}
+        />
+      )}
+
+      {/* Skabeloner */}
+      {currentTeamId && (
+        <SkabelonerSection
+          teamId={currentTeamId}
+          sectionTypes={sectionTypes}
         />
       )}
 
