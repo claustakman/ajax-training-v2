@@ -156,13 +156,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {hasRole(user, 'team_manager', currentTeamRole) && (
               <MenuItem to="/holdindstillinger" onClick={() => setMenuOpen(false)}>Holdindstillinger</MenuItem>
             )}
-            <MenuItem to="/profil" onClick={() => setMenuOpen(false)}>Profil</MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
               <MenuItem to="/brugere" onClick={() => setMenuOpen(false)}>Brugere</MenuItem>
             )}
             {hasRole(user, 'admin', currentTeamRole) && (
               <MenuItem to="/admin" onClick={() => setMenuOpen(false)}>Admin</MenuItem>
             )}
+            <MenuItem to="/profil" onClick={() => setMenuOpen(false)}>Profil</MenuItem>
             {/* Hold-switcher i hamburger-menu */}
             {user && user.teams.length > 0 && (
               <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0' }}>
