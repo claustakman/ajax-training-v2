@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import type { Training, SectionType } from '../lib/types';
+import type { Training } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 import { SectionList } from '../components/SectionList';
 import SaveTemplateModal from '../components/SaveTemplateModal';
@@ -219,7 +220,13 @@ export default function TrainingEditor() {
   // Data fra API
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([]);
   const [allThemes, setAllThemes] = useState<string[]>([]);
-  const [sectionTypes, setSectionTypes] = useState<SectionType[]>([]);
+
+  const { data: sectionTypes = [] } = useQuery({
+    queryKey: ['section-types', currentTeamId],
+    queryFn: () => api.fetchSectionTypes(currentTeamId!),
+    enabled: !!currentTeamId,
+    staleTime: 5 * 60_000,
+  });
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trainingRef = useRef<Training | null>(null);
@@ -236,7 +243,6 @@ export default function TrainingEditor() {
       const themes = Array.from(new Set(quarters.flatMap(q => q.themes ?? [])));
       setAllThemes(themes);
     }).catch(() => {});
-    api.fetchSectionTypes(currentTeamId).then(setSectionTypes).catch(() => {});
   }, [currentTeamId]);
 
   // ── Indlæs træning ─────────────────────────────────────────────────────────
@@ -630,6 +636,7 @@ export default function TrainingEditor() {
         onInstantSave={saveNow}
         onAIWholeTraining={() => setShowAISuggest(true)}
         onAISectionIndex={setAiSectionIndex}
+        sectionTypes={sectionTypes}
       />
 
       {/* ── Gem skabelon modal ── */}
