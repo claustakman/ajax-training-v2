@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth, hasRole, ROLE_LABELS } from '../lib/auth';
+import { api } from '../lib/api';
 import type { Team } from '../lib/auth';
 
 // Faste nav-punkter — desktop topbar + mobil bundnav
@@ -14,7 +16,7 @@ const NAV_ITEMS = [
 const MOBILE_NAV_ITEMS = [
   { to: '/',        label: 'Træning', icon: '📋' },
   { to: '/katalog', label: 'Katalog', icon: '📚' },
-  { to: '/tavle',   label: 'Tavle',   icon: '📌' },
+  { to: '/tavle',   label: 'Tavle',   icon: '📌', showUnread: true },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -25,6 +27,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const currentTeam = user?.teams.find(t => t.id === currentTeamId);
   const multipleTeams = (user?.teams.length ?? 0) > 1;
+
+  const { data: unreadData } = useQuery({
+    queryKey: ['board-unread', currentTeamId],
+    queryFn: () => api.fetchBoardUnread(currentTeamId!),
+    enabled: !!currentTeamId && !!user,
+    refetchInterval: 60_000,
+  });
+  const hasUnread = unreadData?.unread === true;
 
   function handleTeamSwitch(team: Team) {
     setCurrentTeam(team.id);
@@ -153,6 +163,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           }} className="menu-dropdown">
             <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)}>Årshjul</MenuItem>
             <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
+            <MenuItem to="/tavle" onClick={() => setMenuOpen(false)}>
+              Tavle{hasUnread && (
+                <span style={{
+                  display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                  background: 'var(--accent)', marginLeft: 7, verticalAlign: 'middle',
+                }} />
+              )}
+            </MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
               <MenuItem to="/holdindstillinger" onClick={() => setMenuOpen(false)}>Holdindstillinger</MenuItem>
             )}
@@ -230,7 +248,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               borderTop: isActive ? '2px solid var(--accent)' : '2px solid transparent',
             })}
           >
-            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            <span style={{ position: 'relative', fontSize: 20 }}>
+              {item.icon}
+              {item.showUnread && hasUnread && (
+                <span style={{
+                  position: 'absolute', top: 0, right: -2,
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: 'var(--accent)', border: '1.5px solid var(--bg-card)',
+                }} />
+              )}
+            </span>
             {item.label}
           </NavLink>
         ))}
