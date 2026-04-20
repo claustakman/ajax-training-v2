@@ -84,6 +84,45 @@ export interface SectionType {
   team_id: string | null
 }
 
+export interface BoardPost {
+  id: string
+  team_id: string
+  user_id: string
+  user_name: string           // JOIN fra users
+  title?: string
+  body: string
+  pinned: boolean
+  pinned_by?: string
+  archived: boolean
+  edited_at?: string
+  deleted: boolean
+  created_at: string
+  comments: BoardComment[]
+  attachments: BoardAttachment[]
+}
+
+export interface BoardComment {
+  id: string
+  post_id: string
+  user_id: string
+  user_name: string           // JOIN fra users
+  body: string
+  edited_at?: string
+  deleted: boolean
+  created_at: string
+}
+
+export interface BoardAttachment {
+  id: string
+  post_id: string
+  type: 'image' | 'document'
+  filename: string
+  r2_key: string
+  url: string
+  size_bytes?: number
+  created_at: string
+}
+
 export interface HoldsportActivity {
   id: string | number
   name?: string
