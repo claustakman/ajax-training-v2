@@ -145,7 +145,7 @@ async function getSectionTypes(teamId: string, db: D1Database): Promise<SectionT
   })) as SectionType[];
 }
 
-function buildPrompt(secCatalogs: SecCatalog[], themes: string[], vary: boolean): string {
+function buildPrompt(secCatalogs: SecCatalog[], themes: string[], vary: boolean, ageGroup: string): string {
   const secBlocks = secCatalogs.map((sc, i) =>
     `SEKTION ${i + 1} – ${sc.label} (${sc.mins} min, ` +
     `maks ${sc.maxEx} øvelse${sc.maxEx > 1 ? 'r' : ''})\n` +
@@ -153,7 +153,7 @@ function buildPrompt(secCatalogs: SecCatalog[], themes: string[], vary: boolean)
   ).join('\n\n');
 
   return (
-    `Du er assistent for en håndboldtræner for U11 piger (9-11 år).\n` +
+    `Du er assistent for en håndboldtræner for ${ageGroup}.\n` +
     `Sammensæt en træning. Der er ${secCatalogs.length} sektioner ` +
     `nummereret herunder.\n` +
     `For HVER sektion er der angivet præcis hvilke øvelser der må ` +
@@ -255,7 +255,11 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   if (!team_id) return c.json({ error: 'team_id eller prompt påkrævet' }, 400);
   if (sections.length === 0) return c.json({ error: 'sections må ikke være tom' }, 400);
 
-  // 1. Hent sektionstyper (team-specifikke, ellers globale)
+  // 1. Hent hold (age_group til prompt-kontekst) + sektionstyper
+  const teamRow = await c.env.DB.prepare('SELECT age_group FROM teams WHERE id = ?').bind(team_id).first<{ age_group: string }>();
+  if (!teamRow) return c.json({ error: 'Hold ikke fundet' }, 404);
+  const ageGroup = teamRow.age_group;
+
   const stResults = await getSectionTypes(team_id, c.env.DB);
 
   // 2. Tilføj required sektionstyper der ikke allerede er i listen (placeres først)
@@ -265,7 +269,7 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   const catalogSections = await buildSecCatalogs(sectionsCopy, stResults, team_id, c.env.DB);
 
   // 5. Byg prompt
-  const prompt = buildPrompt(catalogSections, themes, vary);
+  const prompt = buildPrompt(catalogSections, themes, vary, ageGroup);
 
   // 6. Kald Anthropic
   const result = await callAnthropic(c.env.ANTHROPIC_API_KEY, prompt, 2000);
