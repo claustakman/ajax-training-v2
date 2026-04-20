@@ -145,6 +145,39 @@ async function getSectionTypes(teamId: string, db: D1Database): Promise<SectionT
   })) as SectionType[];
 }
 
+function buildPrompt(secCatalogs: SecCatalog[], themes: string[], vary: boolean): string {
+  const secBlocks = secCatalogs.map((sc, i) =>
+    `SEKTION ${i + 1} – ${sc.label} (${sc.mins} min, ` +
+    `maks ${sc.maxEx} øvelse${sc.maxEx > 1 ? 'r' : ''})\n` +
+    `Tilgængelige øvelser: ${JSON.stringify(sc.exercises)}`
+  ).join('\n\n');
+
+  return (
+    `Du er assistent for en håndboldtræner for U11 piger (9-11 år).\n` +
+    `Sammensæt en træning. Der er ${secCatalogs.length} sektioner ` +
+    `nummereret herunder.\n` +
+    `For HVER sektion er der angivet præcis hvilke øvelser der må ` +
+    `bruges – brug KUN dem.\n\n` +
+    secBlocks + '\n\n' +
+    `Temaer: ${themes.length ? themes.join(', ') : 'ingen specifikke'}\n` +
+    `Variation: ${vary
+      ? 'Undgå recent:true øvelser hvis muligt'
+      : 'Gentag gerne nylige øvelser'}\n\n` +
+    `Returner KUN et JSON-array med præcis ${secCatalogs.length} ` +
+    `elementer – ét per sektion i SAMME rækkefølge.\n` +
+    `Ingen tekst før eller efter. Format:\n` +
+    `[{"sectionIndex":1,"mins":15,"exercises":[{"exerciseId":"ID","mins":8}]},` +
+    `{"sectionIndex":2,"mins":20,"exercises":[...]},...]\n\n` +
+    `Regler:\n` +
+    `- sectionIndex starter ved 1 og svarer til SEKTION-nummeret ovenfor\n` +
+    `- Brug KUN øvelser fra den pågældende sektions liste\n` +
+    `- Overhold maks antal øvelser per sektion\n` +
+    `- Brug defaultMins som udgangspunkt, ` +
+    `juster så minutterne summerer til sektionens total\n` +
+    `- Foretrræk høje stars og tema-relevante øvelser`
+  );
+}
+
 async function buildSecCatalogs(
   sections: Array<{ type: string; mins: number }>,
   sectionTypes: SectionType[],
@@ -232,30 +265,7 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   const catalogSections = await buildSecCatalogs(sectionsCopy, stResults, team_id, c.env.DB);
 
   // 5. Byg prompt
-  const themesText = themes.length > 0 ? `Temaer for denne træning: ${themes.join(', ')}.` : '';
-  const varyText = vary ? 'Vælg gerne øvelser du ikke har valgt i de seneste sessioner — variation er vigtig.' : '';
-
-  const sectionsPrompt = catalogSections.map((s, idx) =>
-    `SEKTION ${idx + 1} – ${s.label} (${s.mins} min, maks ${s.maxEx} øvelser)\nTilgængelige øvelser: ${JSON.stringify(s.exercises.slice(0, 30))}`
-  ).join('\n\n');
-
-  const prompt = `Du er træner i Ajax håndbold og skal planlægge en træning.
-
-${themesText}
-${varyText}
-
-For HVER sektion herunder skal du vælge øvelser fra de tilgængelige øvelser.
-Respektér tidsrammen og maksimum antal øvelser per sektion.
-
-${sectionsPrompt}
-
-Returnér KUN et JSON-array med præcis ${catalogSections.length} elementer i denne præcise rækkefølge:
-[{"sectionIndex":1,"mins":${catalogSections[0]?.mins ?? 15},"exercises":[{"exerciseId":"ID","mins":8}]}]
-
-Regler:
-- Brug kun exerciseId'er fra de tilgængelige øvelser i den pågældende sektion
-- mins pr. øvelse skal summere til sektionens samlede mins (±2 min)
-- Ingen forklaring, ingen markdown — kun JSON-arrayet`;
+  const prompt = buildPrompt(catalogSections, themes, vary);
 
   // 6. Kald Anthropic
   const result = await callAnthropic(c.env.ANTHROPIC_API_KEY, prompt, 2000);
