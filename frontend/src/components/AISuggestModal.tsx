@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { api, type AISuggestResultSection } from '../lib/api';
 import { durMin } from '../lib/dateUtils';
+import { ExerciseResultRow } from './ExerciseResultRow';
 import type { Training, Section, SectionType } from '../lib/types';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -18,34 +18,6 @@ interface AISuggestModalProps {
 
 type Step = 'configure' | 'loading' | 'result' | 'error';
 
-// ─── ExerciseResultRow ────────────────────────────────────────────────────────
-
-function ExerciseResultRow({ exerciseId, mins, teamId }: {
-  exerciseId: string;
-  mins: number;
-  teamId: string;
-}) {
-  const { data: exercises = [] } = useQuery({
-    queryKey: ['exercises', teamId],
-    queryFn: () => api.fetchExercises(),
-    staleTime: 5 * 60_000,
-  });
-  const ex = exercises.find(e => e.id === exerciseId);
-
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '5px 0', borderBottom: '1px solid var(--border)',
-    }}>
-      <span style={{ flex: 1, fontSize: 13 }}>
-        {ex?.name ?? exerciseId}
-      </span>
-      <span style={{ fontSize: 12, color: 'var(--text2)', flexShrink: 0 }}>
-        {mins} min
-      </span>
-    </div>
-  );
-}
 
 // ─── Hjælper: minsfarve ───────────────────────────────────────────────────────
 
