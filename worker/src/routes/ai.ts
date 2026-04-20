@@ -37,6 +37,22 @@ interface AISectionResult {
 }
 
 
+function addRequiredSections(
+  sections: Array<{ type: string; mins: number }>,
+  sectionTypes: SectionType[]
+): Array<{ type: string; mins: number }> {
+  const required = sectionTypes.filter(st => st.required);
+  const result = [...sections];
+
+  for (const req of required) {
+    if (!result.some(s => s.type === req.id)) {
+      result.unshift({ type: req.id, mins: 15 });
+    }
+  }
+
+  return result;
+}
+
 async function markRecentExercises(
   exercises: AIExercise[],
   teamId: string,
@@ -169,13 +185,8 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   const stResults = await getSectionTypes(team_id, c.env.DB);
   const sectionTypeMap = new Map(stResults.map(st => [st.id, st]));
 
-  // 2. Tilføj required sektionstyper der ikke allerede er i listen
-  const sectionsCopy = [...sections];
-  for (const [id, st] of sectionTypeMap) {
-    if (st.required && !sectionsCopy.find(s => s.type === id)) {
-      sectionsCopy.push({ type: id, mins: 15 });
-    }
-  }
+  // 2. Tilføj required sektionstyper der ikke allerede er i listen (placeres først)
+  const sectionsCopy = addRequiredSections(sections, stResults);
 
   // 3+4. Hent øvelser og byg catalog per sektion
   const catalogSections = await Promise.all(sectionsCopy.map(async (sec, idx) => {
