@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api';
 
@@ -60,10 +60,46 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
   const [mentionPos, setMentionPos] = useState<number | null>(null);
   const [showMentions, setShowMentions] = useState(false);
 
+  // visualViewport: løft modal over tastatur på iOS
+  const [viewportH, setViewportH] = useState(
+    window.visualViewport?.height ?? window.innerHeight
+  );
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const modalRef = useRef<HTMLDivElement>(null);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useAutoResize(textareaRef, body);
+
+  // visualViewport resize handler
+  const handleVVResize = useCallback(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    setViewportH(vv.height);
+    const kbH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    setKeyboardHeight(kbH);
+    if (kbH > 0) {
+      modalRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    vv.addEventListener('resize', handleVVResize);
+    vv.addEventListener('scroll', handleVVResize);
+    return () => {
+      vv.removeEventListener('resize', handleVVResize);
+      vv.removeEventListener('scroll', handleVVResize);
+    };
+  }, [handleVVResize]);
+
+  // Forsinket focus (300ms) — undgår iOS layout-hop
+  useEffect(() => {
+    const t = setTimeout(() => textareaRef.current?.focus(), 300);
+    return () => clearTimeout(t);
+  }, []);
 
   // Hent hold-brugere til @-autocomplete
   const { data: members = [] } = useQuery({
@@ -180,6 +216,7 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
 
   // ─────────────────────────────────────────────────────────────────────────
 
+  // fontSize: 16 — undgår iOS auto-zoom ved fokus
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '9px 12px', fontSize: 16,
     background: 'var(--bg-input)', border: '1px solid var(--border2)',
@@ -194,14 +231,17 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
       style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.4)' }}
     >
       <div
+        ref={modalRef}
         className="modal-sheet"
         onClick={e => e.stopPropagation()}
         style={{
           background: 'var(--bg-card)', borderRadius: 16, padding: 24,
           width: '100%', maxWidth: 560,
-          maxHeight: '92dvh', overflowY: 'auto',
+          maxHeight: `${viewportH * 0.92}px`, overflowY: 'auto',
+          paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 24}px` : 24,
           boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column', gap: 0,
+          transition: 'max-height 0.2s ease, padding-bottom 0.2s ease',
         }}
       >
         {/* Overskrift */}
@@ -235,7 +275,6 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
                 resize: 'none', minHeight: 120,
                 display: 'block', overflow: 'hidden',
               }}
-              autoFocus
             />
 
             {/* @-autocomplete dropdown */}

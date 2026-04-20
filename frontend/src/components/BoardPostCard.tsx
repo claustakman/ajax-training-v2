@@ -173,7 +173,7 @@ function AutoTextarea({
         background: 'var(--bg-input)', border: '1px solid var(--border2)',
         resize: 'none', fontFamily: 'inherit', color: 'var(--text)',
         minHeight: 40, overflow: 'hidden', lineHeight: 1.5,
-        boxSizing: 'border-box',
+        boxSizing: 'border-box', fontSize: 16,
       }}
       onKeyDown={e => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -483,12 +483,21 @@ export default function BoardPostCard({
   const isOwner = post.user_id === currentUser.id;
   const canEdit = isOwner;
   const canDelete = isOwner || isManager;
+  const hasActions = canEdit || isManager || canDelete;
 
   const [editing, setEditing] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(post.comments.length === 0);
   const [localComments, setLocalComments] = useState<BoardComment[]>(post.comments);
   const [pinning, setPinning] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+
+  useEffect(() => {
+    function onResize() { setIsMobile(window.innerWidth <= 640); }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ['board', teamId] });
@@ -589,31 +598,93 @@ export default function BoardPostCard({
             )}
           </div>
 
-          {/* Handlingsknapper */}
-          <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-            {canEdit && (
-              <ActionBtn onClick={() => setEditing(true)} title="Rediger opslag">✎</ActionBtn>
-            )}
-            {isManager && (
-              <ActionBtn
-                onClick={handlePin}
-                title={post.pinned ? 'Fjern fastgøring' : 'Fastgør'}
-              >
-                {pinning ? '…' : (post.pinned ? '📌' : '📍')}
-              </ActionBtn>
-            )}
-            {isManager && (
-              <ActionBtn
-                onClick={handleArchive}
-                title={post.archived ? 'Fjern fra arkiv' : 'Arkivér'}
-              >
-                {archiving ? '…' : '📦'}
-              </ActionBtn>
-            )}
-            {canDelete && (
-              <ActionBtn onClick={handleDelete} title="Slet opslag" danger>🗑</ActionBtn>
-            )}
-          </div>
+          {/* Handlingsknapper — desktop: individuelle; mobil: ⋯ overflow-menu */}
+          {hasActions && (
+            isMobile ? (
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                {menuOpen && (
+                  <div
+                    onClick={() => setMenuOpen(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 150 }}
+                  />
+                )}
+                <button
+                  onClick={() => setMenuOpen(o => !o)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text3)', fontSize: 20, padding: '4px 6px',
+                    borderRadius: 6, lineHeight: 1,
+                  }}
+                  aria-label="Handlinger"
+                >
+                  ⋯
+                </button>
+                {menuOpen && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 200,
+                    background: 'var(--bg-card)', border: '1px solid var(--border2)',
+                    borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                    minWidth: 160, overflow: 'hidden',
+                  }}>
+                    {canEdit && (
+                      <OverflowItem
+                        onClick={() => { setMenuOpen(false); setEditing(true); }}
+                        label="Rediger opslag"
+                        icon="✎"
+                      />
+                    )}
+                    {isManager && (
+                      <OverflowItem
+                        onClick={() => { setMenuOpen(false); handlePin(); }}
+                        label={post.pinned ? 'Fjern fastgøring' : 'Fastgør'}
+                        icon={post.pinned ? '📌' : '📍'}
+                      />
+                    )}
+                    {isManager && (
+                      <OverflowItem
+                        onClick={() => { setMenuOpen(false); handleArchive(); }}
+                        label={post.archived ? 'Fjern fra arkiv' : 'Arkivér'}
+                        icon="📦"
+                      />
+                    )}
+                    {canDelete && (
+                      <OverflowItem
+                        onClick={() => { setMenuOpen(false); handleDelete(); }}
+                        label="Slet opslag"
+                        icon="🗑"
+                        danger
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                {canEdit && (
+                  <ActionBtn onClick={() => setEditing(true)} title="Rediger opslag">✎</ActionBtn>
+                )}
+                {isManager && (
+                  <ActionBtn
+                    onClick={handlePin}
+                    title={post.pinned ? 'Fjern fastgøring' : 'Fastgør'}
+                  >
+                    {pinning ? '…' : (post.pinned ? '📌' : '📍')}
+                  </ActionBtn>
+                )}
+                {isManager && (
+                  <ActionBtn
+                    onClick={handleArchive}
+                    title={post.archived ? 'Fjern fra arkiv' : 'Arkivér'}
+                  >
+                    {archiving ? '…' : '📦'}
+                  </ActionBtn>
+                )}
+                {canDelete && (
+                  <ActionBtn onClick={handleDelete} title="Slet opslag" danger>🗑</ActionBtn>
+                )}
+              </div>
+            )
+          )}
         </div>
 
         {/* Body */}
@@ -676,6 +747,37 @@ export default function BoardPostCard({
         )}
       </div>
     </>
+  );
+}
+
+// ─── Overflow-menu item ───────────────────────────────────────────────────────
+
+function OverflowItem({
+  onClick,
+  label,
+  icon,
+  danger,
+}: {
+  onClick: () => void;
+  label: string;
+  icon?: string;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      onMouseDown={e => { e.preventDefault(); onClick(); }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        width: '100%', textAlign: 'left',
+        padding: '11px 14px', background: 'none', border: 'none',
+        fontSize: 14, cursor: 'pointer',
+        color: danger ? 'var(--red)' : 'var(--text)',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
+      {icon && <span style={{ fontSize: 16, opacity: 0.85 }}>{icon}</span>}
+      {label}
+    </button>
   );
 }
 

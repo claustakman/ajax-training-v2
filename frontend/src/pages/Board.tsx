@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
 import { api, ApiError } from '../lib/api';
+import NewPostModal from '../components/NewPostModal';
 import type { BoardPost, BoardComment } from '../lib/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -79,8 +80,9 @@ function PostModal({
     }
   }
 
+  // fontSize: 16 — undgår iOS auto-zoom ved fokus
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', fontSize: 15,
+    width: '100%', padding: '9px 12px', fontSize: 16,
     background: 'var(--bg-input)', border: '1px solid var(--border2)',
     borderRadius: 8, color: 'var(--text)', boxSizing: 'border-box',
     fontFamily: 'inherit',
@@ -194,7 +196,7 @@ function CommentForm({
         placeholder={editComment ? undefined : 'Skriv en kommentar…'}
         rows={editComment ? 3 : 2}
         style={{
-          flex: 1, padding: '8px 10px', fontSize: 14, borderRadius: 8,
+          flex: 1, padding: '8px 10px', fontSize: 16, borderRadius: 8,
           background: 'var(--bg-input)', border: '1px solid var(--border2)',
           resize: 'none', fontFamily: 'inherit', color: 'var(--text)',
           minHeight: 44,
@@ -260,7 +262,8 @@ function PostCard({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isOwner = post.user_id === currentUserId;
-  const canEdit = isOwner || isManager;
+  const canEdit = isOwner;                    // kun ejeren redigerer indhold
+  const canDelete = isOwner || isManager;     // ejer eller team_manager+ sletter
 
   // Synk kommentarer hvis post opdateres udefra
   useState(() => { setLocalComments(post.comments); });
@@ -376,7 +379,7 @@ function PostCard({
           </div>
 
           {/* Menu-knap */}
-          {canEdit && (
+          {(canEdit || canDelete || isManager) && (
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
                 onClick={() => setMenuOpen(o => !o)}
@@ -416,7 +419,7 @@ function PostCard({
                         {post.archived ? '↩ Fjern fra arkiv' : '📦 Arkivér'}
                       </MenuAction>
                     )}
-                    {canEdit && (
+                    {canDelete && (
                       <MenuAction onClick={handleDeletePost} danger>
                         🗑 Slet
                       </MenuAction>
@@ -641,13 +644,6 @@ export default function Board() {
       )
     : posts;
 
-  function handleNewPost(p: BoardPost) {
-    setPosts(prev => [p, ...prev]);
-    setShowNewPost(false);
-    // Invalidér unread-query
-    qc.invalidateQueries({ queryKey: ['board-unread', teamId] });
-  }
-
   function handleUpdatePost(p: BoardPost) {
     setPosts(prev => prev.map(x => x.id === p.id ? { ...x, ...p } : x));
   }
@@ -736,7 +732,7 @@ export default function Board() {
             onChange={e => setSearchQuery(e.target.value)}
             autoFocus
             style={{
-              width: '100%', padding: '9px 12px', fontSize: 15,
+              width: '100%', padding: '9px 12px', fontSize: 16,
               background: 'var(--bg-card)', border: '1px solid var(--border2)',
               borderRadius: 8, color: 'var(--text)', boxSizing: 'border-box',
               minHeight: 44,
@@ -842,12 +838,17 @@ export default function Board() {
         </div>
       )}
 
-      {/* Nyt opslag modal */}
+      {/* Nyt opslag modal — med @-mentions, visualViewport og filvedhæftning */}
       {showNewPost && (
-        <PostModal
+        <NewPostModal
           teamId={teamId}
           onClose={() => setShowNewPost(false)}
-          onSaved={handleNewPost}
+          onSaved={() => {
+            setShowNewPost(false);
+            // Invalidér board for at hente det nye opslag inkl. vedhæftninger
+            qc.invalidateQueries({ queryKey: ['board', teamId, showArchived] });
+            qc.invalidateQueries({ queryKey: ['board-unread', teamId] });
+          }}
         />
       )}
     </div>

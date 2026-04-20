@@ -30,14 +30,18 @@ const parseAttachments = (raw: string | null): BoardAttachment[] => {
   } catch { return []; }
 };
 
-const toPost = (row: Record<string, unknown>) => ({
-  ...row,
-  pinned: row.pinned === 1,
-  archived: row.archived === 1,
-  deleted: row.deleted === 1,
-  comments: [],
-  attachments: parseAttachments(row.attachments_json as string | null),
-});
+const toPost = (row: Record<string, unknown>) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { attachments_json, deleted_at, ...rest } = row;
+  return {
+    ...rest,
+    pinned: rest.pinned === 1,
+    archived: rest.archived === 1,
+    deleted: rest.deleted === 1,
+    comments: [],
+    attachments: parseAttachments(attachments_json as string | null),
+  };
+};
 
 const toComment = (row: Record<string, unknown>) => ({
   ...row,
@@ -172,18 +176,9 @@ boardRoutes.patch('/:id', requireAuth(), async (c) => {
   ).bind(id).first<{ user_id: string; team_id: string }>();
   if (!post) return c.json({ error: 'Ikke fundet' }, 404);
 
-  // Tjek: eget opslag, eller team_manager/admin på holdet
-  if (post.user_id !== sub) {
-    if (role === 'admin') {
-      // Global admin — tilladt
-    } else {
-      const membership = await c.env.DB.prepare(
-        'SELECT role FROM user_teams WHERE user_id = ? AND team_id = ?'
-      ).bind(sub, post.team_id).first<{ role: string }>();
-      if ((ROLE_LEVEL[membership?.role ?? 'guest'] ?? 0) < ROLE_LEVEL.team_manager) {
-        return c.json({ error: 'Forbidden' }, 403);
-      }
-    }
+  // Kun ejeren (eller global admin) må redigere indhold
+  if (post.user_id !== sub && role !== 'admin') {
+    return c.json({ error: 'Forbidden' }, 403);
   }
 
   const { title, body } = await c.req.json<{ title?: string; body?: string }>();
