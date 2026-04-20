@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api, type AISuggestResultSection } from '../lib/api';
 import { durMin } from '../lib/dateUtils';
 import { ExerciseResultRow } from './ExerciseResultRow';
@@ -63,6 +63,14 @@ export default function AISuggestModal({
   const [step, setStep] = useState<Step>('configure');
   const [rows, setRows] = useState<Array<{ type: string; mins: number; locked: boolean }>>(initRows);
   const [vary, setVary] = useState(true);
+
+  // Re-initialisér rows første gang sectionTypes loader (hvis de var tomme ved mount)
+  useEffect(() => {
+    if (sectionTypes.length > 0 && rows.length === 0) {
+      setRows(initRows());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectionTypes]);
   const [result, setResult] = useState<AISuggestResultSection[] | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
