@@ -841,7 +841,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
 function SectionBlock({ section, sectionType, sectionIndex, totalSections, exercises, canEdit, teamId,
-  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone, onToast,
+  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone, onToast, onAISuggest,
 }: {
   section: Section;
   sectionType: SectionType | undefined;
@@ -856,6 +856,7 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
   onMoveDown: () => void;
   onToggleDone: (exerciseIdx: number) => void;
   onToast: (msg: string) => void;
+  onAISuggest?: () => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
@@ -1040,10 +1041,10 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
                 {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
               <button
-                disabled
-                title="AI-forslag til denne sektion (Session 5)"
-                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', opacity: 0.4, cursor: 'not-allowed', padding: '5px 10px', fontSize: 13, flex: 1 }}
-              >✨ AI</button>
+                title="AI-forslag til denne sektion"
+                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', padding: '5px 10px', fontSize: 13, flex: 1 }}
+                onClick={e => { e.stopPropagation(); onAISuggest?.(); }}
+              >✨</button>
               <button
                 onClick={() => setShowPicker(true)}
                 style={{ ...btnGhost, borderColor: color, color, padding: '5px 12px', fontSize: 13, fontWeight: 600, flex: 2 }}
@@ -1435,11 +1436,13 @@ function MiniToast({ message, onDone }: { message: string; onDone: () => void })
   );
 }
 
-export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
+export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWholeTraining, onAISectionIndex }: {
   training: Training;
   canEdit: boolean;
   onUpdate: (patch: Partial<Training>) => void;
   onInstantSave: (patch: Partial<Training>) => void;
+  onAIWholeTraining?: () => void;
+  onAISectionIndex?: (idx: number) => void;
 }) {
   const [sectionTypes, setSectionTypes] = useState<SectionType[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -1536,15 +1539,11 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
         {/* Indlæs skabelon */}
         <button onClick={() => setShowLoadTemplate(true)} title="Indlæs skabelon" style={{ ...btnGhost, padding: '5px 10px' }}>📋</button>
 
-        {/* AI hele træning — disabled til Session 5 */}
+        {/* AI hele træning */}
         <button
-          disabled
-          title="AI-forslag til hele træning (Session 5)"
-          style={{
-            ...btnGhost,
-            border: '1px solid #7c3aed', color: '#7c3aed',
-            opacity: 0.45, cursor: 'not-allowed', padding: '5px 12px',
-          }}
+          title="AI-forslag til hele træning"
+          style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', padding: '5px 12px' }}
+          onClick={onAIWholeTraining}
         >✨ Hele træning</button>
 
         {/* + Sektion */}
@@ -1587,6 +1586,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave }: {
               onMoveDown={() => moveSection(idx, 1)}
               onToggleDone={exIdx => toggleDone(idx, exIdx)}
               onToast={setToast}
+              onAISuggest={onAISectionIndex ? () => onAISectionIndex(idx) : undefined}
             />
           );
         })}

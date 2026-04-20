@@ -6,6 +6,8 @@ import type { Training, SectionType } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 import { SectionList } from '../components/SectionList';
 import SaveTemplateModal from '../components/SaveTemplateModal';
+import AISuggestModal from '../components/AISuggestModal';
+import AISectionModal from '../components/AISectionModal';
 
 // ─── Status-indikator ────────────────────────────────────────────────────────
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -211,6 +213,8 @@ export default function TrainingEditor() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [headerOpen, setHeaderOpen] = useState(true);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [showAISuggest, setShowAISuggest] = useState(false);
+  const [aiSectionIndex, setAiSectionIndex] = useState<number | null>(null);
   const [miniToast, setMiniToast] = useState<string | null>(null);
   // Data fra API
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([]);
@@ -624,6 +628,8 @@ export default function TrainingEditor() {
         canEdit={canEdit}
         onUpdate={update}
         onInstantSave={saveNow}
+        onAIWholeTraining={() => setShowAISuggest(true)}
+        onAISectionIndex={setAiSectionIndex}
       />
 
       {/* ── Gem skabelon modal ── */}
@@ -638,6 +644,47 @@ export default function TrainingEditor() {
             setTimeout(() => setMiniToast(null), 2800);
           }}
           onClose={() => setShowSaveTemplate(false)}
+        />
+      )}
+
+      {/* ── AI hele træning modal ── */}
+      {showAISuggest && currentTeamId && (
+        <AISuggestModal
+          training={training}
+          teamId={currentTeamId}
+          sectionTypes={sectionTypes}
+          onAccept={sections => {
+            const updated = { ...training, sections };
+            setTraining(updated);
+            scheduleSave();
+            setShowAISuggest(false);
+            setMiniToast('Træning opdateret med AI-forslag ✓');
+            setTimeout(() => setMiniToast(null), 2800);
+          }}
+          onClose={() => setShowAISuggest(false)}
+        />
+      )}
+
+      {/* ── AI per sektion modal ── */}
+      {aiSectionIndex !== null && training.sections[aiSectionIndex] && currentTeamId && (
+        <AISectionModal
+          section={training.sections[aiSectionIndex]}
+          sectionIndex={aiSectionIndex}
+          training={training}
+          teamId={currentTeamId}
+          sectionTypes={sectionTypes}
+          onAccept={exercises => {
+            const sections = training.sections.map((sec, i) =>
+              i === aiSectionIndex ? { ...sec, exercises } : sec
+            );
+            const updated = { ...training, sections };
+            setTraining(updated);
+            scheduleSave();
+            setAiSectionIndex(null);
+            setMiniToast('Øvelser opdateret med AI-forslag ✓');
+            setTimeout(() => setMiniToast(null), 2800);
+          }}
+          onClose={() => setAiSectionIndex(null)}
         />
       )}
 
