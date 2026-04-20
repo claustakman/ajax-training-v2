@@ -7,7 +7,7 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–6)
+## Hvad er bygget (Sessions 1–7)
 
 ### Session 1 — Fundament
 - Cloudflare Worker + D1 + R2 opsætning
@@ -48,6 +48,37 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - Toast-dækning komplet: "Skabelon gemt ✓" i TrainingEditor, "Afkrydsninger nulstillet ✓" i SectionList
 - Alle modaler konverteret til `.modal-overlay` + `.modal-sheet` pattern (bottom sheet på ≤640px)
 - Tomme states opgraderet (🔍 icon + title + kontekstuel hjælpetekst) i Catalog og ExercisePicker
+
+### Session 7 — Opslagstavle (Board)
+- **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
+- **`worker/src/routes/board.ts`** — fuld CRUD: opslag, kommentarer, vedhæftninger, pin/arkiv, soft delete, unread-badge
+  - Rollemodel: alle roller kan oprette/redigere eget/kommentere; kun `team_manager+` kan slette andres, pin, arkivér
+  - `toPost()` stripper interne felter (`attachments_json`, `deleted_at`) fra API-respons
+  - R2-upload: billeder max 10MB, dokumenter max 20MB; URL: `https://pub-ajax-traening-storage.r2.dev/board/...`
+- **`frontend/src/pages/Board.tsx`** — fuldt implementeret (erstatter placeholder)
+  - Shimmer-skeleton (3 kort), tom state (aktiv/arkiv/søgning), søgebar
+  - Arkiv-filter — kun vist for `team_manager+`
+  - `PostCard` med overflow ⋯-menu, pin-banner (gul), body-expand >200 tegn, vedhæftnings-pills
+  - `CommentForm` — Enter sender, Shift+Enter = ny linje
+  - Invaliderer `['board-unread', teamId]` efter nyt opslag
+  - Bruger `NewPostModal` til oprettelse (med @-mentions + filer)
+- **`frontend/src/components/NewPostModal.tsx`** — nyt opslag
+  - @-autocomplete dropdown (`/@(\w*)$/` regex) med `@alle`-option
+  - `visualViewport`-fix: modal løfter sig over iOS-tastatur, forsinket focus (300ms)
+  - Filvedhæftning: pending-queue med preview-pills (billeder + dokumenter), sekventiel upload
+  - `fontSize: 16` på alle inputs (iOS zoom-fix)
+- **`frontend/src/components/BoardPostCard.tsx`** — opslags-komponent
+  - `renderBody()` — @-mentions highlightes (rød = eget navn, grå = andre)
+  - `Avatar` — initialer i accent-farvet cirkel
+  - `AttachmentList` — billeder som klikkbare thumbnails, dokumenter som download-links
+  - `CommentRow` + `CommentInput` — inline redigering, auto-resize textarea
+  - Mobil: ⋯ overflow-menu i stedet for individuelle handlingsknapper
+  - Desktop: individuelle `ActionBtn`-knapper (✎ rediger, 📌 pin, 📦 arkivér, 🗑 slet)
+- **`frontend/src/components/Layout.tsx`** — opdateringer
+  - Ulæst-badge (rød prik) ved Tavle i bundnav og desktop-nav
+  - `refetchInterval: 60_000` på unread-query
+  - Desktop nav: **Træning | Katalog | Tavle | Årshjul** (Tavle rykket frem, Årshjul sidst)
+  - Mobil bundnav: **Træning | Katalog | Tavle | ☰** (uændret)
 
 ---
 
@@ -171,15 +202,18 @@ Inline CSS via React `style`-props og CSS-variabler. **Ingen Tailwind.**
 ```
 
 ### Navigation
-- **Topbar** (desktop): Logo + nav-tabs (Træning · Årshjul · Katalog) + hold-switcher (hvis > 1 hold) + hamburger-menu
-- **Bundnav** (mobil): Træning · Katalog · Tavle + ☰ Mere-knap — hamburger i topbar skjult på mobil (`display: none !important`)
-- **Mere-panel rækkefølge (faktisk implementeret):** Årshjul · Arkiv · Holdindstillinger *(team_manager+)* · Brugere *(team_manager+)* · Admin *(admin)* · **Profil** · Skift hold · Log ud
+- **Topbar** (desktop): Logo + nav-tabs + hold-switcher (hvis > 1 hold) + hamburger-menu
+  - Nav-tabs desktop: **Træning · Katalog · Tavle · Årshjul** (Tavle med rød ulæst-prik)
+- **Bundnav** (mobil): **Træning · Katalog · Tavle · ☰ Mere** — hamburger i topbar skjult på mobil (`display: none !important`)
+  - Tavle-ikonet i bundnav har rød ulæst-prik (8px cirkel med border)
+- **Mere-panel rækkefølge (faktisk implementeret):** Årshjul · Arkiv · Tavle *(med ulæst-prik)* · Holdindstillinger *(team_manager+)* · Brugere *(team_manager+)* · Admin *(admin)* · **Profil** · Skift hold · Log ud
 - På mobil åbner Mere-panelet **nedefra** (over bundnav, `border-radius: 16px 16px 0 0`)
 - På desktop åbner det som dropdown fra topbar (højre side, `border-radius: 12px`)
 - Topbar: `border-bottom: 3px solid var(--accent)`
 - Aktiv tab: rød understregning (`borderBottom: '2px solid var(--accent)'`)
 - Bundnav: `paddingBottom: env(safe-area-inset-bottom)` for iPhone safe area
 - Hold-switcher i topbar (desktop) vises kun hvis bruger har > 1 hold — dropdown
+- Ulæst-badge: `useQuery(['board-unread', teamId], ..., refetchInterval: 60_000)` — rød prik i både desktop-nav og bundnav
 
 ### Skeleton / Loading states
 ```css
@@ -630,7 +664,40 @@ CREATE TABLE templates (
 - AI-forslag fra katalog: simpel prompt via `POST /api/ai/suggest` med `{ prompt }`
 
 ### `Board.tsx` (`/tavle`)
-- Placeholder — viser kun heading og en grå kortboks med tekst
+- Shimmer-skeleton (3 kort) + tom state (aktiv/arkiv/søgning med kontekstuel tekst)
+- Arkiv-filter (pills: Aktive / Arkiverede) — kun vist for `team_manager+`
+- Søgebar (🔍-knap toggle) — filtrerer på titel, body og kommentar-tekst
+- Opslags-liste: `PostCard` per opslag, sorteret pinned DESC, created_at DESC
+- `PostCard`: avatar (initialer), navn + relativ tid, overflow ⋯-menu (rediger/pin/arkivér/slet), body-expand >200 tegn, vedhæftnings-pills, kommentar-sektion (toggle)
+- Pinnet opslag: rød border + Fastgjort-banner (rød accent-farve)
+- `CommentForm`: Enter sender kommentar, Shift+Enter = ny linje; `fontSize: 16` (iOS zoom-fix)
+- `CommentRow`: rediger inline, slet — kan af ejer eller team_manager
+- Nyt opslag: åbner `NewPostModal` (med @-mentions, visualViewport, filvedhæftning) — invaliderer board-query efter gem
+- Rollemodel frontend: `canEdit = isOwner`, `canDelete = isOwner || isManager`, ⋯-menu vises for alle med mindst én handling
+
+### `NewPostModal.tsx` (komponent — nyt opslag)
+- `visualViewport`-fix: `handleVVResize` lytter på `vv.resize`/`vv.scroll` → `setViewportH` + `setKeyboardHeight` → modal løftes over iOS-tastatur
+- Forsinket focus: `setTimeout(() => textarea.focus(), 300)` — undgår iOS layout-hop ved mount
+- `maxHeight: viewportH * 0.92`, `paddingBottom: keyboardHeight + 24` med `transition: 0.2s ease`
+- @-autocomplete: `/@(\w*)$/` regex før cursor → dropdown med `@alle` (hvis > 1 medlem) + filtrede brugere
+  - `insertMention(name)` — splicer body ved `mentionPos`, sætter cursor via `requestAnimationFrame`
+  - `MentionItem` bruger `onMouseDown + preventDefault` for at bevare textarea-fokus
+- Filvedhæftning: `ACCEPTED` types (billeder + office + PDF), pending-queue med pills (navn, størrelse, ×fjern)
+- Submit: `createBoardPost` → `uploadBoardAttachment` per fil sekventielt
+- `fontSize: 16` på alle inputs (iOS zoom-fix)
+
+### `BoardPostCard.tsx` (komponent)
+- `renderBody(text, currentUser)` — splitter på `/@(\w[\w\s]*)/g`, highlighter mention (rød = eget navn, grå = andre)
+- `Avatar({ name, size })` — initialer i accent-farvet cirkel
+- `AttachmentList` — billeder som `<img>` thumbnails (max 200px, klikkable), docs som download-links med 📄 + filstørrelse
+- `AutoTextarea` — auto-resize via `useEffect` + `scrollHeight`, `fontSize: 16`
+- `CommentRow` — inline edit-mode, rediger/slet links under kommentar-boblen
+- `CommentInput` — altid synlig når kommentarer åbne, Enter sender
+- `EditPostModal` — `.modal-overlay`/`.modal-sheet` til redigering af titel + body
+- **Mobil** (`window.innerWidth ≤ 640`): ⋯-knap → `OverflowItem`-dropdown (backdrop + `onMouseDown + preventDefault`)
+- **Desktop**: individuelle `ActionBtn`-knapper (✎ / 📌 / 📦 / 🗑) i post-header
+- `isMobile` opdateres ved window resize-event
+- Pinnet opslag: `borderTop: '2px solid #f59e0b'` + amber "📌 Fastgjort"-banner
 
 ### `Profile.tsx` (`/profil`)
 - Initialbogstav-avatar (rød cirkel)

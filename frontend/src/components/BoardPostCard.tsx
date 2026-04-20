@@ -169,11 +169,11 @@ function AutoTextarea({
       autoFocus={autoFocus}
       rows={1}
       style={{
-        flex: 1, padding: '8px 10px', fontSize: 14, borderRadius: 8,
+        flex: 1, padding: '8px 10px', fontSize: 16, borderRadius: 8,
         background: 'var(--bg-input)', border: '1px solid var(--border2)',
         resize: 'none', fontFamily: 'inherit', color: 'var(--text)',
         minHeight: 40, overflow: 'hidden', lineHeight: 1.5,
-        boxSizing: 'border-box', fontSize: 16,
+        boxSizing: 'border-box',
       }}
       onKeyDown={e => {
         if (e.key === 'Enter' && !e.shiftKey) {
