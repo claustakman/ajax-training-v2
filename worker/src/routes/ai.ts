@@ -11,12 +11,13 @@ interface SectionInput {
   mins: number;
 }
 
-interface ExerciseRow {
+interface AIExercise {
   id: string;
   name: string;
-  tags: string;
-  default_mins: number | null;
+  tags: string[];
+  defaultMins: number;
   stars: number;
+  recent: boolean;
 }
 
 interface SectionType {
@@ -35,8 +36,28 @@ interface AISectionResult {
   exercises: Array<{ exerciseId: string; mins: number }>;
 }
 
-function parseTags(raw: string | null | undefined): string[] {
-  try { return JSON.parse(raw ?? '[]'); } catch { return []; }
+
+async function getExercisesForSection(
+  sectionTypeTags: string[],
+  _teamId: string,
+  db: D1Database
+): Promise<AIExercise[]> {
+  if (sectionTypeTags.length === 0) return [];
+
+  const all = await db
+    .prepare('SELECT id, name, tags, default_mins, stars FROM exercises ORDER BY stars DESC, name ASC')
+    .all();
+
+  return all.results
+    .map(r => ({
+      id: r.id as string,
+      name: r.name as string,
+      tags: JSON.parse(r.tags as string || '[]') as string[],
+      defaultMins: (r.default_mins as number) || 10,
+      stars: (r.stars as number) || 0,
+      recent: false,
+    }))
+    .filter(ex => ex.tags.some(t => sectionTypeTags.includes(t)));
 }
 
 async function getSectionTypes(teamId: string, db: D1Database): Promise<SectionType[]> {
@@ -122,24 +143,16 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
     }
   }
 
-  // 3. Hent alle øvelser
-  const allExercises = (await c.env.DB.prepare(
-    'SELECT id, name, tags, default_mins, stars FROM exercises'
-  ).all<ExerciseRow>()).results;
-
-  // 4. Byg catalog per sektion
-  const catalogSections = sectionsCopy.map((sec, idx) => {
+  // 3+4. Hent øvelser og byg catalog per sektion
+  const catalogSections = await Promise.all(sectionsCopy.map(async (sec, idx) => {
     const st = sectionTypeMap.get(sec.type);
     const label = st?.label ?? sec.type;
     const stTags = st?.tags ?? [];
 
-    const matching = allExercises.filter(ex => {
-      if (stTags.length === 0) return true;
-      return stTags.some(t => parseTags(ex.tags).includes(t));
-    });
+    const matching = await getExercisesForSection(stTags, team_id, c.env.DB);
 
     const avgMins = matching.length > 0
-      ? matching.reduce((s, ex) => s + (ex.default_mins ?? 10), 0) / matching.length
+      ? matching.reduce((s, ex) => s + ex.defaultMins, 0) / matching.length
       : 10;
     const maxEx = Math.max(1, Math.round(sec.mins / avgMins));
 
@@ -149,15 +162,9 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
       mins: sec.mins,
       label,
       maxEx,
-      exercises: matching.slice(0, 30).map(ex => ({
-        id: ex.id,
-        name: ex.name,
-        tags: parseTags(ex.tags),
-        defaultMins: ex.default_mins ?? 10,
-        stars: ex.stars,
-      })),
+      exercises: matching.slice(0, 30),
     };
-  });
+  }));
 
   // 5. Byg prompt
   const themesText = themes.length > 0 ? `Temaer for denne træning: ${themes.join(', ')}.` : '';
@@ -199,7 +206,7 @@ Regler:
   }
 
   // 8. Validér og matche på position (AI's type-felt ignoreres)
-  const validIds = new Set(allExercises.map(ex => ex.id));
+  const validIds = new Set(catalogSections.flatMap(s => s.exercises.map(ex => ex.id)));
 
   const output = aiSections.map((aiSec, idx) => {
     const ourSec = catalogSections[(aiSec.sectionIndex ?? idx + 1) - 1] ?? catalogSections[idx];
