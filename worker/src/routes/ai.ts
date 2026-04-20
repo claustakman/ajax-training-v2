@@ -211,23 +211,45 @@ async function buildSecCatalogs(
   return catalogs;
 }
 
-async function callAnthropic(apiKey: string, prompt: string, maxTokens = 2048): Promise<{ ok: true; text: string } | { ok: false; status: number; detail: string }> {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-  if (!res.ok) return { ok: false, status: res.status, detail: await res.text() };
-  const data = await res.json() as { content: Array<{ type: string; text: string }> };
-  return { ok: true, text: data.content.find(b => b.type === 'text')?.text ?? '' };
+async function callAnthropic(prompt: string, apiKey: string): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({})) as { error?: { message?: string } };
+      throw new Error(
+        `Anthropic API fejl ${response.status}: ` +
+        (err.error?.message || response.statusText)
+      );
+    }
+
+    const data = await response.json() as { content?: Array<{ text: string }> };
+    return data.content?.[0]?.text || '';
+
+  } catch (e: unknown) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('AI-forslag tog for lang tid — prøv igen');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // POST /api/ai/suggest
@@ -245,9 +267,12 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
 
   // ── Tilstand 1: simpel prompt-proxy ──────────────────────────────────────
   if (body.prompt) {
-    const result = await callAnthropic(c.env.ANTHROPIC_API_KEY, body.prompt);
-    if (!result.ok) return c.json({ error: `Anthropic fejl: ${result.status}`, detail: result.detail }, 502);
-    return c.json({ text: result.text });
+    try {
+      const text = await callAnthropic(body.prompt, c.env.ANTHROPIC_API_KEY);
+      return c.json({ text });
+    } catch (e) {
+      return c.json({ error: e instanceof Error ? e.message : 'Ukendt fejl' }, 502);
+    }
   }
 
   // ── Tilstand 2: section-baseret AI-forslag ────────────────────────────────
@@ -272,16 +297,20 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   const prompt = buildPrompt(catalogSections, themes, vary, ageGroup);
 
   // 6. Kald Anthropic
-  const result = await callAnthropic(c.env.ANTHROPIC_API_KEY, prompt, 2000);
-  if (!result.ok) return c.json({ error: `Anthropic fejl: ${result.status}`, detail: result.detail }, 502);
+  let rawText: string;
+  try {
+    rawText = await callAnthropic(prompt, c.env.ANTHROPIC_API_KEY);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : 'Ukendt fejl' }, 502);
+  }
 
   // 7. Parse svar
   let aiSections: AISectionResult[] = [];
   try {
-    const match = result.text.match(/\[[\s\S]*\]/);
+    const match = rawText.match(/\[[\s\S]*\]/);
     if (match) aiSections = JSON.parse(match[0]);
   } catch {
-    return c.json({ error: 'Kunne ikke parse AI-svar', raw: result.text }, 502);
+    return c.json({ error: 'Kunne ikke parse AI-svar', raw: rawText }, 502);
   }
 
   // 8. Validér og matche på position (AI's type-felt ignoreres)
