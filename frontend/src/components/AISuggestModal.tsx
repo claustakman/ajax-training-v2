@@ -44,13 +44,20 @@ export default function AISuggestModal({
   // Manuelt tilføjede rækker er altid locked: false, uanset sektionstype.
   const initRows = (): Array<{ type: string; mins: number; locked: boolean }> => {
     if (training.sections.length > 0) {
+      // Eksisterende sektioner — required låses, øvrige kan redigeres
       return training.sections.map(s => {
         const isRequired = sectionTypes.find(st => st.id === s.type)?.required === 1;
         return { type: s.type, mins: s.mins || 15, locked: isRequired };
       });
     }
-    const first = sectionTypes.find(st => st.required !== 1);
-    return [{ type: first?.id ?? sectionTypes[0]?.id ?? '', mins: 15, locked: false }];
+    // Tom træning — start med alle required sektioner i sort_order
+    const requiredTypes = sectionTypes.filter(st => st.required === 1);
+    if (requiredTypes.length > 0) {
+      return requiredTypes.map(st => ({ type: st.id, mins: 15, locked: true }));
+    }
+    // Ingen required: start med første tilgængelige type
+    const first = sectionTypes[0];
+    return first ? [{ type: first.id, mins: 15, locked: false }] : [];
   };
 
   const [step, setStep] = useState<Step>('configure');
@@ -67,6 +74,16 @@ export default function AISuggestModal({
 
   function removeRow(index: number) {
     setRows(r => r.filter((_, i) => i !== index));
+  }
+
+  function moveRow(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    setRows(r => {
+      if (target < 0 || target >= r.length) return r;
+      const next = [...r];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   }
 
   // ── handleGenerate ─────────────────────────────────────────────────────────
@@ -151,7 +168,31 @@ export default function AISuggestModal({
                 Sektioner
               </div>
               {rows.map((row, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  {/* Rækkefølge ▲▼ */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+                    <button
+                      onClick={() => moveRow(i, -1)}
+                      disabled={i === 0}
+                      style={{
+                        background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer',
+                        color: i === 0 ? 'var(--border2)' : 'var(--text2)',
+                        fontSize: 10, padding: '1px 3px', lineHeight: 1,
+                      }}
+                      aria-label="Flyt op"
+                    >▲</button>
+                    <button
+                      onClick={() => moveRow(i, 1)}
+                      disabled={i === rows.length - 1}
+                      style={{
+                        background: 'none', border: 'none', cursor: i === rows.length - 1 ? 'default' : 'pointer',
+                        color: i === rows.length - 1 ? 'var(--border2)' : 'var(--text2)',
+                        fontSize: 10, padding: '1px 3px', lineHeight: 1,
+                      }}
+                      aria-label="Flyt ned"
+                    >▼</button>
+                  </div>
+
                   {/* Farvet dot */}
                   <div style={{
                     width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
