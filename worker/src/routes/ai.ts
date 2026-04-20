@@ -333,43 +333,56 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   }
 
   // ── Tilstand 2: section-baseret AI-forslag ────────────────────────────────
-  const { team_id, sections = [], themes = [], vary = false } = body;
-  if (!team_id) return c.json({ error: 'team_id eller prompt påkrævet' }, 400);
-  if (sections.length === 0) return c.json({ error: 'sections må ikke være tom' }, 400);
+  const { team_id, sections, themes = [], vary = true } = body;
 
-  // 1. Hent hold (age_group til prompt-kontekst) + sektionstyper
-  const teamRow = await c.env.DB.prepare('SELECT age_group FROM teams WHERE id = ?').bind(team_id).first<{ age_group: string }>();
-  if (!teamRow) return c.json({ error: 'Hold ikke fundet' }, 404);
-  const ageGroup = teamRow.age_group;
-
-  const stResults = await getSectionTypes(team_id, c.env.DB);
-
-  // 2. Tilføj required sektionstyper der ikke allerede er i listen (placeres først)
-  const sectionsCopy = addRequiredSections(sections, stResults);
-
-  // 3+4. Byg SecCatalog per sektion (øvelser + recent-markering)
-  const catalogSections = await buildSecCatalogs(sectionsCopy, stResults, team_id, c.env.DB);
-
-  // 5. Byg prompt
-  const prompt = buildPrompt(catalogSections, themes, vary, ageGroup);
-
-  // 6. Kald Anthropic
-  let rawText: string;
-  try {
-    rawText = await callAnthropic(prompt, c.env.ANTHROPIC_API_KEY);
-  } catch (e) {
-    return c.json({ error: e instanceof Error ? e.message : 'Ukendt fejl' }, 502);
+  if (!team_id || !sections?.length) {
+    return c.json({ error: 'team_id og sections er påkrævet' }, 400);
   }
 
-  // 7. Parse + validér svar
-  let parsed: Array<{ type: string; mins: number; exercises: SectionExercise[] }>;
   try {
-    parsed = parseAIResponse(rawText, catalogSections);
-  } catch (e) {
-    return c.json({ error: e instanceof Error ? e.message : 'Kunne ikke parse AI-svar' }, 502);
+    const db = c.env.DB;
+    const apiKey = c.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      return c.json({ error: 'ANTHROPIC_API_KEY ikke konfigureret' }, 500);
+    }
+
+    // 1. Hent hold (age_group til prompt-kontekst) + sektionstyper
+    const teamRow = await db.prepare('SELECT age_group FROM teams WHERE id = ?').bind(team_id).first<{ age_group: string }>();
+    if (!teamRow) return c.json({ error: 'Hold ikke fundet' }, 404);
+
+    const sectionTypes = await getSectionTypes(team_id, db);
+
+    // 2. Tilføj required sektioner
+    const sectionsWithRequired = addRequiredSections(sections, sectionTypes);
+
+    // 3. Byg secCatalogs
+    const secCatalogs = await buildSecCatalogs(sectionsWithRequired, sectionTypes, team_id, db);
+
+    if (secCatalogs.length === 0) {
+      return c.json({ error: 'Ingen sektionstyper fundet — konfigurér holdindstillinger' }, 400);
+    }
+
+    // 4. Byg prompt
+    const prompt = buildPrompt(secCatalogs, themes, vary, teamRow.age_group);
+
+    // 5. Kald Anthropic
+    const aiText = await callAnthropic(prompt, apiKey);
+
+    // 6. Parse svar
+    const parsed = parseAIResponse(aiText, secCatalogs);
+
+    // 7. Validér øvelses-IDs
+    const validated = await validateAISections(parsed, db);
+
+    return c.json(validated);
+
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'AI-forslag fejlede';
+    console.error('AI suggest fejl:', e);
+    return c.json(
+      { error: msg },
+      msg.includes('tog for lang tid') ? 504 : 502
+    );
   }
-
-  const output = await validateAISections(parsed, c.env.DB);
-
-  return c.json(output);
 });
