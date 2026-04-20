@@ -279,6 +279,19 @@ export default function AISuggestModal({
 
             <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />
 
+            {/* Reference-note */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+              padding: '10px 12px', borderRadius: 8, marginBottom: 16,
+              background: 'rgba(124,58,237,0.06)',
+              border: '1px solid rgba(124,58,237,0.18)',
+            }}>
+              <span style={{ fontSize: 15, flexShrink: 0 }}>📚</span>
+              <span style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+                Arkiverede træninger med 4+ stjerner bruges som reference til at forbedre forslagene
+              </span>
+            </div>
+
             {/* Variation */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text2)' }}>

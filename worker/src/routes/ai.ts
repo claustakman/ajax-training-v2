@@ -145,12 +145,92 @@ async function getSectionTypes(teamId: string, db: D1Database): Promise<SectionT
   })) as SectionType[];
 }
 
-function buildPrompt(secCatalogs: SecCatalog[], themes: string[], vary: boolean, ageGroup: string): string {
+interface ReferenceTraining {
+  themes: string[];
+  sections: Array<{
+    type: string;
+    label: string;
+    exercises: Array<{ name: string; mins: number }>;
+  }>;
+}
+
+async function fetchReferenceTrainings(
+  teamId: string,
+  themes: string[],
+  sectionTypes: SectionType[],
+  db: D1Database
+): Promise<ReferenceTraining[]> {
+  // Hent op til 6 kandidater (arkiverede, 4+ stjerner, nyeste først)
+  // og vælg de 3 med bedst tema-overlap
+  const rows = await db
+    .prepare(`
+      SELECT themes, sections, stars
+      FROM trainings
+      WHERE team_id = ? AND archived = 1 AND stars >= 4
+      ORDER BY stars DESC, date DESC
+      LIMIT 6
+    `)
+    .bind(teamId)
+    .all();
+
+  if (rows.results.length === 0) return [];
+
+  // Score på tema-overlap, sorter og tag top 3
+  const scored = rows.results.map(row => {
+    const rowThemes: string[] = JSON.parse(row.themes as string || '[]');
+    const overlap = themes.length > 0
+      ? rowThemes.filter(t => themes.includes(t)).length
+      : 0;
+    return { row, overlap };
+  });
+
+  scored.sort((a, b) => b.overlap - a.overlap || (b.row.stars as number) - (a.row.stars as number));
+  const top3 = scored.slice(0, 3);
+
+  return top3.map(({ row }) => {
+    const rawSections: Array<{ type: string; exercises: Array<{ id?: string; exerciseId?: string; mins: number }> }> =
+      JSON.parse(row.sections as string || '[]');
+
+    return {
+      themes: JSON.parse(row.themes as string || '[]'),
+      sections: rawSections.map(sec => {
+        const st = sectionTypes.find(t => t.id === sec.type);
+        return {
+          type: sec.type,
+          label: st?.label ?? sec.type,
+          exercises: sec.exercises.map(ex => ({
+            name: ex.id ?? ex.exerciseId ?? '?',
+            mins: ex.mins,
+          })),
+        };
+      }).filter(sec => sec.exercises.length > 0),
+    };
+  }).filter(t => t.sections.length > 0);
+}
+
+function buildPrompt(
+  secCatalogs: SecCatalog[],
+  themes: string[],
+  vary: boolean,
+  ageGroup: string,
+  references: ReferenceTraining[]
+): string {
   const secBlocks = secCatalogs.map((sc, i) =>
     `SEKTION ${i + 1} – ${sc.label} (${sc.mins} min, ` +
     `maks ${sc.maxEx} øvelse${sc.maxEx > 1 ? 'r' : ''})\n` +
     `Tilgængelige øvelser: ${JSON.stringify(sc.exercises)}`
   ).join('\n\n');
+
+  const refBlock = references.length > 0
+    ? `Tidligere gode træninger (brug som inspiration for øvelsesvalg og struktur):\n` +
+      references.map((ref, i) => {
+        const refSecs = ref.sections
+          .map(s => `  ${s.label}: ${s.exercises.map(e => `${e.name}(${e.mins}min)`).join(', ')}`)
+          .join('\n');
+        const refThemes = ref.themes.length ? ` [${ref.themes.join(', ')}]` : '';
+        return `Eksempel ${i + 1}${refThemes}:\n${refSecs}`;
+      }).join('\n\n') + '\n\n'
+    : '';
 
   return (
     `Du er assistent for en håndboldtræner for ${ageGroup}.\n` +
@@ -158,6 +238,7 @@ function buildPrompt(secCatalogs: SecCatalog[], themes: string[], vary: boolean,
     `nummereret herunder.\n` +
     `For HVER sektion er der angivet præcis hvilke øvelser der må ` +
     `bruges – brug KUN dem.\n\n` +
+    refBlock +
     secBlocks + '\n\n' +
     `Temaer: ${themes.length ? themes.join(', ') : 'ingen specifikke'}\n` +
     `Variation: ${vary
@@ -366,16 +447,21 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
       return c.json({ error: 'Ingen sektionstyper fundet — konfigurér holdindstillinger' }, 400);
     }
 
-    // 4. Byg prompt
-    const prompt = buildPrompt(secCatalogs, themes, vary, teamRow.age_group);
+    // 4. Hent reference-træninger (kun til hele-træning-kald)
+    const references = single_section
+      ? []
+      : await fetchReferenceTrainings(team_id, themes, sectionTypes, db);
 
-    // 5. Kald Anthropic
+    // 5. Byg prompt
+    const prompt = buildPrompt(secCatalogs, themes, vary, teamRow.age_group, references);
+
+    // 6. Kald Anthropic
     const aiText = await callAnthropic(prompt, apiKey);
 
-    // 6. Parse svar
+    // 7. Parse svar
     const parsed = parseAIResponse(aiText, secCatalogs);
 
-    // 7. Validér øvelses-IDs
+    // 8. Validér øvelses-IDs
     const validated = await validateAISections(parsed, db);
 
     return c.json(validated);
