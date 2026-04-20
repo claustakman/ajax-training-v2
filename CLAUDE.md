@@ -943,14 +943,46 @@ interface AuthUser {
 
 **Vigtigt:** AI returnerer konsekvent `"type": "fysisk"` uanset instruktion. Løsningen er nummererede sektioner og position-matching.
 
+### Worker-funktioner i `ai.ts`
+| Funktion | Beskrivelse |
+|---|---|
+| `getSectionTypes(teamId, db)` | Holdets sektionstyper med parsede tags |
+| `addRequiredSections(sections, sectionTypes)` | Unshift manglende required-typer (15 min default) — safety net, frontend sender dem nu |
+| `getExercisesForSection(tags, teamId, db)` | Alle øvelser filtreret på tag-intersection |
+| `markRecentExercises(exercises, teamId, db)` | `recent: true` for øvelser i seneste 3 træninger |
+| `buildSecCatalogs(sections, sectionTypes, teamId, db)` | Katalog per sektion, springer ukendte typer over |
+| `fetchReferenceTrainings(teamId, themes, sectionTypes, db)` | Op til 6 arkiverede træninger med `stars >= 4`, scorer på tema-overlap, returnerer top 3 som few-shot examples |
+| `buildPrompt(secCatalogs, themes, vary, ageGroup, references)` | Nummererede sektioner + eksempel-blokke fra reference-træninger øverst |
+| `callAnthropic(prompt, apiKey)` | 30s `AbortController`, kaster dansk timeout-besked ved 504 |
+| `parseAIResponse(text, secCatalogs)` | Position-baseret matching — AI's `type`-felt ignoreres |
+| `validateAISections(sections, db)` | `IN (?,...)` DB-query, filtrerer ukendte øvelses-ID'er fra |
+
+### `single_section` flag
+`AISectionModal` sender `single_section: true` → worker skipper `addRequiredSections` og `fetchReferenceTrainings` — returnerer præcis én sektion.
+
+### Reference-træninger (few-shot)
+- `fetchReferenceTrainings` henter op til 6 arkiverede træninger med `stars >= 4`
+- Scores på tema-overlap med request-temaer — bedst matchende 3 returneres
+- Formateres som `Eksempel N [tema]: Sektion: øvelse(min), ...` øverst i prompten
+- AI bruger dem som inspiration for øvelsesvalg og struktur
+- Forbedres automatisk jo flere træninger der arkiveres og vurderes
+
 ### Frontend-flow
 - **Hele træningen:** `AISuggestModal` — configure (sektion-builder) → loading → result → error
-  - Required-sektioner vises med 🔒, kan ikke slettes fra konfiguration
+  - Tom træning: alle required sektioner pre-populated med `locked: true`
+  - Eksisterende træning: sektioner hentes fra `training.sections`, required låses
+  - `useEffect` re-initialiserer rows hvis `sectionTypes` ankommer asynkront efter mount
+  - ▲▼ knapper til at justere rækkefølgen på alle rækker
+  - 📚-note: "Arkiverede træninger med 4+ stjerner bruges som reference"
   - `onAccept` modtager `Section[]` med nye `crypto.randomUUID()` ids — erstatter alle sektioner
-- **Per sektion:** `AISectionModal` — loader straks (ingen configure-step)
+- **Per sektion:** `AISectionModal` — loader straks (ingen configure-step), `single_section: true`
   - `onAccept` modtager `SectionExercise[]` — erstatter kun øvelser i den ene sektion
 - Begge modaler bruger `ExerciseResultRow` til at slå øvelses-navne op via `useQuery(['exercises', teamId])`
 - `@keyframes pulse` i `index.css` til ✨ loading-animation
+
+### Gotchas
+- `locked` felt på rows i `AISuggestModal` — kun auto-initialiserede required-rækker er `locked: true`; manuelt tilføjede er altid `locked: false` uanset sektionstype
+- `single_section: true` er nødvendig for `AISectionModal` — ellers unshifter workeren required-sektioner forrest og `res[0]` returnerer forkert sektion
 
 ---
 
