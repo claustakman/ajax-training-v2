@@ -41,6 +41,44 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - Menurækkefølge: Skabeloner → Sektionstyper → Holdsport → AI
 - `Layout.tsx` — Profil rykket til bunden af hamburger-menuen
 
+### Session 5a — AI worker (`/api/ai/suggest`)
+- **`worker/src/routes/ai.ts`** — fuldt refaktoreret AI-route
+  - `getSectionTypes(teamId, db)` — henter holdets sektionstyper med parsede tags
+  - `addRequiredSections(sections, sectionTypes)` — unshift manglende required-typer (15 min default)
+  - `getExercisesForSection(tags, teamId, db)` — henter øvelser med tag-intersection filter
+  - `markRecentExercises(exercises, teamId, db)` — markerer `recent: true` for øvelser brugt i seneste 3 træninger
+  - `buildSecCatalogs(sections, sectionTypes, teamId, db)` — bygger katalog per sektion, springer ukendte typer over
+  - `buildPrompt(secCatalogs, themes, vary, ageGroup)` — nummererede sektioner, holdets aldersgruppe, variationsregel
+  - `callAnthropic(prompt, apiKey)` — 30s `AbortController`, kaster dansk timeout-besked ved 504
+  - `parseAIResponse(text, secCatalogs)` — position-baseret matching (AI's `type`-felt ignoreres)
+  - `validateAISections(sections, db)` — `IN (?,...)` DB-query, filtrerer ukendte øvelses-ID'er fra
+  - Route-handler: henter `age_group` fra `teams`-tabellen, `vary: true` default, apiKey-guard → 500, timeout → 504
+- **To tilstande:** simpel prompt-proxy (`{ prompt }`) bruges fra Catalog.tsx; section-baseret (`{ team_id, sections[], themes[], vary }`) bruges fra TrainingEditor
+- **Gotcha:** AI returnerer konsekvent forkert `type`-felt — løst med nummererede sektioner og position-matching
+
+### Session 5b — AI-forslag frontend
+- **`frontend/src/lib/api.ts`** — tilføjet `AISuggestRequest`, `AISuggestResultSection` typer og `api.suggestTraining()`
+- **`frontend/src/components/AISuggestModal.tsx`** — modal til hele træningen
+  - 4 steps: `configure` → `loading` → `result` → `error`
+  - Configure: sektion-builder med rækker (type + minutter), required-sektioner låst med 🔒, variation-toggle
+  - Loading: ✨ pulse-animation, "Dette tager typisk 5–15 sekunder"
+  - Result: øvelsesliste per sektion via `ExerciseResultRow`, total-minutter summary med `durMin()`
+  - "✨ Nyt forslag" → nyt API-kald; "← Tilpas" → tilbage til configure med samme rækker
+  - `onAccept`: bygger `Section[]` med `crypto.randomUUID()` som id
+- **`frontend/src/components/AISectionModal.tsx`** — modal til enkelt sektion
+  - Steps: `loading` → `result` → `error` (ingen configure — kalder AI straks)
+  - `fetchSuggestion` i `useCallback` + `useEffect([])`
+  - Header farvet med sektionstype-farve
+- **`frontend/src/components/ExerciseResultRow.tsx`** — delt komponent til øvelses-visning i begge AI-modaler
+  - `useQuery(['exercises', teamId])` med `staleTime: 5min` — viser navn eller exerciseId som fallback
+- **`frontend/src/index.css`** — tilføjet `@keyframes pulse` til AI loading-animation
+- **`frontend/src/pages/TrainingEditor.tsx`** — ✨-knapper aktiveret
+  - `showAISuggest` state → `AISuggestModal`; `aiSectionIndex` state → `AISectionModal`
+  - `onAccept` callbacks: opdaterer `training.sections`, kalder `scheduleSave()`, viser mini-toast
+  - `sectionTypes` hentes ét sted via `useQuery(['section-types', currentTeamId])` og sendes som prop til alle komponenter
+- **`frontend/src/components/SectionList.tsx`** — intern `fetchSectionTypes` fjernet
+  - `sectionTypes` modtages nu som prop (default `[]`) fra TrainingEditor — ingen dobbelt-fetch
+
 ### Session 6 — Finpudsning og UI-polish
 - Shimmer-skeleton loading states i alle listings (Trainings, Archive, Catalog)
 - Global `.skeleton` CSS-klasse + `@keyframes skeleton-shimmer` i `index.css`
@@ -140,6 +178,9 @@ ajax-traening-v2/
 │   │   │   ├── SectionList.tsx      # Sektioner + øvelser: ExercisePicker, ExerciseRow, DurationBar, modaler
 │   │   │   ├── SaveTemplateModal.tsx # Gem skabelon (fuld træning eller sektion)
 │   │   │   ├── HoldsportImportModal.tsx # Import fra Holdsport: vælg hold → aktivitet → importer
+│   │   │   ├── AISuggestModal.tsx   # AI-forslag til hele træningen (configure/loading/result/error)
+│   │   │   ├── AISectionModal.tsx   # AI-forslag til enkelt sektion (loading/result/error)
+│   │   │   ├── ExerciseResultRow.tsx # Delt komponent: viser øvelses-navn + minutter i AI-modaler
 │   │   │   ├── BoardPostCard.tsx    # Opslags-kort: @-mentions, vedhæftninger, kommentarer, overflow-menu
 │   │   │   ├── NewPostModal.tsx     # Nyt opslag: @-autocomplete, filvedhæftning, visualViewport-fix
 │   │   │   └── ui/
@@ -612,10 +653,13 @@ CREATE TABLE templates (
   - Fokuspunkter, noter (textarea), stjerne-vurdering (1–5 klik)
 - Toolbar: ← Tilbage · `SaveIndicator` · 💾 Skabelon · 📦 Arkivér · 🗑 Slet
   - "💾 Skabelon" åbner `SaveTemplateModal` — kun på gemte træninger med sektioner
-  - Mini-toast: "Skabelon gemt ✓" grøn, 2.8s, fixed bottom 90px
+  - Mini-toast: "Skabelon gemt ✓" / "Træning opdateret med AI-forslag ✓" / "Øvelser opdateret med AI-forslag ✓" — grøn, 2.8s, fixed bottom 90px
 - Holdsport-knap (kun trainer+): åbner `HoldsportImportModal`
 - ↺ Opdater ved `holdsport_id`: henter ny `participant_count` + `trainers` fra Holdsport
 - `SectionList`-komponent for sektioner og øvelser
+- `AISuggestModal` (hele træningen) — åbnes ved "✨ Hele træning"-knap
+- `AISectionModal` (per sektion) — åbnes ved ✨-knap på enkelt sektion
+- `sectionTypes` hentes ét sted: `useQuery(['section-types', currentTeamId])` — sendes som prop til `SectionList`, `AISuggestModal`, `AISectionModal`
 - Navigerer til `/traininger/ny` → opretter tom træning → redirect til `/traininger/:id`
 
 ### `SaveTemplateModal.tsx` (komponent)
@@ -645,7 +689,8 @@ CREATE TABLE templates (
 - Alle interne modaler bruger `.modal-overlay` / `.modal-sheet` mønster:
   `ExerciseDetailModal`, `AddSectionModal`, `FreeExerciseModal`, `SaveToCatalogModal`, `LoadTemplateModal`, `LoadSectionTemplateModal`
 - `MiniToast` (intern) til kortvarige beskeder inde i editoren
-- AI-knapper eksisterer men er deaktiveret (disabled)
+- ✨-knapper aktiverede: "✨ Hele træning" → `onAIWholeTraining`, per sektion → `onAISectionIndex(idx)`
+- `sectionTypes` modtages som prop fra TrainingEditor (ingen intern fetch)
 
 ### `HoldsportImportModal.tsx` (komponent)
 - Åbnes fra Trainings.tsx og TrainingEditor.tsx
@@ -896,7 +941,16 @@ interface AuthUser {
 5. AI's `type`-felt **ignoreres** — matcher på position i stedet
 6. Returnerer valideret array (ukendte øvelses-ID'er filtreres fra)
 
-**Vigtigt:** AI returnerer konsekvent `"type": "fysisk"` uanset instruktion. Løsningen er nummererede sektioner og position-matching. AI-knapper i SectionList er deaktiverede.
+**Vigtigt:** AI returnerer konsekvent `"type": "fysisk"` uanset instruktion. Løsningen er nummererede sektioner og position-matching.
+
+### Frontend-flow
+- **Hele træningen:** `AISuggestModal` — configure (sektion-builder) → loading → result → error
+  - Required-sektioner vises med 🔒, kan ikke slettes fra konfiguration
+  - `onAccept` modtager `Section[]` med nye `crypto.randomUUID()` ids — erstatter alle sektioner
+- **Per sektion:** `AISectionModal` — loader straks (ingen configure-step)
+  - `onAccept` modtager `SectionExercise[]` — erstatter kun øvelser i den ene sektion
+- Begge modaler bruger `ExerciseResultRow` til at slå øvelses-navne op via `useQuery(['exercises', teamId])`
+- `@keyframes pulse` i `index.css` til ✨ loading-animation
 
 ---
 
