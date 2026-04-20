@@ -173,9 +173,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             minWidth: 200,
             overflow: 'hidden',
           }} className="menu-dropdown">
-            <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)}>Årshjul</MenuItem>
-            <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
-            <MenuItem to="/tavle" onClick={() => setMenuOpen(false)}>
+            {/* Årshjul: kun mobil (desktop har det i topbar) */}
+            <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)} className="mobile-only-item">Årshjul</MenuItem>
+            {/* Tavle: kun mobil (desktop har det i topbar) */}
+            <MenuItem to="/tavle" onClick={() => setMenuOpen(false)} className="mobile-only-item">
               Tavle{hasUnread && (
                 <span style={{
                   display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
@@ -183,6 +184,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 }} />
               )}
             </MenuItem>
+            {/* Arkiv: altid synlig */}
+            <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
               <MenuItem to="/holdindstillinger" onClick={() => setMenuOpen(false)}>Holdindstillinger</MenuItem>
             )}
@@ -310,16 +313,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             overflow-y: auto;
           }
         }
+        /* Skjul desktop-only items i mobil-hamburger (allerede i bundnav) */
+        @media (max-width: 767px) {
+          .mobile-only-item { display: block !important; }
+        }
+        /* Skjul mobil-only items i desktop-hamburger (allerede i topbar) */
+        @media (min-width: 768px) {
+          .mobile-only-item { display: none !important; }
+        }
       `}</style>
     </div>
   );
 }
 
-function MenuItem({ to, onClick, children }: { to: string; onClick: () => void; children: React.ReactNode }) {
+function MenuItem({ to, onClick, children, className }: { to: string; onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
     <NavLink
       to={to}
       onClick={onClick}
+      className={className}
       style={({ isActive }) => ({
         display: 'block', padding: '12px 16px',
         background: isActive ? 'var(--accent-light)' : 'none',
