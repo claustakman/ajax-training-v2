@@ -38,10 +38,10 @@ interface SecCatalog {
   exercises: AIExercise[];
 }
 
-interface AISectionResult {
-  sectionIndex: number;
+interface SectionExercise {
+  exerciseId: string;
   mins: number;
-  exercises: Array<{ exerciseId: string; mins: number }>;
+  done: boolean;
 }
 
 
@@ -211,6 +211,63 @@ async function buildSecCatalogs(
   return catalogs;
 }
 
+function parseAIResponse(
+  text: string,
+  secCatalogs: SecCatalog[]
+): Array<{ type: string; mins: number; exercises: SectionExercise[] }> {
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) {
+    throw new Error('AI returnerede ikke gyldigt JSON. Svar: ' + text.slice(0, 120));
+  }
+
+  const aiResult = JSON.parse(match[0]);
+
+  // VIGTIGT: AI's type-felt ignoreres helt.
+  // type og mins hentes fra vores eget secCatalogs array ved position.
+  // Match på sectionIndex hvis tilgængeligt, ellers på position.
+  return secCatalogs.map((sc, i) => {
+    const aiSec =
+      aiResult.find((r: { sectionIndex?: number }) => r.sectionIndex === i + 1) ||
+      aiResult[i] ||
+      { exercises: [] };
+
+    return {
+      type: sc.type,   // fra vores array — ikke fra AI
+      mins: sc.mins,   // fra vores array — ikke fra AI
+      exercises: ((aiSec as { exercises?: Array<{ exerciseId?: string; mins?: number }> }).exercises || []).map(e => ({
+        exerciseId: e.exerciseId ?? '',
+        mins: e.mins || 5,
+        done: false,
+      })),
+    };
+  });
+}
+
+async function validateAISections(
+  sections: Array<{ type: string; mins: number; exercises: SectionExercise[] }>,
+  db: D1Database
+): Promise<Array<{ type: string; mins: number; exercises: SectionExercise[] }>> {
+  const allIds = sections
+    .flatMap(s => s.exercises)
+    .map(e => e.exerciseId)
+    .filter(Boolean) as string[];
+
+  if (allIds.length === 0) return sections;
+
+  const placeholders = allIds.map(() => '?').join(',');
+  const valid = await db
+    .prepare(`SELECT id FROM exercises WHERE id IN (${placeholders})`)
+    .bind(...allIds)
+    .all();
+
+  const validIds = new Set(valid.results.map(r => r.id as string));
+
+  return sections.map(sec => ({
+    ...sec,
+    exercises: sec.exercises.filter(e => !e.exerciseId || validIds.has(e.exerciseId)),
+  }));
+}
+
 async function callAnthropic(prompt: string, apiKey: string): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);
@@ -304,28 +361,15 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
     return c.json({ error: e instanceof Error ? e.message : 'Ukendt fejl' }, 502);
   }
 
-  // 7. Parse svar
-  let aiSections: AISectionResult[] = [];
+  // 7. Parse + validér svar
+  let parsed: Array<{ type: string; mins: number; exercises: SectionExercise[] }>;
   try {
-    const match = rawText.match(/\[[\s\S]*\]/);
-    if (match) aiSections = JSON.parse(match[0]);
-  } catch {
-    return c.json({ error: 'Kunne ikke parse AI-svar', raw: rawText }, 502);
+    parsed = parseAIResponse(rawText, catalogSections);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : 'Kunne ikke parse AI-svar' }, 502);
   }
 
-  // 8. Validér og matche på position (AI's type-felt ignoreres)
-  const validIds = new Set(catalogSections.flatMap(s => s.exercises.map(ex => ex.id)));
-
-  const output = aiSections.map((aiSec, idx) => {
-    const ourSec = catalogSections[(aiSec.sectionIndex ?? idx + 1) - 1] ?? catalogSections[idx];
-    return {
-      type: ourSec?.type ?? sectionsCopy[idx]?.type ?? '',
-      mins: ourSec?.mins ?? aiSec.mins,
-      exercises: (aiSec.exercises ?? [])
-        .filter(e => validIds.has(e.exerciseId))
-        .map(e => ({ exerciseId: e.exerciseId, mins: e.mins })),
-    };
-  });
+  const output = await validateAISections(parsed, c.env.DB);
 
   return c.json(output);
 });
