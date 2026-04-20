@@ -1,5 +1,5 @@
 // API-klient — BASE_URL skifter prod/dev
-import type { Training, Template } from './types';
+import type { Training, Template, BoardPost, BoardComment, BoardAttachment } from './types';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787';
 
@@ -120,6 +120,60 @@ export const api = {
     const acts = await res.json() as import('./types').HoldsportActivity[];
     return (Array.isArray(acts) ? acts : []).find(a => String(a.id) === holdsportId) ?? null;
   },
+
+  // ── Board ─────────────────────────────────────────────────────────────────
+  fetchBoardPosts: (teamId: string, archived?: boolean) =>
+    request<BoardPost[]>(`/api/board?team_id=${teamId}&archived=${archived ? 1 : 0}`),
+
+  fetchBoardUnread: (teamId: string) =>
+    request<{ unread: boolean }>(`/api/board/unread?team_id=${teamId}`),
+
+  createBoardPost: (data: { team_id: string; title?: string; body: string }) =>
+    request<BoardPost>('/api/board', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateBoardPost: (id: string, data: { title?: string; body?: string }) =>
+    request<BoardPost>(`/api/board/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteBoardPost: (id: string) =>
+    request<void>(`/api/board/${id}`, { method: 'DELETE' }),
+
+  pinBoardPost: (id: string) =>
+    request<BoardPost>(`/api/board/${id}/pin`, { method: 'POST' }),
+
+  archiveBoardPost: (id: string) =>
+    request<BoardPost>(`/api/board/${id}/archive`, { method: 'POST' }),
+
+  createBoardComment: (postId: string, body: string) =>
+    request<BoardComment>(`/api/board/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body }) }),
+
+  updateBoardComment: (postId: string, commentId: string, body: string) =>
+    request<BoardComment>(`/api/board/${postId}/comments/${commentId}`, { method: 'PATCH', body: JSON.stringify({ body }) }),
+
+  deleteBoardComment: (postId: string, commentId: string) =>
+    request<void>(`/api/board/${postId}/comments/${commentId}`, { method: 'DELETE' }),
+
+  uploadBoardAttachment: async (postId: string, file: File): Promise<BoardAttachment> => {
+    const token = localStorage.getItem('ajax_token');
+    const headers: Record<string, string> = {
+      'X-Filename': encodeURIComponent(file.name),
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE_URL}/api/board/${postId}/attachments`, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+      throw new ApiError(res.status, body.error ?? res.statusText);
+    }
+    return res.json() as Promise<BoardAttachment>;
+  },
+
+  deleteBoardAttachment: (postId: string, attachmentId: string) =>
+    request<void>(`/api/board/${postId}/attachments/${attachmentId}`, { method: 'DELETE' }),
 
   // ── Sektionstyper ─────────────────────────────────────────────────────────
   fetchSectionTypes: (teamId: string) =>
