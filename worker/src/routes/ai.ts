@@ -19,11 +19,14 @@ interface ExerciseRow {
   stars: number;
 }
 
-interface SectionTypeRow {
+interface SectionType {
   id: string;
   label: string;
-  tags: string;
-  required: number;
+  tags: string[];
+  themes: string[];
+  required: boolean;
+  sort_order: number;
+  team_id: string | null;
 }
 
 interface AISectionResult {
@@ -34,6 +37,33 @@ interface AISectionResult {
 
 function parseTags(raw: string | null | undefined): string[] {
   try { return JSON.parse(raw ?? '[]'); } catch { return []; }
+}
+
+async function getSectionTypes(teamId: string, db: D1Database): Promise<SectionType[]> {
+  const teamTypes = await db
+    .prepare('SELECT * FROM section_types WHERE team_id = ? ORDER BY sort_order ASC')
+    .bind(teamId)
+    .all();
+
+  if (teamTypes.results.length > 0) {
+    return teamTypes.results.map(r => ({
+      ...r,
+      tags: JSON.parse(r.tags as string || '[]'),
+      themes: JSON.parse(r.themes as string || '[]'),
+      required: r.required === 1,
+    })) as SectionType[];
+  }
+
+  const defaults = await db
+    .prepare('SELECT * FROM section_types WHERE team_id IS NULL ORDER BY sort_order ASC')
+    .all();
+
+  return defaults.results.map(r => ({
+    ...r,
+    tags: JSON.parse(r.tags as string || '[]'),
+    themes: JSON.parse(r.themes as string || '[]'),
+    required: r.required === 1,
+  })) as SectionType[];
 }
 
 async function callAnthropic(apiKey: string, prompt: string, maxTokens = 2048): Promise<{ ok: true; text: string } | { ok: false; status: number; detail: string }> {
@@ -81,16 +111,7 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   if (sections.length === 0) return c.json({ error: 'sections må ikke være tom' }, 400);
 
   // 1. Hent sektionstyper (team-specifikke, ellers globale)
-  let stResults = (await c.env.DB.prepare(
-    'SELECT * FROM section_types WHERE team_id = ? ORDER BY sort_order'
-  ).bind(team_id).all<SectionTypeRow>()).results;
-
-  if (stResults.length === 0) {
-    stResults = (await c.env.DB.prepare(
-      'SELECT * FROM section_types WHERE team_id IS NULL ORDER BY sort_order'
-    ).all<SectionTypeRow>()).results;
-  }
-
+  const stResults = await getSectionTypes(team_id, c.env.DB);
   const sectionTypeMap = new Map(stResults.map(st => [st.id, st]));
 
   // 2. Tilføj required sektionstyper der ikke allerede er i listen
@@ -110,7 +131,7 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   const catalogSections = sectionsCopy.map((sec, idx) => {
     const st = sectionTypeMap.get(sec.type);
     const label = st?.label ?? sec.type;
-    const stTags = parseTags(st?.tags);
+    const stTags = st?.tags ?? [];
 
     const matching = allExercises.filter(ex => {
       if (stTags.length === 0) return true;
