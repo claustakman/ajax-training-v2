@@ -45,6 +45,7 @@ export default function AISectionModal({
         sections: [{ type: section.type, mins: section.mins }],
         themes: training.themes,
         vary: true,
+        single_section: true,
       });
       setResult(res[0] ?? null);
       setStep('result');

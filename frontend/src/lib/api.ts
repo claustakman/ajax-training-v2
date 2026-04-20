@@ -10,6 +10,7 @@ export interface AISuggestRequest {
   sections: Array<{ type: string; mins: number }>;
   themes: string[];
   vary: boolean;
+  single_section?: boolean;
 }
 
 export interface AISuggestResultSection {

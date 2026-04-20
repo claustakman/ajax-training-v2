@@ -319,6 +319,7 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
     sections?: SectionInput[];
     themes?: string[];
     vary?: boolean;
+    single_section?: boolean;
     prompt?: string;
   }>();
 
@@ -333,7 +334,7 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
   }
 
   // ── Tilstand 2: section-baseret AI-forslag ────────────────────────────────
-  const { team_id, sections, themes = [], vary = true } = body;
+  const { team_id, sections, themes = [], vary = true, single_section = false } = body;
 
   if (!team_id || !sections?.length) {
     return c.json({ error: 'team_id og sections er påkrævet' }, 400);
@@ -353,8 +354,10 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
 
     const sectionTypes = await getSectionTypes(team_id, db);
 
-    // 2. Tilføj required sektioner
-    const sectionsWithRequired = addRequiredSections(sections, sectionTypes);
+    // 2. Tilføj required sektioner (skippes ved enkelt-sektion-kald fra AISectionModal)
+    const sectionsWithRequired = single_section
+      ? sections
+      : addRequiredSections(sections, sectionTypes);
 
     // 3. Byg secCatalogs
     const secCatalogs = await buildSecCatalogs(sectionsWithRequired, sectionTypes, team_id, db);
