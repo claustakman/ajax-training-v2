@@ -3,6 +3,25 @@ import type { Training, Template, BoardPost, BoardComment, BoardAttachment } fro
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787';
 
+// ── AI-typer ──────────────────────────────────────────────────────────────────
+
+export interface AISuggestRequest {
+  team_id: string;
+  sections: Array<{ type: string; mins: number }>;
+  themes: string[];
+  vary: boolean;
+}
+
+export interface AISuggestResultSection {
+  type: string;
+  mins: number;
+  exercises: Array<{
+    exerciseId: string;
+    mins: number;
+    done: boolean;
+  }>;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -174,6 +193,13 @@ export const api = {
 
   deleteBoardAttachment: (postId: string, attachmentId: string) =>
     request<void>(`/api/board/${postId}/attachments/${attachmentId}`, { method: 'DELETE' }),
+
+  // ── AI-forslag ────────────────────────────────────────────────────────────
+  suggestTraining: (data: AISuggestRequest) =>
+    request<AISuggestResultSection[]>('/api/ai/suggest', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   // ── Sektionstyper ─────────────────────────────────────────────────────────
   fetchSectionTypes: (teamId: string) =>
