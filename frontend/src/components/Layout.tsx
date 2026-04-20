@@ -175,15 +175,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           }} className="menu-dropdown">
             {/* Årshjul: kun mobil (desktop har det i topbar) */}
             <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)} className="mobile-only-item">Årshjul</MenuItem>
-            {/* Tavle: kun mobil (desktop har det i topbar) */}
-            <MenuItem to="/tavle" onClick={() => setMenuOpen(false)} className="mobile-only-item">
-              Tavle{hasUnread && (
-                <span style={{
-                  display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                  background: 'var(--accent)', marginLeft: 7, verticalAlign: 'middle',
-                }} />
-              )}
-            </MenuItem>
             {/* Arkiv: altid synlig */}
             <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
