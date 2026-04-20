@@ -30,6 +30,14 @@ interface SectionType {
   team_id: string | null;
 }
 
+interface SecCatalog {
+  type: string;
+  label: string;
+  mins: number;
+  maxEx: number;
+  exercises: AIExercise[];
+}
+
 interface AISectionResult {
   sectionIndex: number;
   mins: number;
@@ -137,6 +145,39 @@ async function getSectionTypes(teamId: string, db: D1Database): Promise<SectionT
   })) as SectionType[];
 }
 
+async function buildSecCatalogs(
+  sections: Array<{ type: string; mins: number }>,
+  sectionTypes: SectionType[],
+  teamId: string,
+  db: D1Database
+): Promise<SecCatalog[]> {
+  const catalogs: SecCatalog[] = [];
+
+  for (const sec of sections) {
+    const sectionType = sectionTypes.find(st => st.id === sec.type);
+    if (!sectionType) continue;
+
+    const exercises = await getExercisesForSection(sectionType.tags, teamId, db);
+    const withRecent = await markRecentExercises(exercises, teamId, db);
+
+    const avgMins = withRecent.length > 0
+      ? Math.round(withRecent.reduce((s, e) => s + e.defaultMins, 0) / withRecent.length)
+      : 10;
+
+    const maxEx = Math.max(1, Math.round(sec.mins / avgMins));
+
+    catalogs.push({
+      type: sec.type,
+      label: sectionType.label,
+      mins: sec.mins,
+      maxEx,
+      exercises: withRecent,
+    });
+  }
+
+  return catalogs;
+}
+
 async function callAnthropic(apiKey: string, prompt: string, maxTokens = 2048): Promise<{ ok: true; text: string } | { ok: false; status: number; detail: string }> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -183,41 +224,19 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
 
   // 1. Hent sektionstyper (team-specifikke, ellers globale)
   const stResults = await getSectionTypes(team_id, c.env.DB);
-  const sectionTypeMap = new Map(stResults.map(st => [st.id, st]));
 
   // 2. Tilføj required sektionstyper der ikke allerede er i listen (placeres først)
   const sectionsCopy = addRequiredSections(sections, stResults);
 
-  // 3+4. Hent øvelser og byg catalog per sektion
-  const catalogSections = await Promise.all(sectionsCopy.map(async (sec, idx) => {
-    const st = sectionTypeMap.get(sec.type);
-    const label = st?.label ?? sec.type;
-    const stTags = st?.tags ?? [];
-
-    const raw = await getExercisesForSection(stTags, team_id, c.env.DB);
-    const matching = await markRecentExercises(raw, team_id, c.env.DB);
-
-    const avgMins = matching.length > 0
-      ? matching.reduce((s, ex) => s + ex.defaultMins, 0) / matching.length
-      : 10;
-    const maxEx = Math.max(1, Math.round(sec.mins / avgMins));
-
-    return {
-      sectionIndex: idx + 1,
-      type: sec.type,
-      mins: sec.mins,
-      label,
-      maxEx,
-      exercises: matching.slice(0, 30),
-    };
-  }));
+  // 3+4. Byg SecCatalog per sektion (øvelser + recent-markering)
+  const catalogSections = await buildSecCatalogs(sectionsCopy, stResults, team_id, c.env.DB);
 
   // 5. Byg prompt
   const themesText = themes.length > 0 ? `Temaer for denne træning: ${themes.join(', ')}.` : '';
   const varyText = vary ? 'Vælg gerne øvelser du ikke har valgt i de seneste sessioner — variation er vigtig.' : '';
 
-  const sectionsPrompt = catalogSections.map(s =>
-    `SEKTION ${s.sectionIndex} – ${s.label} (${s.mins} min, maks ${s.maxEx} øvelser)\nTilgængelige øvelser: ${JSON.stringify(s.exercises)}`
+  const sectionsPrompt = catalogSections.map((s, idx) =>
+    `SEKTION ${idx + 1} – ${s.label} (${s.mins} min, maks ${s.maxEx} øvelser)\nTilgængelige øvelser: ${JSON.stringify(s.exercises.slice(0, 30))}`
   ).join('\n\n');
 
   const prompt = `Du er træner i Ajax håndbold og skal planlægge en træning.
