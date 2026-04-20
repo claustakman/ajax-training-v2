@@ -37,6 +37,40 @@ interface AISectionResult {
 }
 
 
+async function markRecentExercises(
+  exercises: AIExercise[],
+  teamId: string,
+  db: D1Database
+): Promise<AIExercise[]> {
+  const recent = await db
+    .prepare(`
+      SELECT sections FROM trainings
+      WHERE team_id = ?
+        AND archived = 0
+      ORDER BY date DESC, created_at DESC
+      LIMIT 3
+    `)
+    .bind(teamId)
+    .all();
+
+  const recentIds = new Set<string>();
+  for (const row of recent.results) {
+    try {
+      const sections = JSON.parse(row.sections as string || '[]');
+      for (const sec of sections) {
+        for (const ex of sec.exercises || []) {
+          if (ex.exerciseId) recentIds.add(ex.exerciseId as string);
+        }
+      }
+    } catch { /* ignorer parse-fejl */ }
+  }
+
+  return exercises.map(ex => ({
+    ...ex,
+    recent: recentIds.has(ex.id),
+  }));
+}
+
 async function getExercisesForSection(
   sectionTypeTags: string[],
   _teamId: string,
@@ -149,7 +183,8 @@ aiRoutes.post('/suggest', requireAuth('trainer'), async (c) => {
     const label = st?.label ?? sec.type;
     const stTags = st?.tags ?? [];
 
-    const matching = await getExercisesForSection(stTags, team_id, c.env.DB);
+    const raw = await getExercisesForSection(stTags, team_id, c.env.DB);
+    const matching = await markRecentExercises(raw, team_id, c.env.DB);
 
     const avgMins = matching.length > 0
       ? matching.reduce((s, ex) => s + ex.defaultMins, 0) / matching.length
