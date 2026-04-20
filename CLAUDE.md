@@ -117,7 +117,7 @@ ajax-traening-v2/
 │   │       ├── exercises.ts    # CRUD øvelseskatalog + R2-billeder
 │   │       ├── quarters.ts     # CRUD årshjul (team-scoped)
 │   │       ├── section_types.ts # CRUD sektionstyper (global eller team-scoped)
-│   │       ├── board.ts        # Opslagstavle: opslag, kommentarer (team-scoped) — stub
+│   │       ├── board.ts        # Opslagstavle: opslag, kommentarer, vedhæftninger, pin/arkiv, unread
 │   │       ├── holdsport.ts    # GET /api/holdsport/config — returnerer workerUrl + token
 │   │       ├── ai.ts           # POST /api/ai/suggest — proxy til Anthropic
 │   │       └── templates.ts    # CRUD skabeloner (type='training' | 'section')
@@ -133,13 +133,15 @@ ajax-traening-v2/
 │   │   ├── lib/
 │   │   │   ├── api.ts          # API-klient — BASE_URL fra VITE_API_URL, alle fetch-helpers
 │   │   │   ├── auth.tsx        # AuthContext, useAuth(), hasRole(), ROLE_LABELS
-│   │   │   ├── types.ts        # Delte TypeScript-typer: Training, Section, SectionExercise, Template, Exercise, SectionType, HoldsportActivity
+│   │   │   ├── types.ts        # Delte TypeScript-typer: Training, Section, SectionExercise, Template, Exercise, SectionType, BoardPost, BoardComment, BoardAttachment, HoldsportActivity
 │   │   │   └── dateUtils.ts    # fmtDay, fmtMon, fmtWday, fmtWdayFull, fmtDateLong, durMin, totalMins
 │   │   ├── components/
 │   │   │   ├── Layout.tsx           # Nav shell: topbar + bundnav + hamburger-menu + hold-switcher
 │   │   │   ├── SectionList.tsx      # Sektioner + øvelser: ExercisePicker, ExerciseRow, DurationBar, modaler
 │   │   │   ├── SaveTemplateModal.tsx # Gem skabelon (fuld træning eller sektion)
 │   │   │   ├── HoldsportImportModal.tsx # Import fra Holdsport: vælg hold → aktivitet → importer
+│   │   │   ├── BoardPostCard.tsx    # Opslags-kort: @-mentions, vedhæftninger, kommentarer, overflow-menu
+│   │   │   ├── NewPostModal.tsx     # Nyt opslag: @-autocomplete, filvedhæftning, visualViewport-fix
 │   │   │   └── ui/
 │   │   │       └── Skeleton.tsx     # Genbrugelig shimmer-skeleton komponent
 │   │   └── pages/
@@ -150,7 +152,7 @@ ajax-traening-v2/
 │   │       ├── Archive.tsx          # Arkiv (/arkiv) — desktop tabel + mobil kortliste
 │   │       ├── Aarshjul.tsx         # Årshjul (/aarshjul) — 6 kvartaler med temaer
 │   │       ├── Catalog.tsx          # Øvelseskatalog (/katalog) — hal/keeper/fys tabs
-│   │       ├── Board.tsx            # Opslagstavle (/tavle) — placeholder
+│   │       ├── Board.tsx            # Opslagstavle (/tavle) — fuldt implementeret
 │   │       ├── Profile.tsx          # Brugerprofil (/profil) — vis info + skift password
 │   │       ├── Brugere.tsx          # Bruger-styring (/brugere) for team_manager+
 │   │       ├── TeamSettings.tsx     # Holdindstillinger (/holdindstillinger) — skabeloner, sektionstyper, holdsport, AI
@@ -439,10 +441,24 @@ CREATE TABLE board_posts (
 );
 CREATE TABLE board_comments (
   id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
-  body TEXT NOT NULL, created_at TEXT NOT NULL, edited_at TEXT
+  body TEXT NOT NULL, created_at TEXT NOT NULL, edited_at TEXT,
+  deleted INTEGER NOT NULL DEFAULT 0, deleted_at TEXT
+);
+-- Tilføjet via migration 0011_board.sql:
+CREATE TABLE board_attachments (
+  id TEXT PRIMARY KEY, post_id TEXT NOT NULL REFERENCES board_posts(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,  -- 'image' | 'document'
+  filename TEXT NOT NULL, r2_key TEXT NOT NULL, url TEXT NOT NULL,
+  size_bytes INTEGER, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE board_reads (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  last_read_at TEXT NOT NULL
 );
 ```
-Tabellerne eksisterer men `Board.tsx` er en placeholder — ikke implementeret endnu.
+`board_posts` har også `pinned_by TEXT`, `deleted INTEGER DEFAULT 0`, `deleted_at TEXT` (tilføjet via migration 0011).
+Soft delete: `deleted = 1, deleted_at = datetime('now')` — rækker slettes aldrig fysisk.
+R2-nøgle for vedhæftninger: `board/{postId}/{uuid}.{ext}`
 
 ### `templates`
 ```sql
@@ -531,15 +547,20 @@ CREATE TABLE templates (
 | PUT    | `/api/section-types/reorder` | team_manager | Gem ny rækkefølge              |
 
 ### Board (`/api/board`)
-| Method | Path                      | Rolle        | Beskrivelse                            |
-|--------|---------------------------|--------------|----------------------------------------|
-| GET    | `/api/board`              | auth         | `?team_id=X` — opslag (route findes)  |
-| POST   | `/api/board`              | trainer      | Opret opslag                           |
-| PATCH  | `/api/board/:id`          | trainer      | Rediger eget opslag                    |
-| DELETE | `/api/board/:id`          | trainer      | Slet eget opslag                       |
-| POST   | `/api/board/:id/pin`      | team_manager | Fastgør/frigør                         |
-| GET    | `/api/board/:id/comments` | auth         | Kommentarer                            |
-| POST   | `/api/board/:id/comments` | auth         | Tilføj kommentar                       |
+| Method | Path                                    | Rolle        | Beskrivelse                                              |
+|--------|-----------------------------------------|--------------|----------------------------------------------------------|
+| GET    | `/api/board`                            | auth         | `?team_id=X&archived=0/1` — opslag med kommentarer + vedhæftninger. Opdaterer `board_reads`. |
+| GET    | `/api/board/unread`                     | auth         | `?team_id=X` → `{ unread: bool }` — sammenligner MAX(created_at) vs last_read_at |
+| POST   | `/api/board`                            | auth         | Opret opslag (`team_id`, `title?`, `body`)               |
+| PATCH  | `/api/board/:id`                        | auth         | Rediger eget opslag (kun ejer eller global admin)        |
+| DELETE | `/api/board/:id`                        | auth         | Soft delete eget opslag (ejer) eller andres (team_manager+) |
+| POST   | `/api/board/:id/pin`                    | team_manager | Toggle pin — sætter `pinned_by`                          |
+| POST   | `/api/board/:id/archive`                | team_manager | Toggle arkivering                                        |
+| POST   | `/api/board/:id/comments`               | auth         | Tilføj kommentar                                         |
+| PATCH  | `/api/board/:id/comments/:commentId`    | auth         | Rediger kommentar (ejer eller team_manager+)             |
+| DELETE | `/api/board/:id/comments/:commentId`    | auth         | Soft delete kommentar (ejer eller team_manager+)         |
+| POST   | `/api/board/:id/attachments`            | auth         | Upload vedhæftning til R2 (billeder max 10MB, docs max 20MB) |
+| DELETE | `/api/board/:id/attachments/:attachId`  | auth         | Slet vedhæftning fra R2 + DB (ejer eller team_manager+)  |
 
 ### Holdsport (`/api/holdsport`)
 | Method | Path                    | Rolle   | Beskrivelse                                       |
@@ -813,6 +834,21 @@ interface SectionType {
   tags: string[]; themes: string[];
   required: number;     // D1 integer — brug === 1 (aldrig === true)
   sort_order: number; team_id: string | null;
+}
+
+interface BoardPost {
+  id: string; team_id: string; user_id: string; user_name: string;
+  title?: string; body: string; pinned: boolean; pinned_by?: string;
+  archived: boolean; edited_at?: string; deleted: boolean; created_at: string;
+  comments: BoardComment[]; attachments: BoardAttachment[];
+}
+interface BoardComment {
+  id: string; post_id: string; user_id: string; user_name: string;
+  body: string; edited_at?: string; deleted: boolean; created_at: string;
+}
+interface BoardAttachment {
+  id: string; post_id: string; type: 'image' | 'document';
+  filename: string; r2_key: string; url: string; size_bytes?: number; created_at: string;
 }
 
 interface HoldsportActivity {
