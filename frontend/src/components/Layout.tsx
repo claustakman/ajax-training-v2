@@ -5,11 +5,12 @@ import { useAuth, hasRole, ROLE_LABELS } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Team } from '../lib/auth';
 
-// Faste nav-punkter — desktop topbar + mobil bundnav
+// Faste nav-punkter — desktop topbar
 const NAV_ITEMS = [
-  { to: '/',          label: 'Træning',  icon: '📋' },
-  { to: '/aarshjul',  label: 'Årshjul',  icon: '📅' },
-  { to: '/katalog',   label: 'Katalog',  icon: '📚' },
+  { to: '/',         label: 'Træning', icon: '📋' },
+  { to: '/katalog',  label: 'Katalog', icon: '📚' },
+  { to: '/tavle',    label: 'Tavle',   icon: '📌', showUnread: true },
+  { to: '/aarshjul', label: 'Årshjul', icon: '📅' },
 ];
 
 // Mobil bundnav — kun tre punkter + hamburger
@@ -75,9 +76,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 color: isActive ? 'var(--accent)' : 'var(--text2)',
                 background: isActive ? 'var(--accent-light)' : 'transparent',
                 borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                position: 'relative',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
               })}
             >
               {item.label}
+              {item.showUnread && hasUnread && (
+                <span style={{
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: 'var(--accent)',
+                  display: 'inline-block', flexShrink: 0,
+                }} />
+              )}
             </NavLink>
           ))}
         </nav>
