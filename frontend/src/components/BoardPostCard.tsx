@@ -36,22 +36,42 @@ function initials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-// ─── Render @-mentions ────────────────────────────────────────────────────────
+// ─── Render @-mentions + auto-links ──────────────────────────────────────────
+
+// Matcher @-mentions og URLs (http/https/www) i ét pass
+const BODY_TOKEN_RE = /(@\w[\w\s]*|https?:\/\/[^\s]+|www\.[^\s]+)/g;
 
 function renderBody(text: string, currentUser: AuthUser): React.ReactNode[] {
-  return text.split(/(@\w[\w\s]*)/g).map((part, i) => {
+  const parts = text.split(BODY_TOKEN_RE);
+  return parts.map((part, i) => {
+    // @-mention
     if (part.startsWith('@')) {
       const isMe = part.toLowerCase().includes(currentUser.name.toLowerCase());
       return (
         <span key={i} style={{
           background: isMe ? 'rgba(200,16,46,0.12)' : 'var(--bg-input)',
           color: isMe ? 'var(--accent)' : 'var(--text)',
-          borderRadius: 4,
-          padding: '1px 4px',
-          fontWeight: 500,
+          borderRadius: 4, padding: '1px 4px', fontWeight: 500,
         }}>
           {part}
         </span>
+      );
+    }
+    // URL
+    if (part.startsWith('http://') || part.startsWith('https://') || part.startsWith('www.')) {
+      const href = part.startsWith('www.') ? `https://${part}` : part;
+      // Vis kort label: fjern protokol og trailing slash
+      const label = part.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      return (
+        <a
+          key={i}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--accent)', textDecoration: 'underline', wordBreak: 'break-all' }}
+        >
+          {label}
+        </a>
       );
     }
     return part;

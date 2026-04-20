@@ -23,6 +23,27 @@ function fmtDateFull(iso: string): string {
   return new Intl.DateTimeFormat('da-DK', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(iso));
 }
 
+// ─── Auto-link renderer ───────────────────────────────────────────────────────
+
+const TEXT_TOKEN_RE = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+
+function renderText(text: string): React.ReactNode[] {
+  return text.split(TEXT_TOKEN_RE).map((part, i) => {
+    if (part.startsWith('http://') || part.startsWith('https://') || part.startsWith('www.')) {
+      const href = part.startsWith('www.') ? `https://${part}` : part;
+      const label = part.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      return (
+        <a key={i} href={href} target="_blank" rel="noopener noreferrer"
+          style={{ color: 'var(--accent)', textDecoration: 'underline', wordBreak: 'break-all' }}
+        >
+          {label}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 // ─── Sub-komponenter ─────────────────────────────────────────────────────────
 
 function SkeletonPost() {
@@ -434,7 +455,7 @@ function PostCard({
         {/* Body */}
         <div style={{ padding: '10px 16px 0' }}>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--text)' }}>
-            {expanded || !needsExpand ? post.body : bodyPreview}
+            {renderText(expanded || !needsExpand ? post.body : bodyPreview)}
           </p>
           {needsExpand && (
             <button
@@ -573,7 +594,7 @@ function CommentRow({
             )}
           </div>
           <p style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
-            {comment.body}
+            {renderText(comment.body)}
           </p>
         </div>
         {canAct && (
