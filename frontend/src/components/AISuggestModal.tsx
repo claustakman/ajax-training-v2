@@ -40,16 +40,21 @@ export default function AISuggestModal({
 }: AISuggestModalProps) {
 
   // ── Initialisér rows fra eksisterende sektioner ────────────────────────────
-  const initRows = (): Array<{ type: string; mins: number }> => {
+  // `locked` = true kun for required-sektioner der er auto-tilføjet (ikke redigerbare).
+  // Manuelt tilføjede rækker er altid locked: false, uanset sektionstype.
+  const initRows = (): Array<{ type: string; mins: number; locked: boolean }> => {
     if (training.sections.length > 0) {
-      return training.sections.map(s => ({ type: s.type, mins: s.mins || 15 }));
+      return training.sections.map(s => {
+        const isRequired = sectionTypes.find(st => st.id === s.type)?.required === 1;
+        return { type: s.type, mins: s.mins || 15, locked: isRequired };
+      });
     }
-    const first = sectionTypes.find(st => !st.required);
-    return [{ type: first?.id ?? sectionTypes[0]?.id ?? '', mins: 15 }];
+    const first = sectionTypes.find(st => st.required !== 1);
+    return [{ type: first?.id ?? sectionTypes[0]?.id ?? '', mins: 15, locked: false }];
   };
 
   const [step, setStep] = useState<Step>('configure');
-  const [rows, setRows] = useState<Array<{ type: string; mins: number }>>(initRows);
+  const [rows, setRows] = useState<Array<{ type: string; mins: number; locked: boolean }>>(initRows);
   const [vary, setVary] = useState(true);
   const [result, setResult] = useState<AISuggestResultSection[] | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -145,77 +150,74 @@ export default function AISuggestModal({
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text2)' }}>
                 Sektioner
               </div>
-              {rows.map((row, i) => {
-                const isRequired = sectionTypes.find(st => st.id === row.type)?.required === 1;
-                return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    {/* Farvet dot */}
-                    <div style={{
-                      width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                      background: sectionTypes.find(st => st.id === row.type)?.color ?? 'var(--border2)',
-                    }} />
+              {rows.map((row, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  {/* Farvet dot */}
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                    background: sectionTypes.find(st => st.id === row.type)?.color ?? 'var(--border2)',
+                  }} />
 
-                    {/* Sektionstype select */}
-                    <select
-                      value={row.type}
-                      disabled={isRequired}
-                      onChange={e => updateRow(i, 'type', e.target.value)}
+                  {/* Sektionstype select */}
+                  <select
+                    value={row.type}
+                    disabled={row.locked}
+                    onChange={e => updateRow(i, 'type', e.target.value)}
+                    style={{
+                      flex: 1, fontSize: 14, padding: '6px 8px',
+                      background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                      borderRadius: 6, color: 'var(--text)',
+                      opacity: row.locked ? 0.6 : 1,
+                    }}
+                  >
+                    {sectionTypes.map(st => (
+                      <option key={st.id} value={st.id}>{st.label}</option>
+                    ))}
+                  </select>
+
+                  {/* Minutter */}
+                  <input
+                    type="number" min={5} max={60}
+                    value={row.mins}
+                    onChange={e => updateRow(i, 'mins', +e.target.value)}
+                    style={{
+                      width: 60, textAlign: 'center', fontSize: 14,
+                      padding: '6px 4px',
+                      background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                      borderRadius: 6, color: 'var(--text)',
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: 'var(--text2)', flexShrink: 0 }}>min</span>
+
+                  {/* Slet */}
+                  {!row.locked && (
+                    <button
+                      onClick={() => removeRow(i)}
                       style={{
-                        flex: 1, fontSize: 14, padding: '6px 8px',
-                        background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                        borderRadius: 6, color: 'var(--text)',
-                        opacity: isRequired ? 0.6 : 1,
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'var(--red)', fontSize: 16, padding: '0 4px',
+                        flexShrink: 0, lineHeight: 1,
                       }}
+                      aria-label="Fjern sektion"
                     >
-                      {sectionTypes.map(st => (
-                        <option key={st.id} value={st.id}>{st.label}</option>
-                      ))}
-                    </select>
+                      ✕
+                    </button>
+                  )}
 
-                    {/* Minutter */}
-                    <input
-                      type="number" min={5} max={60}
-                      value={row.mins}
-                      onChange={e => updateRow(i, 'mins', +e.target.value)}
-                      style={{
-                        width: 60, textAlign: 'center', fontSize: 14,
-                        padding: '6px 4px',
-                        background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                        borderRadius: 6, color: 'var(--text)',
-                      }}
-                    />
-                    <span style={{ fontSize: 12, color: 'var(--text2)', flexShrink: 0 }}>min</span>
-
-                    {/* Slet */}
-                    {!isRequired && (
-                      <button
-                        onClick={() => removeRow(i)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          color: 'var(--red)', fontSize: 16, padding: '0 4px',
-                          flexShrink: 0, lineHeight: 1,
-                        }}
-                        aria-label="Fjern sektion"
-                      >
-                        ✕
-                      </button>
-                    )}
-
-                    {/* Låst */}
-                    {isRequired && (
-                      <span style={{
-                        fontSize: 11, color: 'var(--text3)', flexShrink: 0,
-                        width: 24, textAlign: 'center',
-                      }}>
-                        🔒
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+                  {/* Låst */}
+                  {row.locked && (
+                    <span style={{
+                      fontSize: 11, color: 'var(--text3)', flexShrink: 0,
+                      width: 24, textAlign: 'center',
+                    }}>
+                      🔒
+                    </span>
+                  )}
+                </div>
+              ))}
 
               <button
-                onClick={() => setRows(r => [...r, { type: sectionTypes[0]?.id ?? '', mins: 15 }])}
+                onClick={() => setRows(r => [...r, { type: sectionTypes[0]?.id ?? '', mins: 15, locked: false }])}
                 style={{
                   marginTop: 4, background: 'none', border: 'none',
                   cursor: 'pointer', color: 'var(--accent)', fontSize: 13,
