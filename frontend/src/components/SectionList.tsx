@@ -101,7 +101,33 @@ function DurationBar({ sections, training }: {
 
 // ─── ExerciseDetailModal ──────────────────────────────────────────────────────
 
-function ExerciseDetailModal({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
+function ExerciseDetailModal({ ex, canEdit, onUpdated, onClose }: {
+  ex: Exercise;
+  canEdit?: boolean;
+  onUpdated?: (updated: Exercise) => void;
+  onClose: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [current, setCurrent] = useState(ex);
+
+  if (editing) {
+    return (
+      <ExerciseEditor
+        ex={current as CatalogExercise}
+        isNew={false}
+        zIndex={500}
+        onSaved={saved => {
+          const updated = saved as unknown as Exercise;
+          setCurrent(updated);
+          onUpdated?.(updated);
+          setEditing(false);
+        }}
+        onDeleted={onClose}
+        onClose={() => setEditing(false)}
+      />
+    );
+  }
+
   return (
     <div className="modal-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 500,
@@ -114,22 +140,31 @@ function ExerciseDetailModal({ ex, onClose }: { ex: Exercise; onClose: () => voi
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 24, fontWeight: 700, flex: 1, paddingRight: 12 }}>
-            {ex.name}
+            {current.name}
           </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', flexShrink: 0 }}>×</button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+            {canEdit && (
+              <button onClick={() => setEditing(true)} style={{
+                background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, padding: '5px 12px', fontSize: 13, cursor: 'pointer',
+                color: 'var(--text2)', fontWeight: 500,
+              }}>✏️ Rediger</button>
+            )}
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)' }}>×</button>
+          </div>
         </div>
 
-        {exerciseImageUrl(ex) && (
+        {exerciseImageUrl(current) && (
           <img
-            src={exerciseImageUrl(ex)!} alt={ex.name}
+            src={exerciseImageUrl(current)!} alt={current.name}
             style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 14 }}
           />
         )}
 
         {/* Tags */}
-        {ex.tags?.length > 0 && (
+        {current.tags?.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-            {ex.tags.map(t => (
+            {current.tags.map(t => (
               <span key={t} style={{
                 fontSize: 12, background: 'var(--bg-input)', border: '1px solid var(--border)',
                 borderRadius: 20, padding: '2px 9px', color: 'var(--text2)',
@@ -140,24 +175,24 @@ function ExerciseDetailModal({ ex, onClose }: { ex: Exercise; onClose: () => voi
 
         {/* Metadata */}
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 14, fontSize: 13, color: 'var(--text2)' }}>
-          {ex.default_mins && <span>⏱ {ex.default_mins} min</span>}
-          {ex.stars > 0 && <span style={{ color: '#f59e0b' }}>{'★'.repeat(ex.stars)}</span>}
-          {ex.age_groups?.length > 0 && <span>👤 {ex.age_groups.join(', ')}</span>}
+          {current.default_mins && <span>⏱ {current.default_mins} min</span>}
+          {current.stars > 0 && <span style={{ color: '#f59e0b' }}>{'★'.repeat(current.stars)}</span>}
+          {current.age_groups?.length > 0 && <span>👤 {current.age_groups.join(', ')}</span>}
         </div>
 
-        {ex.description && (
+        {current.description && (
           <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text)', margin: '0 0 12px', whiteSpace: 'pre-wrap' }}>
-            {ex.description}
+            {current.description}
           </p>
         )}
-        {ex.variants && (
+        {current.variants && (
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Varianter</div>
-            <p style={{ fontSize: 14, color: 'var(--text)', margin: 0, whiteSpace: 'pre-wrap' }}>{ex.variants}</p>
+            <p style={{ fontSize: 14, color: 'var(--text)', margin: 0, whiteSpace: 'pre-wrap' }}>{current.variants}</p>
           </div>
         )}
-        {ex.link && (
-          <a href={ex.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: 'var(--accent)' }}>
+        {current.link && (
+          <a href={current.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: 'var(--accent)' }}>
             🔗 Se link
           </a>
         )}
@@ -845,7 +880,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
 function SectionBlock({ section, sectionType, sectionIndex, totalSections, exercises, canEdit, teamId,
-  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone, onToast, onAISuggest, onNewExercise,
+  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
 }: {
   section: Section;
   sectionType: SectionType | undefined;
@@ -862,6 +897,7 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
   onToast: (msg: string) => void;
   onAISuggest?: () => void;
   onNewExercise: (ex: Exercise) => void;
+  onExerciseUpdated: (ex: Exercise) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
@@ -1103,7 +1139,14 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
       )}
 
       {/* Øvelse-detalje modal */}
-      {detailEx && <ExerciseDetailModal ex={detailEx} onClose={() => setDetailEx(null)} />}
+      {detailEx && (
+        <ExerciseDetailModal
+          ex={detailEx}
+          canEdit={canEdit}
+          onUpdated={updated => { onExerciseUpdated(updated); setDetailEx(updated); }}
+          onClose={() => setDetailEx(null)}
+        />
+      )}
 
       {/* Indlæs sektionsskabelon */}
       {showLoadSection && sectionType && (
@@ -1593,6 +1636,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
               onToast={setToast}
               onAISuggest={onAISectionIndex ? () => onAISectionIndex(idx) : undefined}
               onNewExercise={ex => setExercises(prev => [...prev, ex])}
+              onExerciseUpdated={updated => setExercises(prev => prev.map(e => e.id === updated.id ? updated : e))}
             />
           );
         })}
