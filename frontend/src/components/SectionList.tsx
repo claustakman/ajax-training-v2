@@ -8,6 +8,7 @@ import { api } from '../lib/api';
 import type { Section, SectionExercise, SectionType, Exercise, Training } from '../lib/types';
 import { ExerciseEditor } from '../pages/Catalog';
 import type { Exercise as CatalogExercise } from '../pages/Catalog';
+import TagInput from './ui/TagInput';
 
 // ─── Hjælpefunktioner ────────────────────────────────────────────────────────
 
@@ -622,26 +623,27 @@ function ExercisePickerCard({ ex, added, accentColor, onPick, onDetail }: {
 
 function SaveToCatalogModal({ name, onSave, onClose }: {
   name: string;
-  onSave: (exerciseId: string) => void;
+  onSave: (exerciseId: string, exerciseName: string, catalog: 'hal' | 'fys', tags: string[]) => void;
   onClose: () => void;
 }) {
   const [catalog, setCatalog] = useState<'hal' | 'fys'>('hal');
-  const [tagsInput, setTagsInput] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    api.fetchExerciseTags().then(setAllTags).catch(() => {});
+  }, []);
 
   async function handleSave() {
     setSaving(true);
     try {
-      const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
       const res = await api.post<{ id: string }>('/api/exercises', {
-        name,
-        catalog,
-        tags,
-        age_groups: [],
+        name, catalog, tags, age_groups: [],
       });
       setDone(true);
-      setTimeout(() => { onSave(res.id); onClose(); }, 800);
+      setTimeout(() => { onSave(res.id, name, catalog, tags); onClose(); }, 800);
     } catch {
       setSaving(false);
       alert('Fejl ved gem til katalog');
@@ -681,13 +683,8 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>Tags (kommaseparerede)</div>
-              <input
-                value={tagsInput}
-                onChange={e => setTagsInput(e.target.value)}
-                placeholder="f.eks. afleveringer, teknik"
-                style={{ ...inputSm, fontSize: 14, minHeight: 40 }}
-              />
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>Tags</div>
+              <TagInput value={tags} onChange={setTags} allTags={allTags} placeholder="Søg eller opret tag…" />
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -711,7 +708,7 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
 function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
-  onToggleDone, onMoveUp, onMoveDown, onDelete, onClickName, onUpdate,
+  onToggleDone, onMoveUp, onMoveDown, onDelete, onClickName, onUpdate, onNewExercise,
 }: {
   ex: SectionExercise;
   exerciseDef: Exercise | undefined;
@@ -725,6 +722,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
   onDelete: () => void;
   onClickName: () => void;
   onUpdate: (patch: Partial<SectionExercise>) => void;
+  onNewExercise: (ex: Exercise) => void;
 }) {
   const [showSaveToCatalog, setShowSaveToCatalog] = useState(false);
   const isFree = !ex.id;
@@ -830,7 +828,13 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
       {showSaveToCatalog && (
         <SaveToCatalogModal
           name={ex.customName ?? ''}
-          onSave={exerciseId => onUpdate({ id: exerciseId, customName: undefined })}
+          onSave={(exerciseId, exerciseName, catalog, tags) => {
+            onNewExercise({
+              id: exerciseId, name: exerciseName, catalog, tags,
+              age_groups: [], stars: 0, created_at: '', updated_at: '',
+            });
+            onUpdate({ id: exerciseId, customName: undefined });
+          }}
           onClose={() => setShowSaveToCatalog(false)}
         />
       )}
@@ -841,7 +845,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
 function SectionBlock({ section, sectionType, sectionIndex, totalSections, exercises, canEdit, teamId,
-  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone, onToast, onAISuggest,
+  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone, onToast, onAISuggest, onNewExercise,
 }: {
   section: Section;
   sectionType: SectionType | undefined;
@@ -857,6 +861,7 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
   onToggleDone: (exerciseIdx: number) => void;
   onToast: (msg: string) => void;
   onAISuggest?: () => void;
+  onNewExercise: (ex: Exercise) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
@@ -1076,6 +1081,7 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
                 onDelete={() => removeExercise(idx)}
                 onClickName={() => exDef && setDetailEx(exDef)}
                 onUpdate={patch => updateExercise(idx, patch)}
+                onNewExercise={onNewExercise}
               />
             );
           })}
@@ -1586,6 +1592,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
               onToggleDone={exIdx => toggleDone(idx, exIdx)}
               onToast={setToast}
               onAISuggest={onAISectionIndex ? () => onAISectionIndex(idx) : undefined}
+              onNewExercise={ex => setExercises(prev => [...prev, ex])}
             />
           );
         })}

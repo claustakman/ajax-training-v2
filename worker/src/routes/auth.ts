@@ -173,10 +173,27 @@ authRoutes.post('/logout', requireAuth(), async (c) => {
   return c.json({ ok: true });
 });
 
-// POST /api/auth/regenerate-invite — admin nulstiller password for eksisterende bruger
-authRoutes.post('/regenerate-invite', requireAuth('admin'), async (c) => {
-  const { user_id } = await c.req.json<{ user_id: string }>();
+// POST /api/auth/regenerate-invite — team_manager (eget hold) eller admin nulstiller password
+authRoutes.post('/regenerate-invite', requireAuth(), async (c) => {
+  const caller = c.get('user');
+  const { user_id, team_id } = await c.req.json<{ user_id: string; team_id?: string }>();
   if (!user_id) return c.json({ error: 'user_id påkrævet' }, 400);
+
+  if (caller.role !== 'admin') {
+    // team_manager skal angive team_id og skal selv være team_manager på holdet
+    if (!team_id) return c.json({ error: 'team_id påkrævet' }, 400);
+    const callerMembership = await c.env.DB.prepare(
+      'SELECT role FROM user_teams WHERE user_id = ? AND team_id = ?'
+    ).bind(caller.sub, team_id).first<{ role: string }>();
+    if (!callerMembership || callerMembership.role !== 'team_manager') {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    // Brugeren skal også være på holdet
+    const targetMembership = await c.env.DB.prepare(
+      'SELECT role FROM user_teams WHERE user_id = ? AND team_id = ?'
+    ).bind(user_id, team_id).first<{ role: string }>();
+    if (!targetMembership) return c.json({ error: 'Bruger ikke fundet på dette hold' }, 404);
+  }
 
   const user = await c.env.DB.prepare('SELECT id, name FROM users WHERE id = ?').bind(user_id).first();
   if (!user) return c.json({ error: 'Bruger ikke fundet' }, 404);

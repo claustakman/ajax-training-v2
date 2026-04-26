@@ -71,7 +71,7 @@ export default function Brugere() {
   async function handleResetPassword(userId: string, name: string) {
     if (!confirm(`Nulstil adgangskode for "${name}"? De skal bruge et nyt invitationslink.`)) return;
     try {
-      const res = await api.post<{ invite_token: string }>('/api/auth/regenerate-invite', { user_id: userId });
+      const res = await api.post<{ invite_token: string }>('/api/auth/regenerate-invite', { user_id: userId, team_id: currentTeamId });
       const link = `${window.location.origin}/invite/${res.invite_token}`;
       setInviteLink(link);
       setTimeout(() => inviteLinkRef.current?.select(), 100);

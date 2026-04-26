@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
+import TagInput from '../components/ui/TagInput';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787';
 
@@ -446,8 +447,13 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
   const [imgPreview, setImgPreview] = useState<string | null>(ex.image_r2_key ? imageUrl(ex) : null);
   const [imgBlob, setImgBlob] = useState<Blob | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [allTags, setAllTags] = useState<string[]>(ALL_TAGS);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api.fetchExerciseTags().then(tags => setAllTags(tags)).catch(() => {});
+  }, []);
 
   const set = (k: keyof Exercise, v: unknown) => setForm(f => ({ ...f, [k]: v }));
 
@@ -614,14 +620,12 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
           {/* Tags */}
           <div>
             <Label>Tags</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {ALL_TAGS.map(tag => (
-                <button key={tag} onClick={() => toggleArrItem('tags', tag)}
-                  style={{ padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: form.tags.includes(tag) ? 'var(--accent)' : 'var(--bg-input)', color: form.tags.includes(tag) ? '#fff' : 'var(--text2)', border: `1px solid ${form.tags.includes(tag) ? 'var(--accent)' : 'var(--border2)'}` }}>
-                  {tag}
-                </button>
-              ))}
-            </div>
+            <TagInput
+              value={form.tags}
+              onChange={tags => setForm(f => ({ ...f, tags }))}
+              allTags={allTags}
+              placeholder="Søg eller opret tag…"
+            />
           </div>
 
           {/* Aldersgrupper */}

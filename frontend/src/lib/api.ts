@@ -211,6 +211,7 @@ export const api = {
     const q = new URLSearchParams(params as Record<string, string> ?? {}).toString();
     return request<import('./types').Exercise[]>(`/api/exercises${q ? '?' + q : ''}`);
   },
+  fetchExerciseTags: () => request<string[]>('/api/exercises/tags'),
 
   // Multipart upload (billeder)
   upload: async <T>(path: string, formData: FormData): Promise<T> => {
