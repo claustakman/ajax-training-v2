@@ -30,7 +30,6 @@ const HAL_TAGS = [
 const FYS_TAGS = ['plyometrik', 'eksplosion', 'styrke', 'hurtighed', 'finter', 'opvarmning'];
 const KEEPER_TAGS = ['keeper', 'teknik', 'aflevering', 'skud', 'forsvar'];
 const AGE_GROUPS = ['U9', 'U11', 'U13', 'U15', 'U17', 'U19'];
-const ALL_TAGS = [...new Set([...HAL_TAGS, ...FYS_TAGS, ...KEEPER_TAGS])];
 
 type SortOrder = 'newest' | 'oldest' | 'name';
 
