@@ -105,7 +105,8 @@ export default function Catalog() {
         if (!ex.tags.includes('keeper')) return false;
       } else {
         if (ex.catalog !== tab) return false;
-        if (ex.tags.includes('keeper')) return false;
+        // Keeper-øvelse uden andre tags vises kun under Keeper-tab
+        if (ex.tags.includes('keeper') && ex.tags.filter(t => t !== 'keeper').length === 0) return false;
       }
       if (search) {
         const q = search.toLowerCase();
@@ -447,7 +448,7 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
   const [imgPreview, setImgPreview] = useState<string | null>(ex.image_r2_key ? imageUrl(ex) : null);
   const [imgBlob, setImgBlob] = useState<Blob | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [allTags, setAllTags] = useState<string[]>(ALL_TAGS);
+  const [allTags, setAllTags] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
