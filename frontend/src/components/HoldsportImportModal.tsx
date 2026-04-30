@@ -191,7 +191,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
         setActivities(inRange);
         // Forvælg alle træninger der ikke er importeret endnu
         const preselect = new Set(
-          all
+          inRange
             .filter(a => isTraining(a) && !importedIds.has(String(a.id)))
             .map(a => String(a.id))
         );
