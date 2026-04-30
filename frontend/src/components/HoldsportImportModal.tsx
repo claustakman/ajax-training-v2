@@ -181,7 +181,14 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
           } catch { /* spring over fejlende hold */ }
         }
 
-        setActivities(all);
+        // Filtrer på perioden — Holdsport-API'et respekterer ikke altid 'to'-parameteren
+        const inRange = all.filter(a => {
+          const d = a.starttime?.split('T')[0];
+          if (!d) return false;
+          return d >= from && d <= to;
+        });
+
+        setActivities(inRange);
         // Forvælg alle træninger der ikke er importeret endnu
         const preselect = new Set(
           all
@@ -195,7 +202,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
         setLoadingAct(false);
       }
     })();
-  }, [step]);
+  }, [step, from, to]);
 
   const filtered = showAll ? activities : activities.filter(isTraining);
 
