@@ -7,7 +7,7 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–7)
+## Hvad er bygget (Sessions 1–8)
 
 ### Session 1 — Fundament
 - Cloudflare Worker + D1 + R2 opsætning
@@ -86,6 +86,41 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - Toast-dækning komplet: "Skabelon gemt ✓" i TrainingEditor, "Afkrydsninger nulstillet ✓" i SectionList
 - Alle modaler konverteret til `.modal-overlay` + `.modal-sheet` pattern (bottom sheet på ≤640px)
 - Tomme states opgraderet (🔍 icon + title + kontekstuel hjælpetekst) i Catalog og ExercisePicker
+
+### Session 8 — Bugfixes + UX-forbedringer
+
+#### Auth
+- **`worker/src/routes/auth.ts`** — `regenerate-invite` kræver nu kun `requireAuth()` (ikke admin): `team_manager` kan nulstille adgangskode for brugere på eget hold ved at sende `team_id` med
+- **`frontend/src/pages/Brugere.tsx`** — sender `team_id` med i `regenerate-invite`-kald
+
+#### Øvelses-tags — `TagInput`-komponent
+- **`frontend/src/components/ui/TagInput.tsx`** — ny genbrugelig pill-baseret tag-input med autocomplete
+  - Dropdown filtrerer eksisterende tags fra API mens man skriver
+  - Enter/Tab tilføjer nyt tag; klik på pill fjerner det
+  - `allTags` populeres fra `/api/exercises/tags` — ingen hardcoded fallback (undgår duplikater som `aflevering`/`afleveringer`)
+- **`Catalog.tsx` `ExerciseEditor`** — bruger `TagInput` i stedet for komma-tekstfelt; `allTags` starter tom og populeres fra API
+- **`SectionList.tsx` `SaveToCatalogModal`** — bruger `TagInput`
+
+#### Redigér øvelse fra træning
+- **`SectionList.tsx` `ExerciseDetailModal`** — tilføjet `canEdit` + `onUpdated` props
+  - Viser "✏️ Rediger"-knap for trainer+
+  - Klik swapper til `ExerciseEditor` inline i samme modal
+  - Gem opdaterer øvelsen i lokal `exercises`-state i `SectionList` uden reload
+- **`SectionBlock`** — ny `onExerciseUpdated` prop bobler opdateret øvelse op til `SectionList`
+- **`SectionList`** — `onExerciseUpdated`: `setExercises(prev => prev.map(e => e.id === updated.id ? updated : e))`
+
+#### Gem til katalog — UUID-bug
+- **`SectionList.tsx` `SaveToCatalogModal`** — `onSave` returnerer nu `(id, name, catalog, tags)` i stedet for kun `id`
+- **`ExerciseRow`** — ny `onNewExercise` prop; efter gem tilføjes øvelsen straks til lokal `exercises`-state så navn vises korrekt (ikke UUID som fallback)
+
+#### Katalog-filter
+- Keeper-øvelse med *kun* `keeper`-tag vises eksklusivt under Keeper-tab
+- Keeper-øvelse med *andre tags i tillæg* vises nu også under Hal-tab
+
+#### Holdsport-datofilter
+- **`HoldsportImportModal.tsx`** — aktiviteter filtreres i frontend på `starttime >= from && starttime <= to` (Holdsport-API ignorerede `to`-parameteren)
+- `useEffect` dependency: `[step]` → `[step, from, to]` så perioden er frisk ved skift
+- Preselect bruger `inRange` (ikke `all`) så "Importer N valgte" tæller korrekt
 
 ### Session 7 — Opslagstavle (Board)
 - **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
@@ -184,7 +219,8 @@ ajax-traening-v2/
 │   │   │   ├── BoardPostCard.tsx    # Opslags-kort: @-mentions, vedhæftninger, kommentarer, overflow-menu
 │   │   │   ├── NewPostModal.tsx     # Nyt opslag: @-autocomplete, filvedhæftning, visualViewport-fix
 │   │   │   └── ui/
-│   │   │       └── Skeleton.tsx     # Genbrugelig shimmer-skeleton komponent
+│   │   │       ├── Skeleton.tsx     # Genbrugelig shimmer-skeleton komponent
+│   │   │       └── TagInput.tsx    # Pill-baseret tag-input med autocomplete fra API
 │   │   └── pages/
 │   │       ├── Login.tsx            # Login-formular
 │   │       ├── AcceptInvite.tsx     # /invite/:token — sæt password og log ind
@@ -529,7 +565,7 @@ CREATE TABLE templates (
 | POST   | `/api/auth/invite`             | team_manager | Opret invite til nyt hold-medlem                    |
 | GET    | `/api/auth/invite-info/:token` | —            | Hent navn + email fra invite-token (til AcceptInvite)|
 | POST   | `/api/auth/accept-invite`      | —            | Acceptér invitation, sæt password → JWT             |
-| POST   | `/api/auth/regenerate-invite`  | team_manager | Ny invite-token til eksisterende bruger             |
+| POST   | `/api/auth/regenerate-invite`  | auth         | Ny invite-token til eksisterende bruger. `team_manager` skal sende `team_id` og skal være manager på holdet. Admin: ingen `team_id` nødvendig. |
 | POST   | `/api/auth/reset-password`     | auth         | Skift password (`{current_password, new_password}`) |
 
 ### Teams (`/api/teams`)
@@ -1057,7 +1093,22 @@ Brug `teamEntry?.role ?? 'guest'` — aldrig `user.role` som fallback (giver fal
 - `fetchTemplates(teamId, { type, section_type })` — worker filtrerer på begge parametre.
 
 ### Fri øvelse → katalog
-📚-knap på `ExerciseRow` når `isFree && ex.customName?.trim()` → `SaveToCatalogModal` → `POST /api/exercises` returnerer `{ id }` → rækken konverteres (id sættes, customName fjernes).
+📚-knap på `ExerciseRow` når `isFree && ex.customName?.trim()` → `SaveToCatalogModal` → `POST /api/exercises` returnerer `{ id }` → `onSave(id, name, catalog, tags)` → øvelsen tilføjes til lokal `exercises`-state i `SectionList` (undgår UUID som displayName) → rækken konverteres (id sættes, customName fjernes).
+
+### Tag autocomplete (`TagInput`)
+- `allTags` i `ExerciseEditor` starter altid som `[]` og populeres fra `GET /api/exercises/tags`
+- Ingen hardcoded fallback-konstanter — undgår duplikater som `aflevering` vs `afleveringer`
+- Brug `<TagInput value={tags} onChange={setTags} allTags={allTags} />` — pills med autocomplete-dropdown
+
+### Redigér øvelse fra træning
+- Klik på øvelses-navn (understreget) → `ExerciseDetailModal`
+- For trainer+: "✏️ Rediger"-knap → swapper til `ExerciseEditor` inline i modalen
+- `onUpdated` callback opdaterer `exercises`-state i `SectionList` og `detailEx` i `SectionBlock` øjeblikkeligt
+
+### Holdsport — datoperiode
+- Holdsport-API respekterer ikke altid `to`-parameteren — filtrer altid i frontend på `starttime >= from && starttime <= to` efter API-kald
+- `useEffect` dependency inkluderer `[step, from, to]` — ikke kun `[step]`
+- Preselect og `setActivities` bruger begge `inRange` (filtreret liste) — ikke den rå `all`-liste
 
 ### Øvelsesbilleder (R2)
 - Upload: `POST /api/exercises/:id/image` med `multipart/form-data` — `api.upload()` helper
