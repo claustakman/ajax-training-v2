@@ -369,9 +369,8 @@ export default function TrainingEditor() {
           else playerCount++;
         }
       } else {
-        // Kun attendance_count tilgængeligt — træk antal kendte trænere fra
-        const total = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
-        playerCount = Math.max(0, total - trainerNames.size);
+        // activities_users ikke tilgængeligt — brug attendance_count som-er
+        playerCount = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
       }
       update({ participant_count: playerCount > 0 ? playerCount : undefined, trainers: trainerList });
     } catch { /* fejl ignoreres stille */ } finally {

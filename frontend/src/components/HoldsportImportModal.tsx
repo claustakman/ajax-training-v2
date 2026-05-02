@@ -58,9 +58,8 @@ function extractFromActivity(
 ): { playerCount: number; trainerNames: string[] } {
   const users = (activity as unknown as Record<string, unknown>).activities_users;
   if (!Array.isArray(users)) {
-    // activities_users ikke tilgængeligt — træk alle kendte hold-trænere fra attendance_count
-    const total = (activity.attendance_count ?? activity.signups_count ?? 0) as number;
-    return { playerCount: Math.max(0, total - appTrainerNames.size), trainerNames: [] };
+    // activities_users ikke tilgængeligt — brug attendance_count som-er
+    return { playerCount: activity.attendance_count ?? activity.signups_count ?? 0, trainerNames: [] };
   }
   const attending = users.filter((u: unknown) => (u as Record<string, unknown>).status_code === 1);
   const trainerNames: string[] = [];
@@ -136,6 +135,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   const [appTrainerNames, setAppTrainerNames] = useState<Set<string>>(new Set());
   const [loadingAct, setLoadingAct] = useState(false);
   const [fetchError, setFetchError] = useState('');
+  const [hsConfig, setHsConfig] = useState<{ workerUrl: string; token: string } | null>(null);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
@@ -167,6 +167,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
             .map(m => m.name)
         );
         setAppTrainerNames(trainerNames);
+        setHsConfig(config);
 
         // 2. Hent hold fra Holdsport-workeren direkte (browser → worker)
         const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
@@ -226,11 +227,24 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
 
   function deselectAll() { setSelected(new Set()); }
 
-  function handleImport() {
-    const picked = activities
-      .filter(a => selected.has(String(a.id)))
-      .map(a => mapActivity(a, teamId, appTrainerNames));
-    onImport(picked);
+  async function handleImport() {
+    const pickedActivities = activities.filter(a => selected.has(String(a.id)));
+    const result: Partial<Training>[] = [];
+
+    for (const a of pickedActivities) {
+      let detailed = a;
+      // Forsøg at hente detaljer med activities_users for præcis spiller-optælling
+      if (hsConfig && a._teamId) {
+        try {
+          const det = await api.fetchHoldsportActivity(
+            hsConfig.workerUrl, hsConfig.token, a._teamId, String(a.id), a.starttime?.split('T')[0] ?? ''
+          );
+          if (det) detailed = { ...det, _teamId: a._teamId, _teamName: a._teamName };
+        } catch { /* brug liste-data som fallback */ }
+      }
+      result.push(mapActivity(detailed, teamId, appTrainerNames));
+    }
+    onImport(result);
   }
 
   const selectedCount = [...selected].filter(id => !importedIds.has(id)).length;

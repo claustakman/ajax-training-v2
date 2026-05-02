@@ -127,8 +127,21 @@ export const api = {
     return res.json() as Promise<import('./types').HoldsportActivity[]>;
   },
 
-  // Hent én specifik Holdsport-aktivitet via dato (ingen direkte opslag-endpoint)
+  // Hent én specifik Holdsport-aktivitet — prøver detalje-endpoint først (har activities_users), fallback til liste
   fetchHoldsportActivity: async (workerUrl: string, token: string, hsTeamId: string | number, holdsportId: string, date: string) => {
+    // Forsøg detalje-endpoint: /teams/:id/activities/:activityId
+    try {
+      const detailUrl = new URL(`${workerUrl}/teams/${hsTeamId}/activities/${holdsportId}`);
+      const detailRes = await fetch(detailUrl.toString(), {
+        headers: { 'X-Token': token, 'Accept': 'application/json' },
+      });
+      if (detailRes.ok) {
+        const act = await detailRes.json() as import('./types').HoldsportActivity;
+        if (act && act.id) return act;
+      }
+    } catch { /* ignorer — fallback til liste */ }
+
+    // Fallback: hent via liste og find på id
     const url = new URL(`${workerUrl}/teams/${hsTeamId}/activities`);
     url.searchParams.set('date', date);
     url.searchParams.set('to', date);
