@@ -7,7 +7,7 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–8)
+## Hvad er bygget (Sessions 1–9)
 
 ### Session 1 — Fundament
 - Cloudflare Worker + D1 + R2 opsætning
@@ -121,6 +121,25 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **`HoldsportImportModal.tsx`** — aktiviteter filtreres i frontend på `starttime >= from && starttime <= to` (Holdsport-API ignorerede `to`-parameteren)
 - `useEffect` dependency: `[step]` → `[step, from, to]` så perioden er frisk ved skift
 - Preselect bruger `inRange` (ikke `all`) så "Importer N valgte" tæller korrekt
+
+### Session 9 — Holdsport-spillertælling + UI-forbedringer
+
+#### Holdsport antal spillere — præcis optælling
+- **`api.ts` `fetchHoldsportActivity`** — forsøger nu detalje-endpoint `/teams/:id/activities/:activityId` først (returnerer `activities_users`); fallback til liste-endpoint
+- **`HoldsportImportModal.tsx`** — `handleImport` er nu async; henter detaljer per valgt aktivitet før import så `activities_users` er tilgængeligt
+- **`extractFromActivity`** — tæller kun `status_code === 1`; matcher navn mod app-trænere, resten er spillere
+- **`TrainingEditor.tsx` ↺ Opdater** — samme logik: `activities_users` giver præcis tal; fallback til `attendance_count` som-er
+- `hsConfig` gemmes i state under aktivitetshentning så import-funktionen kan bruge det
+
+#### Træningskort (`Trainings.tsx`)
+- **Antal spillere** — grå cirkel med tal, tooltip "X spillere" (vises kun hvis sat)
+- **Antal trænere** — rød (accent) cirkel med tal, tooltip med trænernes navne (vises kun hvis > 0)
+- **HS-badge** — tydeligere lille badge med kant i stedet for løs tekst; sidder ved siden af cirklerne
+- Cirklerne og HS-badge grupperet i `display: flex` på samme linje
+
+#### Brugere (`Brugere.tsx`)
+- Inline navn-redigering: ✏️-knap ved navn → inputfelt → Enter/✓ gemmer, Escape/✗ annullerer
+- Kalder `PATCH /api/users/:id` med `{ name }` — opdaterer lokal state straks
 
 ### Session 7 — Opslagstavle (Board)
 - **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
@@ -675,6 +694,7 @@ CREATE TABLE templates (
 - `SkeletonCard` med shimmer loading (3 kort) mens data hentes
 - Dato-boks (`DateBox`): dag/måned/ugedag med rød accent
 - Trænings-kort: tid, varighed, sted, ansvarlig, tema-pills, sektioner-count
+  - Højre side: grå cirkel = antal spillere (tooltip), rød cirkel = antal trænere (tooltip med navne), HS-badge
 - "Ny træning"-knap (trainer+) → POST → navigate til editor
 - `HoldsportImportModal` til at importere træninger fra Holdsport
 - Tom state: opfordring til at oprette første træning
@@ -814,6 +834,7 @@ Kun `team_manager+`. Viser **kun** brugere tilknyttet det aktive hold.
 - Invitér ny bruger: navn, email, rolle (maks team_manager) → genererer invite-link → kopi-knap
 - Inviteringslink vises i inputfelt med kopi-knap (auto-select via ref)
 - Bruger-liste: navn, email, last_seen, hold-rolle
+  - Inline navn-redigering: ✏️-knap → inputfelt → Enter/✓ gemmer via `PATCH /api/users/:id`
   - Rolleskift med knapper: Gæst / Træner / Årgangansvarlig (optimistisk UI)
   - Fjern fra hold (bekræftelsesfase)
   - Nulstil adgangskode (regenerate invite-link → kopi)
