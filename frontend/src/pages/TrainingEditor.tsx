@@ -355,17 +355,23 @@ export default function TrainingEditor() {
       }
       if (!found) { setHsUpdating(false); return; }
 
-      const users = (found as unknown as Record<string, unknown>).activities_users;
+      const rec = found as unknown as Record<string, unknown>;
+      const users = rec.activities_users;
       let playerCount = 0;
       const trainerList: string[] = [];
       if (Array.isArray(users)) {
+        // Detaljeret deltager-liste tilgængelig — præcis optælling
         for (const u of users) {
-          const rec = u as Record<string, unknown>;
-          if (rec.status_code !== 1) continue;
-          const name = rec.name as string;
+          const ur = u as Record<string, unknown>;
+          if (ur.status_code !== 1) continue;
+          const name = ur.name as string;
           if (trainerNames.has(name)) trainerList.push(name);
           else playerCount++;
         }
+      } else {
+        // Kun attendance_count tilgængeligt — træk antal kendte trænere fra
+        const total = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
+        playerCount = Math.max(0, total - trainerNames.size);
       }
       update({ participant_count: playerCount > 0 ? playerCount : undefined, trainers: trainerList });
     } catch { /* fejl ignoreres stille */ } finally {

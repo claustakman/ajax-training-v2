@@ -58,7 +58,9 @@ function extractFromActivity(
 ): { playerCount: number; trainerNames: string[] } {
   const users = (activity as unknown as Record<string, unknown>).activities_users;
   if (!Array.isArray(users)) {
-    return { playerCount: activity.attendance_count ?? activity.signups_count ?? 0, trainerNames: [] };
+    // activities_users ikke tilgængeligt — træk alle kendte hold-trænere fra attendance_count
+    const total = (activity.attendance_count ?? activity.signups_count ?? 0) as number;
+    return { playerCount: Math.max(0, total - appTrainerNames.size), trainerNames: [] };
   }
   const attending = users.filter((u: unknown) => (u as Record<string, unknown>).status_code === 1);
   const trainerNames: string[] = [];
