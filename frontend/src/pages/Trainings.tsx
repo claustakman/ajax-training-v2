@@ -121,6 +121,14 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
               fontSize: 12, fontWeight: 600, color: 'var(--text2)',
             }}>{training.participant_count}</span>
           )}
+          {training.trainers && training.trainers.length > 0 && (
+            <span title={training.trainers.join(', ')} style={{
+              width: 26, height: 26, borderRadius: '50%',
+              background: 'var(--accent-light)', border: '1px solid rgba(200,16,46,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+            }}>{training.trainers.length}</span>
+          )}
           {training.holdsport_id && (
             <span title="Importeret fra Holdsport" style={{
               fontSize: 10, fontWeight: 700, color: 'var(--text3)',
