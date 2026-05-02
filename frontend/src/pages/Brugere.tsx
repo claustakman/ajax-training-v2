@@ -153,6 +153,7 @@ export default function Brugere() {
               onTeamRoleChange={r => handleTeamRoleChange(u.id, r)}
               onRemove={() => handleRemove(u.id, u.name)}
               onResetPassword={() => handleResetPassword(u.id, u.name)}
+              onNameChange={newName => setUsers(prev => prev.map(x => x.id === u.id ? { ...x, name: newName } : x))}
             />
           ))}
         </div>
@@ -161,16 +162,29 @@ export default function Brugere() {
   );
 }
 
-function UserRow({ user, currentTeamId, onTeamRoleChange, onRemove, onResetPassword }: {
+function UserRow({ user, currentTeamId, onTeamRoleChange, onRemove, onResetPassword, onNameChange }: {
   user: TeamUser;
   currentTeamId: string;
   onTeamRoleChange: (role: string) => void;
   onRemove: () => void;
   onResetPassword: () => void;
+  onNameChange: (newName: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(user.name);
   const teamEntry = user.teams.find(t => t.id === currentTeamId);
   const displayRole = user.role === 'admin' ? 'admin' : (teamEntry?.role ?? 'guest');
+
+  async function saveName() {
+    const trimmed = nameValue.trim();
+    if (!trimmed || trimmed === user.name) { setEditingName(false); setNameValue(user.name); return; }
+    try {
+      await api.patch(`/api/users/${user.id}`, { name: trimmed });
+      onNameChange(trimmed);
+      setEditingName(false);
+    } catch { setNameValue(user.name); setEditingName(false); }
+  }
 
   return (
     <div style={{ background: 'var(--bg-card)', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
@@ -180,7 +194,24 @@ function UserRow({ user, currentTeamId, onTeamRoleChange, onRemove, onResetPassw
           {user.name[0]?.toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</div>
+          {editingName ? (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+              <input
+                value={nameValue}
+                onChange={e => setNameValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setEditingName(false); setNameValue(user.name); } }}
+                autoFocus
+                style={{ fontSize: 14, fontWeight: 600, border: '1px solid var(--border2)', borderRadius: 6, padding: '2px 7px', background: 'var(--bg-input)', width: 140 }}
+              />
+              <button onClick={saveName} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green)', fontSize: 16, padding: 0 }}>✓</button>
+              <button onClick={() => { setEditingName(false); setNameValue(user.name); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 16, padding: 0 }}>✗</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{nameValue}</span>
+              <button onClick={e => { e.stopPropagation(); setEditingName(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 12, padding: 0, lineHeight: 1 }}>✏️</button>
+            </div>
+          )}
           <div style={{ fontSize: 12, color: 'var(--text2)' }}>{user.email}</div>
         </div>
         <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: 'var(--accent-light)', color: 'var(--accent)', flexShrink: 0 }}>
