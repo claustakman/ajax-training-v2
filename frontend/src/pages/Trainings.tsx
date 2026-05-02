@@ -112,9 +112,23 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
         {training.stars > 0 && (
           <span style={{ fontSize: 13, color: '#f59e0b' }}>{'★'.repeat(training.stars)}</span>
         )}
-        {training.holdsport_id && (
-          <span title="Importeret fra Holdsport" style={{ fontSize: 11, color: 'var(--text3)' }}>HS</span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {training.participant_count != null && training.participant_count > 0 && (
+            <span title={`${training.participant_count} spillere`} style={{
+              width: 26, height: 26, borderRadius: '50%',
+              background: 'var(--bg-input)', border: '1px solid var(--border2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 600, color: 'var(--text2)',
+            }}>{training.participant_count}</span>
+          )}
+          {training.holdsport_id && (
+            <span title="Importeret fra Holdsport" style={{
+              fontSize: 10, fontWeight: 700, color: 'var(--text3)',
+              background: 'var(--bg-input)', border: '1px solid var(--border)',
+              borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px',
+            }}>HS</span>
+          )}
+        </div>
         <span style={{ color: 'var(--text3)', fontSize: 16 }}>›</span>
       </div>
     </div>
