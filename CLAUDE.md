@@ -485,7 +485,7 @@ CREATE TABLE exercises (
   id               TEXT PRIMARY KEY,
   name             TEXT NOT NULL,
   description      TEXT,
-  catalog          TEXT NOT NULL DEFAULT 'hal',  -- "hal" | "fys"
+  catalog          TEXT NOT NULL DEFAULT 'hal',  -- altid 'hal' — tabs styres af tags i frontend
   category         TEXT,
   tags             TEXT NOT NULL DEFAULT '[]',
   age_groups       TEXT NOT NULL DEFAULT '[]',
@@ -626,7 +626,7 @@ CREATE TABLE templates (
 ### Exercises (`/api/exercises`)
 | Method | Path                       | Rolle   | Beskrivelse                                  |
 |--------|----------------------------|---------|----------------------------------------------|
-| GET    | `/api/exercises`           | auth    | `?catalog=hal&age_group=U11`                 |
+| GET    | `/api/exercises`           | auth    | `?age_group=U11` (catalog-filter ikke længere relevant)  |
 | GET    | `/api/exercises/tags`      | auth    | Alle unikke tags (globalt)                   |
 | POST   | `/api/exercises`           | trainer | Opret øvelse                                 |
 | PATCH  | `/api/exercises/:id`       | trainer | Opdater øvelse (kun opretter eller admin)    |
@@ -786,7 +786,13 @@ CREATE TABLE templates (
 - Readonly visning for trainer (pills-visning)
 
 ### `Catalog.tsx` (`/katalog`)
-- Tabs: **Hal** (catalog=hal, ekskl. keeper-tag) · **Keeper** (catalog=hal + tag=keeper) · **Fysisk** (catalog=fys)
+- Tabs: **Hal** · **Keeper** · **Fysisk** — styres udelukkende af tags (ét samlet katalog i DB)
+  - **Hal-tab**: alle øvelser undtagen rene keeper-øvelser
+  - **Fysisk-tab**: øvelser med mindst ét af `plyometrik`, `styrke`, `eksplosion`, `hurtighed`
+  - **Keeper-tab**: øvelser med `keeper`-tag
+  - En øvelse kan vises under flere tabs samtidig (fx styrkeøvelse med hal-tags)
+- `catalog`-feltet i DB er altid `'hal'` — `'fys'` bruges ikke længere
+- **FAB (+)-knap** (trainer+): rød rund knap, `position: fixed`, over bottomnav — erstatter gammel "+ Ny øvelse"-knap i headeren
 - Sticky søgefelt på mobil (`.catalog-search-bar` CSS-klasse)
 - Filter-toggle på mobil (`.catalog-filter-toggle` / `.catalog-filters` CSS-klasser)
 - Filtre: søgetekst, tag-filter (pills), aldersgruppe (U9–U19), stjerner (≥N)
@@ -935,7 +941,7 @@ interface Template {
 
 interface Exercise {
   id: string; name: string; description?: string;
-  catalog: 'hal' | 'fys'; category?: string;
+  catalog: 'hal'; category?: string;  // altid 'hal' — tabs styres af tags
   tags: string[]; age_groups: string[]; stars: number;
   variants?: string; link?: string; default_mins?: number;
   image_url?: string; image_r2_key?: string;
