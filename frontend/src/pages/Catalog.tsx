@@ -188,17 +188,7 @@ export default function Catalog() {
         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: 0 }}>
           Øvelseskatalog
         </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--text3)' }}>{filtered.length} øvelser</span>
-          {canEdit && (
-            <button
-              onClick={() => { setIsCreating(true); setEditingEx({ id: '', name: '', description: '', catalog: tab === 'keeper' ? 'hal' : tab, tags: tab === 'keeper' ? ['keeper'] : [], age_groups: [], stars: 0, variants: null, link: null, default_mins: null, image_r2_key: null, created_by: user?.id ?? null, created_by_email: user?.email ?? null, created_at: null }); }}
-              style={{ padding: '7px 14px', background: 'var(--accent)', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 13 }}
-            >
-              + Ny øvelse
-            </button>
-          )}
-        </div>
+        <span style={{ fontSize: 13, color: 'var(--text3)' }}>{filtered.length} øvelser</span>
       </div>
 
       {/* Subtabs */}
@@ -327,7 +317,7 @@ export default function Catalog() {
               Ingen øvelser fundet
             </div>
             <div style={{ fontSize: 13, color: 'var(--text3)' }}>
-              {hasFilters ? 'Prøv at ændre filtrene eller søgningen.' : 'Opret den første øvelse med "+ Ny øvelse".'}
+              {hasFilters ? 'Prøv at ændre filtrene eller søgningen.' : 'Opret den første øvelse med + knappen.'}
             </div>
           </div>
         )}
@@ -350,6 +340,41 @@ export default function Catalog() {
           onDeleted={handleDeleted}
           onClose={() => { setEditingEx(null); setIsCreating(false); }}
         />
+      )}
+
+      {/* FAB — Ny øvelse */}
+      {canEdit && (
+        <button
+          onClick={() => {
+            setIsCreating(true);
+            setEditingEx({
+              id: '', name: '', description: '',
+              catalog: tab === 'keeper' ? 'hal' : tab,
+              tags: tab === 'keeper' ? ['keeper'] : [],
+              age_groups: [], stars: 0, variants: null, link: null,
+              default_mins: null, image_r2_key: null,
+              created_by: user?.id ?? null, created_by_email: user?.email ?? null, created_at: null,
+            });
+          }}
+          style={{
+            position: 'fixed',
+            bottom: 'calc(var(--bottomnav-h) + 16px + env(safe-area-inset-bottom))',
+            right: 20,
+            width: 52, height: 52,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            color: '#fff',
+            fontSize: 28,
+            lineHeight: 1,
+            boxShadow: '0 4px 12px rgba(200,16,46,0.4)',
+            zIndex: 200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: 'none', cursor: 'pointer',
+          }}
+          title="Ny øvelse"
+        >
+          +
+        </button>
       )}
     </div>
   );

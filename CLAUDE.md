@@ -136,6 +136,13 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **Antal trænere** — rød (accent) cirkel med tal, tooltip med trænernes navne (vises kun hvis > 0)
 - **HS-badge** — tydeligere lille badge med kant i stedet for løs tekst; sidder ved siden af cirklerne
 - Cirklerne og HS-badge grupperet i `display: flex` på samme linje
+- **Fast kortlayout** — 4 faste linjer uanset indhold:
+  1. Titel (Mandag træning osv.)
+  2. Tid + varighed (`timeParts`)
+  3. Sted · Fornavn på ansvarlig (`line3Parts`) — grå, `overflow: hidden`, vises kun hvis mindst ét felt er sat
+  4. Tema-pills
+- **FAB (+)** — rød rund knap (52px) `position: fixed`, `bottom: calc(var(--bottomnav-h) + 16px + env(safe-area-inset-bottom))`, erstatter "+ Ny træning" i headeren
+- **↻ Sync-knap** — til venstre for "Holdsport ↓" i headeren; henter `activities_users` for alle HS-træninger sekventielt, identificerer trænere på navn, `PATCH`'er `participant_count` + `trainers` → toast med antal opdaterede
 
 #### Brugere (`Brugere.tsx`)
 - Inline navn-redigering: ✏️-knap ved navn → inputfelt → Enter/✓ gemmer, Escape/✗ annullerer
@@ -693,9 +700,14 @@ CREATE TABLE templates (
 - Liste over kommende (ikke-arkiverede) træninger for `currentTeamId`
 - `SkeletonCard` med shimmer loading (3 kort) mens data hentes
 - Dato-boks (`DateBox`): dag/måned/ugedag med rød accent
-- Trænings-kort: tid, varighed, sted, ansvarlig, tema-pills, sektioner-count
-  - Højre side: grå cirkel = antal spillere (tooltip), rød cirkel = antal trænere (tooltip med navne), HS-badge
-- "Ny træning"-knap (trainer+) → POST → navigate til editor
+- **Trænings-kort — fast 4-linje layout** (ingen layout-shift uanset feltlængder):
+  - Linje 1: titel (eller "Træning" som fallback)
+  - Linje 2: starttid–sluttid · varighed (durMin)
+  - Linje 3: sted · ansvarlig-fornavn (begge vises kun hvis sat, adskilt med ·)
+  - Linje 4: tema-pills (vises kun hvis temaer sat)
+  - Højre side: grå cirkel = antal spillere (tooltip "X spillere"), rød (accent) cirkel = antal trænere (tooltip med trænernes navne), HS-badge med kant
+- **FAB (+)-knap** (trainer+): `position: fixed`, `bottom: calc(var(--bottomnav-h) + 16px + env(safe-area-inset-bottom))`, `right: 20`, rød cirkel 52×52 → POST → navigate til editor
+- **↻ Synkronisér-knap** i header (venstre for Holdsport ↓): opdaterer `participant_count` + `trainers` for alle HS-tilknyttede træninger via detail-endpoint
 - `HoldsportImportModal` til at importere træninger fra Holdsport
 - Tom state: opfordring til at oprette første træning
 - Toast ved fejl (rød, 3s)
