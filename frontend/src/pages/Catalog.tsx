@@ -25,10 +25,13 @@ export interface Exercise {
 const HAL_TAGS = [
   'opvarmning', 'aflevering', 'skud', 'finter', 'forsvar', 'kontra',
   'sammenspil', 'beslutning', 'taktik', 'duel', 'kamp',
-  'stafet', 'leg', 'styrke', 'hurtighed',
+  'stafet', 'leg', 'returløb', 'småspil', 'tvekamp',
 ];
 const FYS_TAGS = ['plyometrik', 'eksplosion', 'styrke', 'hurtighed', 'finter', 'opvarmning'];
 const KEEPER_TAGS = ['keeper', 'teknik', 'aflevering', 'skud', 'forsvar'];
+
+// Tags der placerer en øvelse under Fysisk-tab
+const FYS_TAB_TAGS = new Set(['plyometrik', 'styrke', 'eksplosion', 'hurtighed']);
 const AGE_GROUPS = ['U9', 'U11', 'U13', 'U15', 'U17', 'U19'];
 
 type SortOrder = 'newest' | 'oldest' | 'name';
@@ -101,11 +104,14 @@ export default function Catalog() {
   const filtered = useMemo(() => {
     let list = exercises.filter(ex => {
       if (tab === 'keeper') {
+        // Keeper-tab: skal have keeper-tag
         if (!ex.tags.includes('keeper')) return false;
+      } else if (tab === 'fys') {
+        // Fysisk-tab: skal have mindst ét fys-tag
+        if (!ex.tags.some(t => FYS_TAB_TAGS.has(t))) return false;
       } else {
-        if (ex.catalog !== tab) return false;
-        // Keeper-øvelse uden andre tags vises kun under Keeper-tab
-        if (ex.tags.includes('keeper') && ex.tags.filter(t => t !== 'keeper').length === 0) return false;
+        // Hal-tab: alle øvelser undtagen dem der udelukkende er keeper
+        if (ex.tags.includes('keeper') && ex.tags.every(t => t === 'keeper')) return false;
       }
       if (search) {
         const q = search.toLowerCase();
@@ -349,7 +355,7 @@ export default function Catalog() {
             setIsCreating(true);
             setEditingEx({
               id: '', name: '', description: '',
-              catalog: tab === 'keeper' ? 'hal' : tab,
+              catalog: 'hal',
               tags: tab === 'keeper' ? ['keeper'] : [],
               age_groups: [], stars: 0, variants: null, link: null,
               default_mins: null, image_r2_key: null,
@@ -585,33 +591,23 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
         {error && <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 8, padding: '10px 12px', color: 'var(--red)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Katalog / type */}
+          {/* Keeper-toggle — styrer om øvelsen vises under Keeper-tab */}
           <div>
-            <Label>Katalog</Label>
+            <Label>Type</Label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {([
-                ['hal', '🤾 Hal'],
-                ['keeper', '🧤 Keeper'],
-                ['fys', '💪 Fysisk'],
-              ] as const).map(([c, label]) => {
-                const isActive = c === 'keeper'
-                  ? form.catalog === 'hal' && form.tags.includes('keeper')
-                  : form.catalog === c && !form.tags.includes('keeper');
-                function handleClick() {
-                  if (c === 'keeper') {
-                    set('catalog', 'hal');
-                    setForm(f => ({ ...f, catalog: 'hal', tags: f.tags.includes('keeper') ? f.tags : ['keeper', ...f.tags] }));
-                  } else {
-                    setForm(f => ({ ...f, catalog: c, tags: f.tags.filter(t => t !== 'keeper') }));
-                  }
-                }
-                return (
-                  <button key={c} onClick={handleClick}
-                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, background: isActive ? 'var(--accent)' : 'var(--bg-input)', color: isActive ? '#fff' : 'var(--text2)', border: 'none' }}>
-                    {label}
-                  </button>
-                );
-              })}
+              <button
+                onClick={() => setForm(f => ({ ...f, tags: f.tags.filter(t => t !== 'keeper') }))}
+                style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, background: !form.tags.includes('keeper') ? 'var(--accent)' : 'var(--bg-input)', color: !form.tags.includes('keeper') ? '#fff' : 'var(--text2)', border: 'none' }}>
+                🤾 Markspiller
+              </button>
+              <button
+                onClick={() => setForm(f => ({ ...f, catalog: 'hal', tags: f.tags.includes('keeper') ? f.tags : ['keeper', ...f.tags] }))}
+                style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, background: form.tags.includes('keeper') ? 'var(--accent)' : 'var(--bg-input)', color: form.tags.includes('keeper') ? '#fff' : 'var(--text2)', border: 'none' }}>
+                🧤 Keeper
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
+              Fysiske øvelser vises automatisk under Fysisk-tab ved tags som styrke, plyometrik, eksplosion, hurtighed.
             </div>
           </div>
 
