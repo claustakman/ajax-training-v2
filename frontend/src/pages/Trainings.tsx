@@ -199,6 +199,7 @@ export default function Trainings() {
   const [error, setError] = useState<string | null>(null);
   const [showHoldsportModal, setShowHoldsportModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
 
 
@@ -220,6 +221,71 @@ export default function Trainings() {
 
   function handleHoldsportClick() {
     setShowHoldsportModal(true);
+  }
+
+  async function handleSyncAll() {
+    if (!currentTeamId || syncing) return;
+    const hsTrainings = trainings.filter(t => t.holdsport_id && t.date);
+    if (hsTrainings.length === 0) {
+      setToast({ message: 'Ingen Holdsport-træninger at synkronisere', type: 'error' });
+      return;
+    }
+    setSyncing(true);
+    try {
+      const [config, members] = await Promise.all([
+        api.fetchHoldsportConfig(currentTeamId),
+        api.get<Array<{ id: string; name: string; team_role: string }>>(
+          `/api/users/team-members?team_id=${currentTeamId}`
+        ),
+      ]);
+      const trainerNames = new Set(
+        members
+          .filter(m => m.team_role === 'trainer' || m.team_role === 'team_manager')
+          .map(m => m.name)
+      );
+      const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
+
+      let updated = 0;
+      for (const t of hsTrainings) {
+        let found = null;
+        for (const team of teams) {
+          found = await api.fetchHoldsportActivity(
+            config.workerUrl, config.token, team.id, t.holdsport_id!, t.date!
+          );
+          if (found) break;
+        }
+        if (!found) continue;
+
+        const rec = found as unknown as Record<string, unknown>;
+        const users = rec.activities_users;
+        let playerCount = 0;
+        const trainerList: string[] = [];
+        if (Array.isArray(users)) {
+          for (const u of users) {
+            const ur = u as Record<string, unknown>;
+            if (ur.status_code !== 1) continue;
+            const name = ur.name as string;
+            if (trainerNames.has(name)) trainerList.push(name);
+            else playerCount++;
+          }
+        } else {
+          playerCount = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
+        }
+
+        const patch: Partial<Training> = {
+          participant_count: playerCount > 0 ? playerCount : undefined,
+          trainers: trainerList,
+        };
+        await api.patch(`/api/trainings/${t.id}`, patch);
+        setTrainings(prev => prev.map(x => x.id === t.id ? { ...x, ...patch } : x));
+        updated++;
+      }
+      setToast({ message: `${updated} træning${updated !== 1 ? 'er' : ''} synkroniseret ✓`, type: 'success' });
+    } catch {
+      setToast({ message: 'Fejl ved synkronisering', type: 'error' });
+    } finally {
+      setSyncing(false);
+    }
   }
 
   async function handleHoldsportImport(activities: Parameters<typeof api.createTraining>[0][]) {
@@ -263,6 +329,19 @@ export default function Trainings() {
 
         {canEdit && (
           <button
+            onClick={handleSyncAll}
+            disabled={syncing}
+            title="Synkroniser tilmeldte fra Holdsport for alle træninger"
+            style={{
+              background: 'var(--bg-input)', border: '1px solid var(--border2)',
+              borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: syncing ? 'default' : 'pointer',
+              color: 'var(--text)', opacity: syncing ? 0.6 : 1,
+            }}
+          >{syncing ? '↻ Synkroniserer…' : '↻ Sync'}</button>
+        )}
+
+        {canEdit && (
+          <button
             onClick={handleHoldsportClick}
             title="Importer fra Holdsport"
             style={{
@@ -270,20 +349,7 @@ export default function Trainings() {
               borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer',
               color: 'var(--text)',
             }}
-          >
-            Holdsport ↓
-          </button>
-        )}
-
-        {canEdit && (
-          <button
-            onClick={handleNew}
-            style={{
-              background: 'var(--accent)', color: '#fff', border: 'none',
-              borderRadius: 10, padding: '8px 18px', fontSize: 14,
-              fontWeight: 600, cursor: 'pointer', minHeight: 36,
-            }}
-          >+ Ny træning</button>
+          >Holdsport ↓</button>
         )}
       </div>
 
@@ -321,6 +387,25 @@ export default function Trainings() {
           onImport={handleHoldsportImport}
           onClose={() => setShowHoldsportModal(false)}
         />
+      )}
+
+      {/* ── FAB: Ny træning ── */}
+      {canEdit && (
+        <button
+          onClick={handleNew}
+          title="Ny træning"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(var(--bottomnav-h) + 16px + env(safe-area-inset-bottom))',
+            right: 20,
+            width: 52, height: 52, borderRadius: '50%',
+            background: 'var(--accent)', color: '#fff', border: 'none',
+            fontSize: 26, fontWeight: 300, lineHeight: 1,
+            cursor: 'pointer', zIndex: 200,
+            boxShadow: '0 4px 16px rgba(200,16,46,0.35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >+</button>
       )}
 
       {/* ── Toast ── */}
