@@ -50,14 +50,17 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
   const dur = durMin(training.start_time, training.end_time);
   const mins = totalMins(training.sections ?? []);
 
-  const meta: string[] = [];
+  // Linje 2: tid + varighed
+  const timeParts: string[] = [];
   if (training.start_time) {
-    const time = training.start_time + (training.end_time ? `–${training.end_time}` : '');
-    meta.push(time);
+    timeParts.push(training.start_time + (training.end_time ? `–${training.end_time}` : ''));
   }
-  if (dur) meta.push(`${dur} min`);
-  if (training.location) meta.push(training.location);
-  if (training.lead_trainer) meta.push(training.lead_trainer);
+  if (dur) timeParts.push(`${dur} min`);
+
+  // Linje 3: sted + fornavn på ansvarlig
+  const line3Parts: string[] = [];
+  if (training.location) line3Parts.push(training.location);
+  if (training.lead_trainer) line3Parts.push(training.lead_trainer.split(' ')[0]);
 
   return (
     <div
@@ -82,17 +85,29 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
       )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Linje 1: titel */}
         <div style={{
           fontWeight: 600, fontSize: 15, color: 'var(--text)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {training.date ? fmtWdayFull(training.date) + ' træning' : 'Træning'}
         </div>
-        {meta.length > 0 && (
-          <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
-            {meta.join(' · ')}
+        {/* Linje 2: tid + varighed */}
+        {timeParts.length > 0 && (
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2, whiteSpace: 'nowrap' }}>
+            {timeParts.join(' · ')}
           </div>
         )}
+        {/* Linje 3: sted + ansvarlig */}
+        {line3Parts.length > 0 && (
+          <div style={{
+            fontSize: 12, color: 'var(--text3)', marginTop: 1,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {line3Parts.join(' · ')}
+          </div>
+        )}
+        {/* Linje 4: tema-pills */}
         {training.themes && training.themes.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
             {training.themes.slice(0, 4).map(th => (
