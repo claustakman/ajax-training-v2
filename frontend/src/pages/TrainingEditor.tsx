@@ -213,8 +213,10 @@ export default function TrainingEditor() {
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [headerOpen, setHeaderOpen] = useState(() => {
-    const stored = localStorage.getItem('training_header_open');
-    return stored === null ? true : stored === '1';
+    try {
+      const stored = localStorage.getItem('training_header_open');
+      return stored === null ? true : stored === '1';
+    } catch { return true; }
   });
 
   function toggleHeader() {

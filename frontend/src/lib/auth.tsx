@@ -40,14 +40,22 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(() => {
-    const token = localStorage.getItem('ajax_token');
-    const userRaw = localStorage.getItem('ajax_user');
-    const currentTeamId = localStorage.getItem('ajax_current_team');
-    return {
-      token,
-      user: userRaw ? (JSON.parse(userRaw) as AuthUser) : null,
-      currentTeamId,
-    };
+    try {
+      const token = localStorage.getItem('ajax_token');
+      const userRaw = localStorage.getItem('ajax_user');
+      const currentTeamId = localStorage.getItem('ajax_current_team');
+      return {
+        token,
+        user: userRaw ? (JSON.parse(userRaw) as AuthUser) : null,
+        currentTeamId,
+      };
+    } catch {
+      // Korrupt localStorage — ryd op og vis login
+      localStorage.removeItem('ajax_token');
+      localStorage.removeItem('ajax_user');
+      localStorage.removeItem('ajax_current_team');
+      return { token: null, user: null, currentTeamId: null };
+    }
   });
 
   const login = useCallback(async (email: string, password: string) => {
