@@ -163,7 +163,7 @@ export default function AISectionModal({
               <button
                 onClick={onClose}
                 style={{
-                  padding: '9px 16px', borderRadius: 8, fontSize: 14,
+                  padding: '8px 16px', borderRadius: 8, fontSize: 14,
                   background: 'var(--bg-input)', color: 'var(--text)',
                   border: '1px solid var(--border2)', cursor: 'pointer', minHeight: 44,
                 }}
@@ -173,7 +173,7 @@ export default function AISectionModal({
               <button
                 onClick={fetchSuggestion}
                 style={{
-                  padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                  padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
                   background: 'none', color: '#7c3aed',
                   border: '1px solid #7c3aed', cursor: 'pointer', minHeight: 44,
                 }}
@@ -189,7 +189,7 @@ export default function AISectionModal({
                   })));
                 }}
                 style={{
-                  padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600,
                   background: 'var(--accent)', color: '#fff',
                   border: '1px solid var(--accent)', cursor: 'pointer', minHeight: 44,
                 }}
@@ -204,7 +204,7 @@ export default function AISectionModal({
               <button
                 onClick={onClose}
                 style={{
-                  padding: '9px 16px', borderRadius: 8, fontSize: 14,
+                  padding: '8px 16px', borderRadius: 8, fontSize: 14,
                   background: 'var(--bg-input)', color: 'var(--text)',
                   border: '1px solid var(--border2)', cursor: 'pointer', minHeight: 44,
                 }}
@@ -214,7 +214,7 @@ export default function AISectionModal({
               <button
                 onClick={fetchSuggestion}
                 style={{
-                  padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                  padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
                   background: 'var(--bg-input)', color: 'var(--text)',
                   border: '1px solid var(--border2)', cursor: 'pointer', minHeight: 44,
                 }}

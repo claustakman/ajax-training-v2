@@ -41,7 +41,7 @@ export default function Admin() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid var(--border)' }}>
         {(['hold', 'brugere'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
-            padding: '8px 18px', fontSize: 14, fontWeight: 600,
+            padding: '8px 16px', fontSize: 14, fontWeight: 600,
             background: 'none', border: 'none', cursor: 'pointer',
             color: tab === t ? 'var(--accent)' : 'var(--text2)',
             borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent',
@@ -129,7 +129,7 @@ function HoldTab() {
             onChange={e => setForm(f => ({ ...f, season: e.target.value }))}
             style={{ ...inputStyle, flex: '1 1 120px' }} />
           <button onClick={handleCreate} disabled={saving}
-            style={{ padding: '9px 16px', background: saving ? 'var(--text3)' : 'var(--accent)', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>
+            style={{ padding: '12px 24px', background: saving ? 'var(--text3)' : 'var(--accent)', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>
             {saving ? 'Opretter…' : '+ Opret hold'}
           </button>
         </div>
@@ -150,7 +150,7 @@ function HoldTab() {
               <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>{team.age_group} · {team.season}</div>
             </div>
             <button onClick={() => handleDelete(team.id, team.name)}
-              style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer' }}>
+              style={{ padding: '8px 16px', borderRadius: 8, fontSize: 12, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer' }}>
               Slet
             </button>
           </div>
@@ -353,10 +353,10 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
                   onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') { setEditingName(false); setNameValue(user.name); } }}
                   style={{ ...inputStyle, flex: 1, fontSize: 14 }}
                 />
-                <button onClick={handleNameSave} disabled={savingName} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                <button onClick={handleNameSave} disabled={savingName} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                   {savingName ? '…' : 'Gem'}
                 </button>
-                <button onClick={() => { setEditingName(false); setNameValue(user.name); }} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: 'pointer', fontSize: 13 }}>
+                <button onClick={() => { setEditingName(false); setNameValue(user.name); }} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: 'pointer', fontSize: 13 }}>
                   Annuller
                 </button>
               </div>
@@ -410,7 +410,7 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
                         {TEAM_ROLES.map(r => (
                           <button key={r} onClick={() => onRoleChange(t.id, r)}
                             style={{
-                              padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                              padding: '8px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                               background: t.role === r ? 'var(--accent)' : 'var(--bg-card)',
                               color: t.role === r ? '#fff' : 'var(--text2)',
                               border: `1px solid ${t.role === r ? 'var(--accent)' : 'var(--border2)'}`,
@@ -421,7 +421,7 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
                         ))}
                         <button onClick={() => onRemoveFromTeam(t.id, t.name)}
                           style={{
-                            marginLeft: 'auto', padding: '6px 12px', borderRadius: 20, fontSize: 12,
+                            marginLeft: 'auto', padding: '8px 14px', borderRadius: 20, fontSize: 12,
                             background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
                             border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                           }}>
@@ -455,7 +455,7 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
                     </select>
                     <button onClick={handleAdd} disabled={!addTeamId || adding}
                       style={{
-                        padding: '9px 16px', background: addTeamId && !adding ? 'var(--accent)' : 'var(--text3)',
+                        padding: '12px 24px', background: addTeamId && !adding ? 'var(--accent)' : 'var(--text3)',
                         color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600,
                         border: 'none', cursor: addTeamId && !adding ? 'pointer' : 'not-allowed',
                         minHeight: 40,

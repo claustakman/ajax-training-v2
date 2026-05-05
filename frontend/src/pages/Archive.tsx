@@ -219,15 +219,15 @@ function TableRow({
         {canEdit && (
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={onCopy} title="Opret kopi som ny aktiv træning" style={{
-              padding: '6px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
+              padding: '8px 14px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
               background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text2)',
             }}>⎘ Kopi</button>
             <button onClick={onRestore} title="Flyt tilbage til aktive træninger" style={{
-              padding: '6px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
+              padding: '8px 14px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
               background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--green)', fontWeight: 600,
             }}>↩ Genskab</button>
             <button onClick={onDelete} title="Slet permanent" style={{
-              padding: '6px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
+              padding: '8px 14px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
               background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', color: 'var(--red)',
             }}>✕</button>
           </div>

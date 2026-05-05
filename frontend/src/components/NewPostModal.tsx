@@ -386,7 +386,7 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
               type="button"
               onClick={onClose}
               style={{
-                padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
                 background: 'var(--bg-input)', color: 'var(--text)', minHeight: 44,
                 cursor: 'pointer',
               }}
@@ -397,7 +397,7 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
               type="submit"
               disabled={saving || !body.trim()}
               style={{
-                padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600,
                 background: 'var(--accent)', color: '#fff', minHeight: 44,
                 opacity: saving || !body.trim() ? 0.6 : 1,
                 cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',

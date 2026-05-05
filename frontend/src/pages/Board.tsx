@@ -153,7 +153,7 @@ function PostModal({
               type="button"
               onClick={onClose}
               style={{
-                padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
                 background: 'var(--bg-input)', color: 'var(--text)', minHeight: 44,
               }}
             >
@@ -163,7 +163,7 @@ function PostModal({
               type="submit"
               disabled={saving || !body.trim()}
               style={{
-                padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600,
                 background: 'var(--accent)', color: '#fff', minHeight: 44,
                 opacity: saving || !body.trim() ? 0.6 : 1,
                 cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',
@@ -232,7 +232,7 @@ function CommentForm({
           type="button"
           onClick={onCancel}
           style={{
-            padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+            padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
             background: 'var(--bg-input)', color: 'var(--text2)', minHeight: 40,
           }}
         >
@@ -243,8 +243,8 @@ function CommentForm({
         type="submit"
         disabled={saving || !body.trim()}
         style={{
-          padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-          background: 'var(--accent)', color: '#fff', minHeight: 40,
+          padding: '12px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+          background: 'var(--accent)', color: '#fff', minHeight: 44,
           opacity: saving || !body.trim() ? 0.6 : 1,
           cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',
           flexShrink: 0,
@@ -723,7 +723,7 @@ export default function Board() {
               background: showSearch ? 'var(--accent-light)' : 'var(--bg-input)',
               border: showSearch ? '1px solid var(--accent)' : '1px solid var(--border2)',
               color: showSearch ? 'var(--accent)' : 'var(--text2)',
-              borderRadius: 8, padding: '9px 16px', fontSize: 17,
+              borderRadius: 8, padding: '8px 14px', fontSize: 17,
               cursor: 'pointer', minHeight: 40,
             }}
             aria-label="Søg i opslag"
@@ -734,8 +734,8 @@ export default function Board() {
             onClick={() => setShowNewPost(true)}
             style={{
               background: 'var(--accent)', color: '#fff', borderRadius: 8,
-              padding: '9px 16px', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', minHeight: 40, whiteSpace: 'nowrap',
+              padding: '12px 24px', fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', minHeight: 44, whiteSpace: 'nowrap',
             }}
           >
             + Nyt opslag
@@ -773,7 +773,7 @@ export default function Board() {
                 key={label}
                 onClick={() => setShowArchived(isArchived)}
                 style={{
-                  padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: active ? 600 : 400,
+                  padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: active ? 600 : 400,
                   background: active ? 'var(--accent)' : 'transparent',
                   color: active ? '#fff' : 'var(--text2)',
                   border: active ? 'none' : '1px solid var(--border2)',

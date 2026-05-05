@@ -100,13 +100,13 @@ function mapActivity(
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const btnGhost: React.CSSProperties = {
-  padding: '9px 16px', borderRadius: 8, fontSize: 14,
+  padding: '8px 16px', borderRadius: 8, fontSize: 14,
   background: 'var(--bg-input)', border: '1px solid var(--border2)',
   color: 'var(--text2)', cursor: 'pointer', minHeight: 44,
 };
 
 const btnPrimary: React.CSSProperties = {
-  padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+  padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600,
   background: 'var(--accent)', color: '#fff', border: 'none',
   cursor: 'pointer', minHeight: 44,
 };
@@ -300,13 +300,13 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                   { label: '3 måneder', days: 90 },
                 ].map(({ label, days }) => (
                   <button key={label} onClick={() => setTo(addDays(from, days))} style={{
-                    padding: '6px 12px', borderRadius: 20, fontSize: 13,
+                    padding: '8px 16px', borderRadius: 20, fontSize: 13,
                     background: 'var(--bg-input)', border: '1px solid var(--border2)',
                     color: 'var(--text2)', cursor: 'pointer',
                   }}>{label}</button>
                 ))}
                 <button onClick={() => setTo(endOfSeason())} style={{
-                  padding: '6px 12px', borderRadius: 20, fontSize: 13,
+                  padding: '8px 16px', borderRadius: 20, fontSize: 13,
                   background: 'var(--bg-input)', border: '1px solid var(--border2)',
                   color: 'var(--text2)', cursor: 'pointer',
                 }}>Resten af sæsonen</button>
@@ -353,7 +353,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                     <div style={{ display: 'flex', gap: 4, background: 'var(--bg-input)', borderRadius: 20, padding: 3 }}>
                       {[false, true].map(all => (
                         <button key={String(all)} onClick={() => setShowAll(all)} style={{
-                          padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                          padding: '8px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                           background: showAll === all ? 'var(--bg-card)' : 'transparent',
                           border: showAll === all ? '1px solid var(--border2)' : '1px solid transparent',
                           color: showAll === all ? 'var(--text)' : 'var(--text3)',

@@ -56,7 +56,7 @@ const inputSm: React.CSSProperties = {
 
 const btnGhost: React.CSSProperties = {
   background: 'none', border: '1px solid var(--border2)',
-  borderRadius: 7, padding: '6px 12px', fontSize: 13,
+  borderRadius: 7, padding: '8px 16px', fontSize: 13,
   cursor: 'pointer', color: 'var(--text2)',
 };
 
@@ -146,7 +146,7 @@ function ExerciseDetailModal({ ex, canEdit, onUpdated, onClose }: {
             {canEdit && (
               <button onClick={() => setEditing(true)} style={{
                 background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer',
+                borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer',
                 color: 'var(--text2)', fontWeight: 500,
               }}>✏️ Rediger</button>
             )}
@@ -322,13 +322,13 @@ function FreeExerciseModal({ initialName = '', onAddFree, onAddCatalog, onClose 
           style={{ ...inputSm, fontSize: 15, marginBottom: 14, minHeight: 42 }}
         />
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onClose} style={{ ...btnGhost, padding: '6px 12px', whiteSpace: 'nowrap' }}>Annuller</button>
+          <button onClick={onClose} style={{ ...btnGhost, whiteSpace: 'nowrap' }}>Annuller</button>
           <button
             onClick={() => { if (name.trim()) { onAddFree(name.trim()); onClose(); } }}
             disabled={!name.trim()}
             style={{
               flex: 1, background: 'var(--bg-input)', color: 'var(--text)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '7px 10px', fontSize: 13, cursor: name.trim() ? 'pointer' : 'not-allowed',
+              borderRadius: 8, padding: '12px 16px', fontSize: 13, cursor: name.trim() ? 'pointer' : 'not-allowed',
               opacity: name.trim() ? 1 : 0.4, whiteSpace: 'nowrap',
             }}
           >Opret fritekst</button>
@@ -337,7 +337,7 @@ function FreeExerciseModal({ initialName = '', onAddFree, onAddCatalog, onClose 
             disabled={!name.trim()}
             style={{
               flex: 1, background: 'var(--accent)', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '7px 10px', fontSize: 13, fontWeight: 600,
+              borderRadius: 8, padding: '12px 16px', fontSize: 13, fontWeight: 600,
               cursor: name.trim() ? 'pointer' : 'not-allowed',
               opacity: name.trim() ? 1 : 0.4, whiteSpace: 'nowrap',
             }}
@@ -497,7 +497,7 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
                       key={tag}
                       onClick={() => toggleTag(tag)}
                       style={{
-                        fontSize: 12, borderRadius: 20, padding: '6px 12px', border: 'none',
+                        fontSize: 12, borderRadius: 20, padding: '8px 16px', border: 'none',
                         cursor: 'pointer', fontWeight: active ? 600 : 400,
                         background: active ? sectionType.color : 'var(--bg-input)',
                         color: active ? '#fff' : 'var(--text2)',
@@ -644,9 +644,9 @@ function ExercisePickerCard({ ex, added, accentColor, onPick, onDetail }: {
           onClick={onPick}
           style={{
             background: accentColor, color: '#fff', border: 'none',
-            borderRadius: 8, padding: '9px 16px', fontSize: 14,
+            borderRadius: 8, padding: '12px 24px', fontSize: 14,
             fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-            minHeight: 40,
+            minHeight: 44,
           }}
         >+ Tilføj</button>
       )}
@@ -723,12 +723,12 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={onClose} style={{ ...btnGhost, padding: '7px 16px' }}>Annuller</button>
+              <button onClick={onClose} style={{ ...btnGhost }}>Annuller</button>
               <button
                 onClick={handleSave} disabled={saving}
                 style={{
                   background: 'var(--accent)', color: '#fff', border: 'none',
-                  borderRadius: 8, padding: '7px 18px', fontSize: 14, cursor: 'pointer',
+                  borderRadius: 8, padding: '12px 24px', fontSize: 14, cursor: 'pointer',
                   opacity: saving ? 0.5 : 1,
                 }}
               >{saving ? '…' : 'Gem'}</button>
@@ -843,7 +843,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
         <button
           onClick={() => setShowSaveToCatalog(true)}
           title="Gem til katalog"
-          style={{ ...btnGhost, padding: '3px 7px', flexShrink: 0, fontSize: 13 }}
+          style={{ ...btnGhost, padding: '4px 8px', flexShrink: 0, fontSize: 13 }}
         >📚</button>
       )}
 
@@ -851,7 +851,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
       {canEdit && (
         <button
           onClick={onDelete}
-          style={{ ...btnGhost, padding: '3px 7px', color: 'var(--red)', flexShrink: 0, fontSize: 14 }}
+          style={{ ...btnGhost, padding: '4px 8px', color: 'var(--red)', flexShrink: 0, fontSize: 14 }}
         >×</button>
       )}
 
@@ -1084,7 +1084,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
 
             {/* Slet sektion — altid synlig, flexShrink: 0 */}
             {canEdit && (
-              <button onClick={onRemove} style={{ ...btnGhost, padding: '4px 8px', color: 'var(--red)', fontSize: 15, flexShrink: 0 }}>✕</button>
+              <button onClick={onRemove} style={{ ...btnGhost, padding: '8px 12px', color: 'var(--red)', fontSize: 15, flexShrink: 0 }}>✕</button>
             )}
           </div>
         )}
@@ -1120,17 +1120,17 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
               </select>
               <button
                 title="AI-forslag til denne sektion"
-                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', padding: '6px 12px', fontSize: 13, flex: 1 }}
+                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', padding: '8px 16px', fontSize: 13, flex: 1 }}
                 onClick={e => { e.stopPropagation(); onAISuggest?.(); }}
               >✨</button>
               <button
                 onClick={() => setShowPicker(true)}
-                style={{ ...btnGhost, borderColor: color, color, padding: '6px 12px', fontSize: 13, fontWeight: 600, flex: 2 }}
+                style={{ ...btnGhost, borderColor: color, color, padding: '8px 16px', fontSize: 13, fontWeight: 600, flex: 2 }}
               >+ Øvelse</button>
               <button
                 onClick={() => setShowLoadSection(true)}
                 title="Indlæs sektionsskabelon"
-                style={{ ...btnGhost, padding: '6px 12px', fontSize: 13 }}
+                style={{ ...btnGhost, padding: '8px 16px', fontSize: 13 }}
               >📋</button>
             </div>
           )}
@@ -1662,18 +1662,18 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
 
         {/* Nulstil afkrydsninger */}
         {anyDone && (
-          <button onClick={resetDone} title="Nulstil alle afkrydsninger" style={{ ...btnGhost, padding: '6px 12px', fontSize: 13 }}>
+          <button onClick={resetDone} title="Nulstil alle afkrydsninger" style={{ ...btnGhost, padding: '8px 16px', fontSize: 13 }}>
             ↺ Nulstil
           </button>
         )}
 
         {/* Indlæs skabelon */}
-        <button onClick={() => setShowLoadTemplate(true)} title="Indlæs skabelon" style={{ ...btnGhost, padding: '6px 12px' }}>📋</button>
+        <button onClick={() => setShowLoadTemplate(true)} title="Indlæs skabelon" style={{ ...btnGhost, padding: '8px 16px' }}>📋</button>
 
         {/* AI hele træning */}
         <button
           title="AI-forslag til hele træning"
-          style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', padding: '6px 12px' }}
+          style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', padding: '8px 16px' }}
           onClick={onAIWholeTraining}
         >✨ Hele træning</button>
 
@@ -1683,7 +1683,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
             onClick={() => setShowAddSection(true)}
             style={{
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600,
+              borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600,
               cursor: 'pointer', color: 'var(--text)',
             }}
           >+ Sektion</button>

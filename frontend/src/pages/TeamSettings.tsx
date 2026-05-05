@@ -126,7 +126,7 @@ function HoldsportSection({ teamId, initialUrl, initialToken }: {
             onClick={handleTest}
             disabled={testing || !workerUrl}
             style={{
-              padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
               color: 'var(--text2)', cursor: testing || !workerUrl ? 'not-allowed' : 'pointer',
               opacity: !workerUrl ? 0.5 : 1, minHeight: 40,
@@ -138,7 +138,7 @@ function HoldsportSection({ teamId, initialUrl, initialToken }: {
             onClick={handleSave}
             disabled={saving}
             style={{
-              padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              padding: '12px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600,
               background: 'var(--accent)', color: '#fff', border: 'none',
               cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, minHeight: 40,
             }}
@@ -287,7 +287,7 @@ function SkabelonerSection({ teamId, sectionTypes }: {
                     onClick={() => handleDelete(t)}
                     title="Slet skabelon"
                     style={{
-                      padding: '6px 12px', borderRadius: 8, fontSize: 12,
+                      padding: '8px 16px', borderRadius: 8, fontSize: 12,
                       background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
                       border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                       flexShrink: 0, minHeight: 32,
@@ -350,7 +350,7 @@ function SkabelonerSection({ teamId, sectionTypes }: {
                               onClick={() => handleDelete(t)}
                               title="Slet skabelon"
                               style={{
-                                padding: '6px 12px', borderRadius: 8, fontSize: 12,
+                                padding: '8px 16px', borderRadius: 8, fontSize: 12,
                                 background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
                                 border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                                 flexShrink: 0, minHeight: 32,
@@ -578,7 +578,7 @@ export default function TeamSettings() {
           <div style={{ fontWeight: 600, fontSize: 15 }}>Sektionstyper</div>
           <button
             onClick={openNew}
-            style={{ padding: '6px 12px', background: 'var(--accent)', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600 }}
+            style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600 }}
           >
             + Ny type
           </button>
@@ -634,7 +634,7 @@ export default function TeamSettings() {
                   <button
                     onClick={e => { e.stopPropagation(); openEdit(st); }}
                     style={{
-                      padding: '6px 12px', borderRadius: 8, fontSize: 12,
+                      padding: '8px 16px', borderRadius: 8, fontSize: 12,
                       background: 'var(--bg-card)', color: 'var(--text2)',
                       border: '1px solid var(--border2)', cursor: 'pointer',
                       minHeight: 32,
@@ -643,7 +643,7 @@ export default function TeamSettings() {
                   <button
                     onClick={e => { e.stopPropagation(); handleDelete(st); }}
                     style={{
-                      padding: '6px 12px', borderRadius: 8, fontSize: 12,
+                      padding: '8px 16px', borderRadius: 8, fontSize: 12,
                       background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
                       border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                       minHeight: 32,
@@ -859,7 +859,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
                   key={t}
                   onClick={() => toggleTag(t)}
                   style={{
-                    padding: '6px 12px', borderRadius: 20, fontSize: 13,
+                    padding: '8px 14px', borderRadius: 20, fontSize: 13,
                     background: tags.includes(t) ? color : 'var(--bg-input)',
                     color: tags.includes(t) ? '#fff' : 'var(--text2)',
                     border: `1px solid ${tags.includes(t) ? color : 'var(--border2)'}`,
@@ -885,7 +885,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
                   key={t}
                   onClick={() => toggleTheme(t)}
                   style={{
-                    padding: '6px 12px', borderRadius: 20, fontSize: 13,
+                    padding: '8px 14px', borderRadius: 20, fontSize: 13,
                     background: themes.includes(t) ? color : 'var(--bg-input)',
                     color: themes.includes(t) ? '#fff' : 'var(--text2)',
                     border: `1px solid ${themes.includes(t) ? color : 'var(--border2)'}`,
@@ -925,7 +925,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button
             onClick={onClose}
-            style={{ padding: '9px 16px', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)', color: 'var(--text2)' }}
+            style={{ padding: '8px 16px', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)', color: 'var(--text2)' }}
           >
             Annuller
           </button>
@@ -933,7 +933,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
             onClick={handleSubmit}
             disabled={!label.trim() || saving}
             style={{
-              padding: '9px 16px', borderRadius: 8, fontSize: 14,
+              padding: '12px 24px', borderRadius: 8, fontSize: 14,
               background: label.trim() && !saving ? 'var(--accent)' : 'var(--text3)',
               color: '#fff', fontWeight: 600,
             }}

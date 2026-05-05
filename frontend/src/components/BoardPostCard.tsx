@@ -341,8 +341,8 @@ function CommentInput({ postId, onAdded }: { postId: string; onAdded: (c: BoardC
         onClick={handleSubmit}
         disabled={saving || !body.trim()}
         style={{
-          padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-          background: 'var(--accent)', color: '#fff', minHeight: 40,
+          padding: '12px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+          background: 'var(--accent)', color: '#fff', minHeight: 44,
           opacity: saving || !body.trim() ? 0.6 : 1,
           cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',
           flexShrink: 0,
@@ -431,13 +431,13 @@ function EditPostModal({
           {error && <div style={{ color: 'var(--red)', fontSize: 13 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" onClick={onClose} style={{
-              padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+              padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
               background: 'var(--bg-input)', color: 'var(--text)', minHeight: 44,
             }}>
               Annuller
             </button>
             <button type="submit" disabled={saving || !body.trim()} style={{
-              padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+              padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600,
               background: 'var(--accent)', color: '#fff', minHeight: 44,
               opacity: saving || !body.trim() ? 0.6 : 1,
               cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',
@@ -471,7 +471,7 @@ function ActionBtn({
       style={{
         background: 'none', border: 'none', cursor: 'pointer',
         color: danger ? 'var(--red)' : 'var(--text3)',
-        fontSize: 15, padding: '4px 6px', borderRadius: 6,
+        fontSize: 15, padding: '4px 8px', borderRadius: 6,
         display: 'flex', alignItems: 'center',
         transition: 'color 0.15s',
       }}
@@ -632,7 +632,7 @@ export default function BoardPostCard({
                   onClick={() => setMenuOpen(o => !o)}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text3)', fontSize: 20, padding: '4px 6px',
+                    color: 'var(--text3)', fontSize: 20, padding: '4px 8px',
                     borderRadius: 6, lineHeight: 1,
                   }}
                   aria-label="Handlinger"
@@ -789,7 +789,7 @@ function OverflowItem({
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
         width: '100%', textAlign: 'left',
-        padding: '11px 14px', background: 'none', border: 'none',
+        padding: '8px 16px', background: 'none', border: 'none',
         fontSize: 14, cursor: 'pointer',
         color: danger ? 'var(--red)' : 'var(--text)',
         borderBottom: '1px solid var(--border)',
@@ -804,8 +804,8 @@ function OverflowItem({
 // ─── Style-konstanter ─────────────────────────────────────────────────────────
 
 const smallBtnStyle: React.CSSProperties = {
-  padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-  background: 'var(--bg-input)', color: 'var(--text)', minHeight: 36,
+  padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+  background: 'var(--bg-input)', color: 'var(--text)', minHeight: 40,
   cursor: 'pointer', flexShrink: 0,
 };
 
