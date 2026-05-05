@@ -148,6 +148,57 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - Inline navn-redigering: ✏️-knap ved navn → inputfelt → Enter/✓ gemmer, Escape/✗ annullerer
 - Kalder `PATCH /api/users/:id` med `{ name }` — opdaterer lokal state straks
 
+### Session 10 — UX-polish: drag handles, katalog-merge, knap-standardisering
+
+#### Drag-and-drop (touch-venlig)
+- **`SectionList.tsx` `ExerciseRow`** — ▲▼-knapper erstattet med ⠿ drag handle
+  - `onPointerDown` på handle → `pointermove`/`pointerup` på `window`
+  - `dragIdx` + `dropIdx` state i `SectionBlock` — live reorder-preview mens man trækker
+  - Dragged row får `background: var(--accent-light)` + `border: 1px solid var(--accent)`
+  - `touchAction: none` på handle + `userSelect: none` på row
+  - `alignItems: center` (var `flex-start`) — renere enkelt-linje layout
+- **`SectionList.tsx` `SectionBlock` headers** — ▲▼-knapper erstattet med ⠿ drag handle
+  - Drag-state (`secDragIdx`, `secDropIdx`, `secDragRef`) i `SectionList`
+  - Live sektion-reorder-preview; dragged header får `background: var(--accent-light)`
+  - Fjernede nu-ubrugte `moveSection`, `totalSections` prop og `onMoveUp`/`onMoveDown` props
+- **`SectionBlock`** — `onMoveUp`/`onMoveDown` props fjernet; `onDragHandlePointerDown` tilføjet
+- **`ExerciseRow`** — `isFirst`/`isLast`/`onMoveUp`/`onMoveDown` props fjernet; `isDragging`/`onDragHandlePointerDown` tilføjet
+
+#### Tag-pills fjernet fra øvelsesrækker
+- **`ExerciseRow`** — tag-pills under øvelsesnavn fjernet (mere horisontalt rum til navn)
+
+#### Øvelseskatalog — merge til ét katalog
+- `catalog`-feltet er nu altid `'hal'` i DB — `'fys'` bruges ikke længere
+- Tab-logik i `Catalog.tsx` er udelukkende tag-baseret:
+  - **Hal-tab**: alle øvelser undtagen rene keeper-øvelser
+  - **Fysisk-tab**: øvelser med mindst ét af `plyometrik`, `styrke`, `eksplosion`, `hurtighed`
+  - **Keeper-tab**: øvelser med `keeper`-tag
+  - En øvelse kan vises under flere tabs (fx styrkeøvelse med keeper-tag)
+- `FYS_TAB_TAGS = new Set(['plyometrik', 'styrke', 'eksplosion', 'hurtighed'])` i Catalog.tsx
+- `ExerciseEditor` i Catalog: 2-vejs Markspiller/Keeper toggle (ikke 3-vejs)
+- **FAB (+)-knap** i Catalog erstatter "+ Ny øvelse" i headeren (samme mønster som Trainings)
+- Duplikerede øvelser ryddet op i DB (11 fundet, 10 slettet)
+
+#### Knap-padding standardiseret til 3 varianter
+| Variant | Padding | Bruges til |
+|---------|---------|------------|
+| **sm** | `'4px 8px'` | Ikonknapper, ×-slet, ghost-knapper i listerækker |
+| **md** | `'8px 16px'` | Standard handlingsknapper, toolbar, filtre, rolleknapper |
+| **lg** | `'12px 24px'` | Primære CTA'er: Gem, Invitér, Importer, Opret, Send |
+- `btnGhost` constant i `SectionList.tsx` opdateret til md
+- `btnGhost`/`btnPrimary` constants i `HoldsportImportModal.tsx` opdateret
+- `smallBtnStyle` i `BoardPostCard.tsx` opdateret til md
+- 14 filer berørt: SectionList, HoldsportImportModal, Admin, Brugere, Board, BoardPostCard, AISuggestModal, AISectionModal, Catalog, TeamSettings, Archive, TrainingEditor, Trainings, NewPostModal
+- Inputs (`9px 16px`), layout-divs og `<span>`/`<a>` elementer uændret
+
+#### Andre forbedringer i denne session
+- **`TagInput.tsx`** — `fontSize: 16` på input (undgår iOS auto-zoom)
+- **`auth.tsx`** — `JSON.parse(userRaw)` wrapped i try/catch → forhindrer white screen ved korrupt localStorage
+- **`TrainingEditor.tsx`** — header collapsed/expanded state gemt i `localStorage['training_header_open']`
+- **`index.css`** — `.modal-sheet::before` drag handle på bottom sheets (mobil ≤640px)
+- **`Catalog.tsx`** — FAB (+) knap erstatter "+ Ny øvelse" i headeren
+- Tag `'streg'` tilføjet til øvelseskatalog; tag `'overgang'` tilføjet til øvelser med overgang i navn
+
 ### Session 7 — Opslagstavle (Board)
 - **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
 - **`worker/src/routes/board.ts`** — fuld CRUD: opslag, kommentarer, vedhæftninger, pin/arkiv, soft delete, unread-badge
