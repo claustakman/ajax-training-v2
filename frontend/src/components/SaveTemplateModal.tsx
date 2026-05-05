@@ -11,7 +11,7 @@ import type { Training, SectionType } from '../lib/types';
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--bg-input)', border: '1px solid var(--border2)',
-  borderRadius: 8, padding: '8px 12px', fontSize: 15, color: 'var(--text)',
+  borderRadius: 8, padding: '9px 16px', fontSize: 15, color: 'var(--text)',
   minHeight: 40, width: '100%', boxSizing: 'border-box',
 };
 
@@ -253,7 +253,7 @@ export default function SaveTemplateModal({ training, teamId, sectionTypes, onSa
                         onClick={() => setSelectedSectionIndex(idx)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '10px 14px',
+                          padding: '11px 20px',
                           borderRadius: 10,
                           border: isSelected ? `2px solid ${color}` : '2px solid var(--border)',
                           background: isSelected ? `rgba(${hexToRgb(color)},0.06)` : 'var(--bg-input)',
@@ -330,7 +330,7 @@ export default function SaveTemplateModal({ training, teamId, sectionTypes, onSa
                           key={th}
                           onClick={() => toggleTheme(th)}
                           style={{
-                            padding: '5px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+                            padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500,
                             cursor: 'pointer', border: 'none',
                             background: active ? 'var(--accent)' : 'var(--bg-input)',
                             color: active ? '#fff' : 'var(--text2)',
@@ -414,7 +414,7 @@ export default function SaveTemplateModal({ training, teamId, sectionTypes, onSa
           <button
             onClick={onClose}
             style={{
-              padding: '9px 20px', borderRadius: 10, fontSize: 14, cursor: 'pointer',
+              padding: '11px 20px', borderRadius: 10, fontSize: 14, cursor: 'pointer',
               background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text)',
             }}
           >
@@ -424,7 +424,7 @@ export default function SaveTemplateModal({ training, teamId, sectionTypes, onSa
             onClick={handleSave}
             disabled={!canSave || saving}
             style={{
-              padding: '9px 22px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: canSave && !saving ? 'pointer' : 'not-allowed',
+              padding: '11px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: canSave && !saving ? 'pointer' : 'not-allowed',
               background: canSave ? 'var(--accent)' : 'var(--bg-input)',
               color: canSave ? '#fff' : 'var(--text3)',
               border: 'none',

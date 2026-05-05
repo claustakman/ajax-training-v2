@@ -228,7 +228,7 @@ export default function Catalog() {
             onClick={() => setFiltersOpen(o => !o)}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 14px', borderRadius: 8, fontSize: 14,
+              padding: '6px 12px', borderRadius: 8, fontSize: 14,
               background: filtersOpen ? 'var(--bg-input)' : 'var(--bg-card)',
               color: 'var(--text2)', border: '1px solid var(--border2)',
               cursor: 'pointer',
@@ -248,7 +248,7 @@ export default function Catalog() {
             <button
               onClick={clearAllFilters}
               style={{
-                padding: '7px 12px', borderRadius: 8, fontSize: 12,
+                padding: '6px 12px', borderRadius: 8, fontSize: 12,
                 background: 'none', color: 'var(--text3)', border: '1px solid var(--border)',
                 cursor: 'pointer',
               }}
@@ -263,7 +263,7 @@ export default function Catalog() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
           {tags.map(tag => (
             <button key={tag} onClick={() => toggleTag(tag)}
-              style={{ padding: '5px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500, background: selectedTags.includes(tag) ? 'var(--accent)' : 'var(--bg-card)', color: selectedTags.includes(tag) ? '#fff' : 'var(--text2)', border: `1px solid ${selectedTags.includes(tag) ? 'var(--accent)' : 'var(--border2)'}` }}>
+              style={{ padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500, background: selectedTags.includes(tag) ? 'var(--accent)' : 'var(--bg-card)', color: selectedTags.includes(tag) ? '#fff' : 'var(--text2)', border: `1px solid ${selectedTags.includes(tag) ? 'var(--accent)' : 'var(--border2)'}` }}>
               {tag}
             </button>
           ))}
@@ -623,7 +623,7 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text2)' }}>Beskrivelse</div>
               <button onClick={handleAiDescription} disabled={aiLoading}
-                style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: aiLoading ? 'var(--bg-input)' : 'var(--accent-light)', color: aiLoading ? 'var(--text3)' : 'var(--accent)', border: `1px solid ${aiLoading ? 'var(--border)' : 'var(--accent)'}` }}>
+                style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: aiLoading ? 'var(--bg-input)' : 'var(--accent-light)', color: aiLoading ? 'var(--text3)' : 'var(--accent)', border: `1px solid ${aiLoading ? 'var(--border)' : 'var(--accent)'}` }}>
                 {aiLoading ? '⏳ Genererer…' : '✨ Generer med AI'}
               </button>
             </div>
@@ -655,7 +655,7 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {AGE_GROUPS.map(ag => (
                 <button key={ag} onClick={() => toggleArrItem('age_groups', ag)}
-                  style={{ padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: form.age_groups.includes(ag) ? 'var(--accent)' : 'var(--bg-input)', color: form.age_groups.includes(ag) ? '#fff' : 'var(--text2)', border: `1px solid ${form.age_groups.includes(ag) ? 'var(--accent)' : 'var(--border2)'}` }}>
+                  style={{ padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: form.age_groups.includes(ag) ? 'var(--accent)' : 'var(--bg-input)', color: form.age_groups.includes(ag) ? '#fff' : 'var(--text2)', border: `1px solid ${form.age_groups.includes(ag) ? 'var(--accent)' : 'var(--border2)'}` }}>
                   {ag}
                 </button>
               ))}
@@ -709,7 +709,7 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
           <div style={{ display: 'flex', gap: 8, paddingTop: 8 }}>
             {!isNew && (
               <button onClick={handleDelete} disabled={deleting}
-                style={{ padding: '11px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', border: '1px solid rgba(220,38,38,0.2)' }}>
+                style={{ padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 500, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', border: '1px solid rgba(220,38,38,0.2)' }}>
                 {deleting ? 'Sletter…' : 'Slet'}
               </button>
             )}

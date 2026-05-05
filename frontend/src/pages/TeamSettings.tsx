@@ -52,7 +52,7 @@ function HoldsportSection({ teamId, initialUrl, initialToken }: {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', fontSize: 15,
+    width: '100%', padding: '9px 16px', fontSize: 15,
     background: 'var(--bg-input)', border: '1px solid var(--border2)',
     borderRadius: 8, color: 'var(--text)', boxSizing: 'border-box', minHeight: 44,
   };
@@ -111,7 +111,7 @@ function HoldsportSection({ teamId, initialUrl, initialToken }: {
         {/* Test-resultat */}
         {testResult && (
           <div style={{
-            padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+            padding: '11px 20px', borderRadius: 8, fontSize: 13, fontWeight: 500,
             background: testResult.ok ? 'rgba(29,158,117,0.1)' : 'rgba(220,38,38,0.08)',
             color: testResult.ok ? 'var(--green)' : 'var(--red)',
             border: `1px solid ${testResult.ok ? 'rgba(29,158,117,0.25)' : 'rgba(220,38,38,0.2)'}`,
@@ -126,7 +126,7 @@ function HoldsportSection({ teamId, initialUrl, initialToken }: {
             onClick={handleTest}
             disabled={testing || !workerUrl}
             style={{
-              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+              padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
               color: 'var(--text2)', cursor: testing || !workerUrl ? 'not-allowed' : 'pointer',
               opacity: !workerUrl ? 0.5 : 1, minHeight: 40,
@@ -287,7 +287,7 @@ function SkabelonerSection({ teamId, sectionTypes }: {
                     onClick={() => handleDelete(t)}
                     title="Slet skabelon"
                     style={{
-                      padding: '4px 10px', borderRadius: 8, fontSize: 12,
+                      padding: '6px 12px', borderRadius: 8, fontSize: 12,
                       background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
                       border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                       flexShrink: 0, minHeight: 32,
@@ -350,7 +350,7 @@ function SkabelonerSection({ teamId, sectionTypes }: {
                               onClick={() => handleDelete(t)}
                               title="Slet skabelon"
                               style={{
-                                padding: '4px 10px', borderRadius: 8, fontSize: 12,
+                                padding: '6px 12px', borderRadius: 8, fontSize: 12,
                                 background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
                                 border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                                 flexShrink: 0, minHeight: 32,
@@ -578,7 +578,7 @@ export default function TeamSettings() {
           <div style={{ fontWeight: 600, fontSize: 15 }}>Sektionstyper</div>
           <button
             onClick={openNew}
-            style={{ padding: '7px 14px', background: 'var(--accent)', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600 }}
+            style={{ padding: '6px 12px', background: 'var(--accent)', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600 }}
           >
             + Ny type
           </button>
@@ -634,7 +634,7 @@ export default function TeamSettings() {
                   <button
                     onClick={e => { e.stopPropagation(); openEdit(st); }}
                     style={{
-                      padding: '5px 12px', borderRadius: 8, fontSize: 12,
+                      padding: '6px 12px', borderRadius: 8, fontSize: 12,
                       background: 'var(--bg-card)', color: 'var(--text2)',
                       border: '1px solid var(--border2)', cursor: 'pointer',
                       minHeight: 32,
@@ -643,7 +643,7 @@ export default function TeamSettings() {
                   <button
                     onClick={e => { e.stopPropagation(); handleDelete(st); }}
                     style={{
-                      padding: '5px 12px', borderRadius: 8, fontSize: 12,
+                      padding: '6px 12px', borderRadius: 8, fontSize: 12,
                       background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
                       border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                       minHeight: 32,
@@ -701,7 +701,7 @@ export default function TeamSettings() {
 
         <div style={{
           background: 'var(--bg-input)', border: '1px solid var(--border2)',
-          borderRadius: 8, padding: '10px 14px', marginBottom: 12,
+          borderRadius: 8, padding: '11px 20px', marginBottom: 12,
           fontSize: 13, color: 'var(--text2)', lineHeight: 1.6,
         }}>
           Anthropic API-nøgle — vedligeholdes i Cloudflare af admin
@@ -711,13 +711,13 @@ export default function TeamSettings() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
             flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
-            borderRadius: 8, padding: '9px 12px', fontSize: 14, color: 'var(--text3)',
+            borderRadius: 8, padding: '9px 16px', fontSize: 14, color: 'var(--text3)',
             letterSpacing: '0.15em', fontFamily: 'monospace',
           }}>
             sk-ant-••••••••••••••••••••••••••
           </div>
           <div style={{
-            padding: '8px 14px', background: 'var(--bg-input)', border: '1px solid var(--border2)',
+            padding: '9px 16px', background: 'var(--bg-input)', border: '1px solid var(--border2)',
             borderRadius: 8, fontSize: 13, color: 'var(--text3)', fontWeight: 500,
           }}>
             Rediger
@@ -804,7 +804,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
             onChange={e => setLabel(e.target.value)}
             placeholder="fx Opvarmning"
             style={{
-              width: '100%', padding: '9px 12px',
+              width: '100%', padding: '9px 16px',
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
               borderRadius: 8, fontSize: 15, color: 'var(--text)',
               minHeight: 44, boxSizing: 'border-box',
@@ -840,7 +840,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
             </label>
             {/* Preview */}
             <span style={{
-              marginLeft: 'auto', padding: '4px 12px',
+              marginLeft: 'auto', padding: '6px 12px',
               background: color, color: '#fff',
               borderRadius: 20, fontSize: 12, fontWeight: 600,
             }}>{label || 'Preview'}</span>
@@ -859,7 +859,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
                   key={t}
                   onClick={() => toggleTag(t)}
                   style={{
-                    padding: '4px 12px', borderRadius: 20, fontSize: 13,
+                    padding: '6px 12px', borderRadius: 20, fontSize: 13,
                     background: tags.includes(t) ? color : 'var(--bg-input)',
                     color: tags.includes(t) ? '#fff' : 'var(--text2)',
                     border: `1px solid ${tags.includes(t) ? color : 'var(--border2)'}`,
@@ -885,7 +885,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
                   key={t}
                   onClick={() => toggleTheme(t)}
                   style={{
-                    padding: '4px 12px', borderRadius: 20, fontSize: 13,
+                    padding: '6px 12px', borderRadius: 20, fontSize: 13,
                     background: themes.includes(t) ? color : 'var(--bg-input)',
                     color: themes.includes(t) ? '#fff' : 'var(--text2)',
                     border: `1px solid ${themes.includes(t) ? color : 'var(--border2)'}`,
@@ -925,7 +925,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button
             onClick={onClose}
-            style={{ padding: '9px 18px', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)', color: 'var(--text2)' }}
+            style={{ padding: '9px 16px', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)', color: 'var(--text2)' }}
           >
             Annuller
           </button>
@@ -933,7 +933,7 @@ function SectionTypeModal({ initial, allTags, quarterThemes, onSave, onClose }: 
             onClick={handleSubmit}
             disabled={!label.trim() || saving}
             style={{
-              padding: '9px 18px', borderRadius: 8, fontSize: 14,
+              padding: '9px 16px', borderRadius: 8, fontSize: 14,
               background: label.trim() && !saving ? 'var(--accent)' : 'var(--text3)',
               color: '#fff', fontWeight: 600,
             }}

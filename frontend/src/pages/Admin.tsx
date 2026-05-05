@@ -22,7 +22,7 @@ const AGE_GROUPS = ['U9', 'U11', 'U13', 'U15', 'U17', 'U19', 'Senior'];
 const TEAM_ROLES = ['guest', 'trainer', 'team_manager'] as const;
 
 const inputStyle: React.CSSProperties = {
-  padding: '9px 12px', background: 'var(--bg-input)',
+  padding: '9px 16px', background: 'var(--bg-input)',
   border: '1px solid var(--border2)', borderRadius: 8,
   fontSize: 14, color: 'var(--text)', minHeight: 40,
 };
@@ -129,7 +129,7 @@ function HoldTab() {
             onChange={e => setForm(f => ({ ...f, season: e.target.value }))}
             style={{ ...inputStyle, flex: '1 1 120px' }} />
           <button onClick={handleCreate} disabled={saving}
-            style={{ padding: '9px 18px', background: saving ? 'var(--text3)' : 'var(--accent)', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>
+            style={{ padding: '9px 16px', background: saving ? 'var(--text3)' : 'var(--accent)', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>
             {saving ? 'Opretter…' : '+ Opret hold'}
           </button>
         </div>
@@ -157,7 +157,7 @@ function HoldTab() {
           {team.members.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {team.members.map(m => (
-                <span key={m.id} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 12, background: 'var(--bg-input)', color: 'var(--text2)', border: '1px solid var(--border2)' }}>
+                <span key={m.id} style={{ padding: '6px 12px', borderRadius: 20, fontSize: 12, background: 'var(--bg-input)', color: 'var(--text2)', border: '1px solid var(--border2)' }}>
                   {m.name} <span style={{ color: 'var(--text3)' }}>· {ROLE_LABELS[m.role] ?? m.role}</span>
                 </span>
               ))}
@@ -353,10 +353,10 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
                   onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') { setEditingName(false); setNameValue(user.name); } }}
                   style={{ ...inputStyle, flex: 1, fontSize: 14 }}
                 />
-                <button onClick={handleNameSave} disabled={savingName} style={{ padding: '6px 14px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                <button onClick={handleNameSave} disabled={savingName} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                   {savingName ? '…' : 'Gem'}
                 </button>
-                <button onClick={() => { setEditingName(false); setNameValue(user.name); }} style={{ padding: '6px 14px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: 'pointer', fontSize: 13 }}>
+                <button onClick={() => { setEditingName(false); setNameValue(user.name); }} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: 'pointer', fontSize: 13 }}>
                   Annuller
                 </button>
               </div>
@@ -410,7 +410,7 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
                         {TEAM_ROLES.map(r => (
                           <button key={r} onClick={() => onRoleChange(t.id, r)}
                             style={{
-                              padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                              padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                               background: t.role === r ? 'var(--accent)' : 'var(--bg-card)',
                               color: t.role === r ? '#fff' : 'var(--text2)',
                               border: `1px solid ${t.role === r ? 'var(--accent)' : 'var(--border2)'}`,
@@ -421,7 +421,7 @@ function AdminUserRow({ user, allTeams, expanded, onToggle, onRoleChange, onAddT
                         ))}
                         <button onClick={() => onRemoveFromTeam(t.id, t.name)}
                           style={{
-                            marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, fontSize: 12,
+                            marginLeft: 'auto', padding: '6px 12px', borderRadius: 20, fontSize: 12,
                             background: 'rgba(220,38,38,0.08)', color: 'var(--red)',
                             border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                           }}>

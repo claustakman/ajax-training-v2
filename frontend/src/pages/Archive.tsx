@@ -87,7 +87,7 @@ function MobileCard({
         )}
       </div>
 
-      <div style={{ padding: '10px 14px', display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ padding: '11px 20px', display: 'flex', gap: 12, alignItems: 'center' }}>
         {training.date ? <DateBox dateStr={training.date} /> : (
           <div style={{ minWidth: 44, width: 44, height: 54, borderRadius: 10, background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: 20 }}>📋</div>
         )}
@@ -219,15 +219,15 @@ function TableRow({
         {canEdit && (
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={onCopy} title="Opret kopi som ny aktiv træning" style={{
-              padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
               background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text2)',
             }}>⎘ Kopi</button>
             <button onClick={onRestore} title="Flyt tilbage til aktive træninger" style={{
-              padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
               background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--green)', fontWeight: 600,
             }}>↩ Genskab</button>
             <button onClick={onDelete} title="Slet permanent" style={{
-              padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
               background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', color: 'var(--red)',
             }}>✕</button>
           </div>
@@ -320,7 +320,7 @@ export default function Archive() {
 
   const selectStyle: React.CSSProperties = {
     background: 'var(--bg-input)', border: '1px solid var(--border2)',
-    borderRadius: 8, padding: '8px 10px', fontSize: 14, color: 'var(--text)',
+    borderRadius: 8, padding: '9px 16px', fontSize: 14, color: 'var(--text)',
     minHeight: 40, cursor: 'pointer', flex: '1 1 150px',
   };
 

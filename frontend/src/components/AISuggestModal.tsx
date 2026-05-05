@@ -301,7 +301,7 @@ export default function AISuggestModal({
                 <button
                   onClick={() => setVary(true)}
                   style={{
-                    padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                    padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500,
                     background: vary ? 'var(--accent)' : 'var(--bg-input)',
                     color: vary ? '#fff' : 'var(--text)',
                     border: `1px solid ${vary ? 'var(--accent)' : 'var(--border2)'}`,
@@ -313,7 +313,7 @@ export default function AISuggestModal({
                 <button
                   onClick={() => setVary(false)}
                   style={{
-                    padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                    padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500,
                     background: !vary ? 'var(--bg-input)' : 'var(--bg-input)',
                     color: !vary ? 'var(--text)' : 'var(--text2)',
                     border: `1px solid ${!vary ? 'var(--accent)' : 'var(--border2)'}`,
@@ -388,7 +388,7 @@ export default function AISuggestModal({
               const color = getMinsColor(totalMinsResult, trainingDur || null);
               return (
                 <div style={{
-                  padding: '8px 12px', borderRadius: 8,
+                  padding: '9px 16px', borderRadius: 8,
                   background: 'var(--bg-input)', fontSize: 13, marginBottom: 16,
                 }}>
                   Planlagt:{' '}
@@ -417,7 +417,7 @@ export default function AISuggestModal({
                 }}>
                   {/* Header */}
                   <div style={{
-                    padding: '8px 12px', background: 'var(--bg-input)',
+                    padding: '9px 16px', background: 'var(--bg-input)',
                     display: 'flex', alignItems: 'center', gap: 8,
                   }}>
                     <span style={{
@@ -434,7 +434,7 @@ export default function AISuggestModal({
                   </div>
 
                   {/* Øvelser */}
-                  <div style={{ padding: '8px 12px' }}>
+                  <div style={{ padding: '9px 16px' }}>
                     {sec.exercises.length === 0 ? (
                       <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>Ingen øvelser</p>
                     ) : (
@@ -481,7 +481,7 @@ export default function AISuggestModal({
               <button
                 onClick={onClose}
                 style={{
-                  padding: '9px 18px', borderRadius: 8, fontSize: 14,
+                  padding: '9px 16px', borderRadius: 8, fontSize: 14,
                   background: 'var(--bg-input)', color: 'var(--text)',
                   border: '1px solid var(--border2)', cursor: 'pointer',
                   minHeight: 44,
@@ -493,7 +493,7 @@ export default function AISuggestModal({
                 disabled={rows.length === 0}
                 onClick={handleGenerate}
                 style={{
-                  padding: '9px 22px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
                   background: '#7c3aed', color: '#fff',
                   border: '1px solid #7c3aed', cursor: rows.length === 0 ? 'not-allowed' : 'pointer',
                   opacity: rows.length === 0 ? 0.5 : 1, minHeight: 44,
@@ -509,7 +509,7 @@ export default function AISuggestModal({
               <button
                 onClick={() => setStep('configure')}
                 style={{
-                  padding: '9px 18px', borderRadius: 8, fontSize: 14,
+                  padding: '9px 16px', borderRadius: 8, fontSize: 14,
                   background: 'var(--bg-input)', color: 'var(--text)',
                   border: '1px solid var(--border2)', cursor: 'pointer', minHeight: 44,
                 }}
@@ -519,7 +519,7 @@ export default function AISuggestModal({
               <button
                 onClick={handleGenerate}
                 style={{
-                  padding: '9px 18px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                  padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
                   background: 'none', color: '#7c3aed',
                   border: '1px solid #7c3aed', cursor: 'pointer', minHeight: 44,
                 }}
@@ -529,7 +529,7 @@ export default function AISuggestModal({
               <button
                 onClick={handleAccept}
                 style={{
-                  padding: '9px 22px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
                   background: 'var(--accent)', color: '#fff',
                   border: '1px solid var(--accent)', cursor: 'pointer', minHeight: 44,
                 }}
@@ -544,7 +544,7 @@ export default function AISuggestModal({
               <button
                 onClick={onClose}
                 style={{
-                  padding: '9px 18px', borderRadius: 8, fontSize: 14,
+                  padding: '9px 16px', borderRadius: 8, fontSize: 14,
                   background: 'var(--bg-input)', color: 'var(--text)',
                   border: '1px solid var(--border2)', cursor: 'pointer', minHeight: 44,
                 }}
@@ -554,7 +554,7 @@ export default function AISuggestModal({
               <button
                 onClick={() => setStep('configure')}
                 style={{
-                  padding: '9px 18px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                  padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
                   background: 'var(--bg-input)', color: 'var(--text)',
                   border: '1px solid var(--border2)', cursor: 'pointer', minHeight: 44,
                 }}

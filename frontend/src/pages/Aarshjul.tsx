@@ -140,7 +140,7 @@ export default function Aarshjul() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: 0 }}>Årshjul</h1>
         {!canEdit && (
-          <span style={{ fontSize: 13, color: 'var(--text3)', background: 'var(--bg-input)', padding: '4px 10px', borderRadius: 20 }}>
+          <span style={{ fontSize: 13, color: 'var(--text3)', background: 'var(--bg-input)', padding: '6px 12px', borderRadius: 20 }}>
             Kun visning
           </span>
         )}
@@ -255,7 +255,7 @@ function QuarterCard({ config, state, canEdit, onAddTheme, onUpdateTheme, onRemo
             ) : (
               <span style={{
                 display: 'inline-flex', alignItems: 'center',
-                padding: '4px 10px',
+                padding: '6px 12px',
                 background: `${config.color}18`,
                 color: config.color,
                 borderRadius: 20, fontSize: 13, fontWeight: 500,
@@ -273,7 +273,7 @@ function QuarterCard({ config, state, canEdit, onAddTheme, onUpdateTheme, onRemo
             style={{
               alignSelf: 'flex-start',
               marginTop: (state?.themes?.length ?? 0) > 0 ? 4 : 0,
-              padding: '5px 12px',
+              padding: '6px 12px',
               background: `${config.color}18`,
               color: config.color,
               borderRadius: 8, fontSize: 13, fontWeight: 600,

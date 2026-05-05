@@ -103,7 +103,7 @@ function PostModal({
 
   // fontSize: 16 — undgår iOS auto-zoom ved fokus
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', fontSize: 16,
+    width: '100%', padding: '9px 16px', fontSize: 16,
     background: 'var(--bg-input)', border: '1px solid var(--border2)',
     borderRadius: 8, color: 'var(--text)', boxSizing: 'border-box',
     fontFamily: 'inherit',
@@ -153,7 +153,7 @@ function PostModal({
               type="button"
               onClick={onClose}
               style={{
-                padding: '9px 18px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
                 background: 'var(--bg-input)', color: 'var(--text)', minHeight: 44,
               }}
             >
@@ -163,7 +163,7 @@ function PostModal({
               type="submit"
               disabled={saving || !body.trim()}
               style={{
-                padding: '9px 22px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
                 background: 'var(--accent)', color: '#fff', minHeight: 44,
                 opacity: saving || !body.trim() ? 0.6 : 1,
                 cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',
@@ -217,7 +217,7 @@ function CommentForm({
         placeholder={editComment ? undefined : 'Skriv en kommentar…'}
         rows={editComment ? 3 : 2}
         style={{
-          flex: 1, padding: '8px 10px', fontSize: 16, borderRadius: 8,
+          flex: 1, padding: '9px 16px', fontSize: 16, borderRadius: 8,
           background: 'var(--bg-input)', border: '1px solid var(--border2)',
           resize: 'none', fontFamily: 'inherit', color: 'var(--text)',
           minHeight: 44,
@@ -232,7 +232,7 @@ function CommentForm({
           type="button"
           onClick={onCancel}
           style={{
-            padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+            padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
             background: 'var(--bg-input)', color: 'var(--text2)', minHeight: 40,
           }}
         >
@@ -243,7 +243,7 @@ function CommentForm({
         type="submit"
         disabled={saving || !body.trim()}
         style={{
-          padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+          padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
           background: 'var(--accent)', color: '#fff', minHeight: 40,
           opacity: saving || !body.trim() ? 0.6 : 1,
           cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',
@@ -481,7 +481,7 @@ function PostCard({
                 rel="noopener noreferrer"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '4px 10px', borderRadius: 20, fontSize: 13,
+                  padding: '6px 12px', borderRadius: 20, fontSize: 13,
                   background: 'var(--bg-input)', color: 'var(--text2)',
                   border: '1px solid var(--border2)', textDecoration: 'none',
                 }}
@@ -579,7 +579,7 @@ function CommentRow({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           background: 'var(--bg-input)', borderRadius: '0 10px 10px 10px',
-          padding: '8px 12px', fontSize: 14,
+          padding: '9px 16px', fontSize: 14,
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600, fontSize: 13 }}>{comment.user_name}</span>
@@ -621,7 +621,7 @@ function MenuAction({ onClick, children, danger }: { onClick: () => void; childr
       onClick={onClick}
       style={{
         display: 'block', width: '100%', textAlign: 'left',
-        padding: '10px 14px', background: 'none', border: 'none',
+        padding: '11px 20px', background: 'none', border: 'none',
         fontSize: 14, cursor: 'pointer',
         color: danger ? 'var(--red)' : 'var(--text)',
       }}
@@ -723,7 +723,7 @@ export default function Board() {
               background: showSearch ? 'var(--accent-light)' : 'var(--bg-input)',
               border: showSearch ? '1px solid var(--accent)' : '1px solid var(--border2)',
               color: showSearch ? 'var(--accent)' : 'var(--text2)',
-              borderRadius: 8, padding: '8px 10px', fontSize: 17,
+              borderRadius: 8, padding: '9px 16px', fontSize: 17,
               cursor: 'pointer', minHeight: 40,
             }}
             aria-label="Søg i opslag"
@@ -734,7 +734,7 @@ export default function Board() {
             onClick={() => setShowNewPost(true)}
             style={{
               background: 'var(--accent)', color: '#fff', borderRadius: 8,
-              padding: '8px 16px', fontSize: 14, fontWeight: 600,
+              padding: '9px 16px', fontSize: 14, fontWeight: 600,
               cursor: 'pointer', minHeight: 40, whiteSpace: 'nowrap',
             }}
           >
@@ -753,7 +753,7 @@ export default function Board() {
             onChange={e => setSearchQuery(e.target.value)}
             autoFocus
             style={{
-              width: '100%', padding: '9px 12px', fontSize: 16,
+              width: '100%', padding: '9px 16px', fontSize: 16,
               background: 'var(--bg-card)', border: '1px solid var(--border2)',
               borderRadius: 8, color: 'var(--text)', boxSizing: 'border-box',
               minHeight: 44,
@@ -829,7 +829,7 @@ export default function Board() {
               <button
                 onClick={() => setShowNewPost(true)}
                 style={{
-                  marginTop: 16, padding: '9px 20px', borderRadius: 8,
+                  marginTop: 16, padding: '11px 20px', borderRadius: 8,
                   background: 'var(--accent)', color: '#fff',
                   fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44,
                 }}

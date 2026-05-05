@@ -218,7 +218,7 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
 
   // fontSize: 16 — undgår iOS auto-zoom ved fokus
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', fontSize: 16,
+    width: '100%', padding: '9px 16px', fontSize: 16,
     background: 'var(--bg-input)', border: '1px solid var(--border2)',
     borderRadius: 8, color: 'var(--text)', boxSizing: 'border-box',
     fontFamily: 'inherit',
@@ -302,7 +302,7 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
                   />
                 ))}
                 {mentionMatches.length === 0 && (
-                  <div style={{ padding: '10px 14px', fontSize: 13, color: 'var(--text3)' }}>
+                  <div style={{ padding: '11px 20px', fontSize: 13, color: 'var(--text3)' }}>
                     Ingen brugere matcher "{mentionQuery}"
                   </div>
                 )}
@@ -386,7 +386,7 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
               type="button"
               onClick={onClose}
               style={{
-                padding: '9px 18px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
                 background: 'var(--bg-input)', color: 'var(--text)', minHeight: 44,
                 cursor: 'pointer',
               }}
@@ -397,7 +397,7 @@ export default function NewPostModal({ teamId, onSaved, onClose }: NewPostModalP
               type="submit"
               disabled={saving || !body.trim()}
               style={{
-                padding: '9px 22px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
                 background: 'var(--accent)', color: '#fff', minHeight: 44,
                 opacity: saving || !body.trim() ? 0.6 : 1,
                 cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',

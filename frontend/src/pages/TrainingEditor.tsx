@@ -58,7 +58,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--bg-input)', border: '1px solid var(--border2)',
-  borderRadius: 8, padding: '8px 12px', fontSize: 15, color: 'var(--text)',
+  borderRadius: 8, padding: '9px 16px', fontSize: 15, color: 'var(--text)',
   minHeight: 40, width: '100%', boxSizing: 'border-box',
 };
 
@@ -434,7 +434,7 @@ export default function TrainingEditor() {
                 onClick={() => setShowSaveTemplate(true)}
                 style={{
                   background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                  borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+                  borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
                 }}
               >💾 Skabelon</button>
             )}
@@ -443,7 +443,7 @@ export default function TrainingEditor() {
               onClick={handleArchive}
               style={{
                 background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+                borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
               }}
             >{training.archived ? '↩ Gendan' : '📦 Arkivér'}</button>
 
@@ -451,7 +451,7 @@ export default function TrainingEditor() {
               onClick={handleDelete}
               style={{
                 background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--red)',
+                borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--red)',
               }}
             >🗑 Slet</button>
           </>

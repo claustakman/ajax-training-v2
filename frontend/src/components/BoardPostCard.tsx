@@ -189,7 +189,7 @@ function AutoTextarea({
       autoFocus={autoFocus}
       rows={1}
       style={{
-        flex: 1, padding: '8px 10px', fontSize: 16, borderRadius: 8,
+        flex: 1, padding: '9px 16px', fontSize: 16, borderRadius: 8,
         background: 'var(--bg-input)', border: '1px solid var(--border2)',
         resize: 'none', fontFamily: 'inherit', color: 'var(--text)',
         minHeight: 40, overflow: 'hidden', lineHeight: 1.5,
@@ -278,7 +278,7 @@ function CommentRow({
         ) : (
           <div style={{
             background: 'var(--bg-input)', borderRadius: '0 10px 10px 10px',
-            padding: '8px 12px',
+            padding: '9px 16px',
           }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 600, fontSize: 13 }}>{comment.user_name}</span>
@@ -341,7 +341,7 @@ function CommentInput({ postId, onAdded }: { postId: string; onAdded: (c: BoardC
         onClick={handleSubmit}
         disabled={saving || !body.trim()}
         style={{
-          padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+          padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
           background: 'var(--accent)', color: '#fff', minHeight: 40,
           opacity: saving || !body.trim() ? 0.6 : 1,
           cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',
@@ -388,7 +388,7 @@ function EditPostModal({
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', fontSize: 15,
+    width: '100%', padding: '9px 16px', fontSize: 15,
     background: 'var(--bg-input)', border: '1px solid var(--border2)',
     borderRadius: 8, color: 'var(--text)', boxSizing: 'border-box',
     fontFamily: 'inherit',
@@ -431,13 +431,13 @@ function EditPostModal({
           {error && <div style={{ color: 'var(--red)', fontSize: 13 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" onClick={onClose} style={{
-              padding: '9px 18px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+              padding: '9px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500,
               background: 'var(--bg-input)', color: 'var(--text)', minHeight: 44,
             }}>
               Annuller
             </button>
             <button type="submit" disabled={saving || !body.trim()} style={{
-              padding: '9px 22px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+              padding: '11px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
               background: 'var(--accent)', color: '#fff', minHeight: 44,
               opacity: saving || !body.trim() ? 0.6 : 1,
               cursor: saving || !body.trim() ? 'not-allowed' : 'pointer',

@@ -349,7 +349,7 @@ export default function Trainings() {
             title="Synkroniser tilmeldte fra Holdsport for alle træninger"
             style={{
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: syncing ? 'default' : 'pointer',
+              borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: syncing ? 'default' : 'pointer',
               color: 'var(--text)', opacity: syncing ? 0.6 : 1,
             }}
           >{syncing ? '↻ Synkroniserer…' : '↻ Sync'}</button>
@@ -361,7 +361,7 @@ export default function Trainings() {
             title="Importer fra Holdsport"
             style={{
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer',
+              borderRadius: 8, padding: '6px 12px', fontSize: 13, cursor: 'pointer',
               color: 'var(--text)',
             }}
           >Holdsport ↓</button>
