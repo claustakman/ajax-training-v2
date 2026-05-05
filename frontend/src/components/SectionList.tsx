@@ -874,20 +874,19 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
 
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
-function SectionBlock({ section, sectionType, sectionIndex, totalSections, exercises, canEdit, teamId,
-  onUpdate, onRemove, onMoveUp, onMoveDown, onToggleDone, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
+function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, teamId, isDragging,
+  onUpdate, onRemove, onDragHandlePointerDown, onToggleDone, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
 }: {
   section: Section;
   sectionType: SectionType | undefined;
   sectionIndex: number;
-  totalSections: number;
   exercises: Exercise[];
   canEdit: boolean;
   teamId: string;
+  isDragging?: boolean;
   onUpdate: (patch: Partial<Section>) => void;
   onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+  onDragHandlePointerDown?: (e: React.PointerEvent) => void;
   onToggleDone: (exerciseIdx: number) => void;
   onToast: (msg: string) => void;
   onAISuggest?: () => void;
@@ -990,21 +989,26 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
       <div
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          padding: '9px 10px 9px 13px', background: 'var(--bg-input)',
+          padding: '9px 10px 9px 10px', background: isDragging ? 'var(--accent-light)' : 'var(--bg-input)',
           cursor: 'pointer',
           borderBottom: collapsed ? 'none' : '1px solid var(--border)',
           flexWrap: 'nowrap',
+          transition: 'background 0.1s',
         }}
         onClick={() => setCollapsed(c => !c)}
       >
-        {/* Flyt op/ned */}
+        {/* Drag handle */}
         {canEdit && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-            <button onClick={onMoveUp} disabled={sectionIndex === 1}
-              style={{ ...btnGhost, padding: '1px 5px', fontSize: 11, opacity: sectionIndex === 1 ? 0.25 : 1, lineHeight: 1 }}>▲</button>
-            <button onClick={onMoveDown} disabled={sectionIndex === totalSections}
-              style={{ ...btnGhost, padding: '1px 5px', fontSize: 11, opacity: sectionIndex === totalSections ? 0.25 : 1, lineHeight: 1 }}>▼</button>
-          </div>
+          <span
+            onPointerDown={e => { e.stopPropagation(); onDragHandlePointerDown?.(e); }}
+            style={{
+              fontSize: 20, color: 'var(--text3)', flexShrink: 0,
+              cursor: 'grab', touchAction: 'none',
+              lineHeight: 1, padding: '4px 3px',
+              userSelect: 'none',
+            }}
+            title="Træk for at flytte sektion"
+          >⠿</span>
         )}
 
         {/* Chevron */}
@@ -1542,6 +1546,51 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
   const [toast, setToast] = useState<string | null>(null);
   const teamId = training.team_id;
 
+  // Section drag-and-drop state
+  const [secDragIdx, setSecDragIdx] = useState<number | null>(null);
+  const [secDropIdx, setSecDropIdx] = useState<number | null>(null);
+  const secDragRef = useRef<{ startY: number; rowHeight: number; total: number; idx: number } | null>(null);
+  const sectionListRef = useRef<HTMLDivElement>(null);
+
+  function handleSectionDragStart(idx: number, e: React.PointerEvent) {
+    e.preventDefault();
+    const container = sectionListRef.current;
+    const rowHeight = container ? (container.scrollHeight / Math.max(sections.length, 1)) : 80;
+    secDragRef.current = { startY: e.clientY, rowHeight, total: sections.length, idx };
+    setSecDragIdx(idx);
+    setSecDropIdx(idx);
+
+    const onMove = (ev: PointerEvent) => {
+      if (!secDragRef.current) return;
+      const { startY, rowHeight, total, idx: fromIdx } = secDragRef.current;
+      const delta = ev.clientY - startY;
+      const rawDrop = fromIdx + Math.round(delta / rowHeight);
+      setSecDropIdx(Math.max(0, Math.min(total - 1, rawDrop)));
+    };
+
+    const onUp = () => {
+      if (secDragRef.current !== null) {
+        const { idx: fromIdx } = secDragRef.current;
+        setSecDropIdx(prev => {
+          if (prev !== null && prev !== fromIdx) {
+            const updated = [...sections];
+            const [moved] = updated.splice(fromIdx, 1);
+            updated.splice(prev, 0, moved);
+            updateSections(updated);
+          }
+          return null;
+        });
+      }
+      secDragRef.current = null;
+      setSecDragIdx(null);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
   useEffect(() => {
     if (!teamId) return;
     api.fetchExercises().then(setExercises).catch(() => {});
@@ -1559,14 +1608,6 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
 
   function removeSection(idx: number) {
     updateSections(sections.filter((_, i) => i !== idx));
-  }
-
-  function moveSection(idx: number, dir: -1 | 1) {
-    const updated = [...sections];
-    const other = idx + dir;
-    if (other < 0 || other >= updated.length) return;
-    [updated[idx], updated[other]] = [updated[other], updated[idx]];
-    updateSections(updated);
   }
 
   function updateSection(idx: number, patch: Partial<Section>) {
@@ -1653,35 +1694,43 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
       <DurationBar sections={sections} training={training} />
 
       {/* Sektioner */}
-      <div style={{ padding: '12px 12px 16px' }}>
+      <div style={{ padding: '12px 12px 16px' }} ref={sectionListRef}>
         {sections.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text3)', fontSize: 14 }}>
             Ingen sektioner — klik "+ Sektion" for at begynde.
           </div>
-        ) : sections.map((sec, idx) => {
-          const st = sectionTypes.find(t => t.id === sec.type);
-          return (
-            <SectionBlock
-              key={sec.id}
-              section={sec}
-              sectionType={st}
-              sectionIndex={idx + 1}
-              totalSections={sections.length}
-              exercises={exercises}
-              canEdit={canEdit}
-              teamId={teamId}
-              onUpdate={patch => updateSection(idx, patch)}
-              onRemove={() => removeSection(idx)}
-              onMoveUp={() => moveSection(idx, -1)}
-              onMoveDown={() => moveSection(idx, 1)}
-              onToggleDone={exIdx => toggleDone(idx, exIdx)}
-              onToast={setToast}
-              onAISuggest={onAISectionIndex ? () => onAISectionIndex(idx) : undefined}
-              onNewExercise={ex => setExercises(prev => [...prev, ex])}
-              onExerciseUpdated={updated => setExercises(prev => prev.map(e => e.id === updated.id ? updated : e))}
-            />
-          );
-        })}
+        ) : (() => {
+          // Build display order with drag preview
+          const displayList = [...sections.map((sec, i) => ({ sec, origIdx: i }))];
+          if (secDragIdx !== null && secDropIdx !== null && secDragIdx !== secDropIdx) {
+            const [removed] = displayList.splice(secDragIdx, 1);
+            displayList.splice(secDropIdx, 0, removed);
+          }
+          return displayList.map(({ sec, origIdx }, displayIdx) => {
+            const st = sectionTypes.find(t => t.id === sec.type);
+            const isDragging = origIdx === secDragIdx;
+            return (
+              <SectionBlock
+                key={sec.id}
+                section={sec}
+                sectionType={st}
+                sectionIndex={displayIdx + 1}
+                exercises={exercises}
+                canEdit={canEdit}
+                teamId={teamId}
+                isDragging={isDragging}
+                onUpdate={patch => updateSection(origIdx, patch)}
+                onRemove={() => removeSection(origIdx)}
+                onDragHandlePointerDown={e => handleSectionDragStart(origIdx, e)}
+                onToggleDone={exIdx => toggleDone(origIdx, exIdx)}
+                onToast={setToast}
+                onAISuggest={onAISectionIndex ? () => onAISectionIndex(origIdx) : undefined}
+                onNewExercise={ex => setExercises(prev => [...prev, ex])}
+                onExerciseUpdated={updated => setExercises(prev => prev.map(e => e.id === updated.id ? updated : e))}
+              />
+            );
+          });
+        })()}
       </div>
 
       {showAddSection && (
