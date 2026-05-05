@@ -212,7 +212,18 @@ export default function TrainingEditor() {
   const [training, setTraining] = useState<Training | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [headerOpen, setHeaderOpen] = useState(true);
+  const [headerOpen, setHeaderOpen] = useState(() => {
+    const stored = localStorage.getItem('training_header_open');
+    return stored === null ? true : stored === '1';
+  });
+
+  function toggleHeader() {
+    setHeaderOpen(o => {
+      const next = !o;
+      localStorage.setItem('training_header_open', next ? '1' : '0');
+      return next;
+    });
+  }
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showAISuggest, setShowAISuggest] = useState(false);
   const [aiSectionIndex, setAiSectionIndex] = useState<number | null>(null);
@@ -458,7 +469,7 @@ export default function TrainingEditor() {
             padding: '14px 20px', cursor: 'pointer',
             borderBottom: headerOpen ? '1px solid var(--border)' : 'none',
           }}
-          onClick={() => setHeaderOpen(o => !o)}
+          onClick={toggleHeader}
         >
           <div style={{ flex: 1 }}>
             <h1 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
