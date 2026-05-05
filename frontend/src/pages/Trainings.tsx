@@ -58,9 +58,11 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
   if (dur) timeParts.push(`${dur} min`);
 
   // Linje 3: sted + fornavn på ansvarlig
+  const locationPart = training.location || '';
+  const leadPart = training.lead_trainer ? training.lead_trainer.split(' ')[0] : '';
   const line3Parts: string[] = [];
-  if (training.location) line3Parts.push(training.location);
-  if (training.lead_trainer) line3Parts.push(training.lead_trainer.split(' ')[0]);
+  if (locationPart) line3Parts.push(locationPart);
+  if (leadPart) line3Parts.push(leadPart);
 
   return (
     <div
@@ -104,7 +106,13 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
             fontSize: 12, color: 'var(--text2)', marginTop: 1,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            {line3Parts.join(' · ')}
+            {locationPart && leadPart ? (
+              <>{locationPart} · <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{leadPart}</span></>
+            ) : locationPart ? (
+              locationPart
+            ) : (
+              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{leadPart}</span>
+            )}
           </div>
         )}
         {/* Linje 4: tema-pills */}
