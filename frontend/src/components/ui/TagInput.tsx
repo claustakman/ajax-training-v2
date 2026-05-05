@@ -132,7 +132,7 @@ export default function TagInput({ value, onChange, allTags, placeholder = 'Tilf
           placeholder={value.length === 0 ? placeholder : ''}
           style={{
             border: 'none', outline: 'none', background: 'transparent',
-            fontSize: 13, color: 'var(--text)', flexGrow: 1, minWidth: 80,
+            fontSize: 16, color: 'var(--text)', flexGrow: 1, minWidth: 80,
             padding: '2px 0',
           }}
         />
