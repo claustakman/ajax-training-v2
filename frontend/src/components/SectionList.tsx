@@ -742,18 +742,16 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
-  onToggleDone, onMoveUp, onMoveDown, onDelete, onClickName, onUpdate, onNewExercise,
+function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDragHandlePointerDown,
+  onToggleDone, onDelete, onClickName, onUpdate, onNewExercise,
 }: {
   ex: SectionExercise;
   exerciseDef: Exercise | undefined;
   sectionColor: string;
   canEdit: boolean;
-  isFirst: boolean;
-  isLast: boolean;
+  isDragging?: boolean;
+  onDragHandlePointerDown?: (e: React.PointerEvent) => void;
   onToggleDone: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onDelete: () => void;
   onClickName: () => void;
   onUpdate: (patch: Partial<SectionExercise>) => void;
@@ -762,17 +760,32 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
   const [showSaveToCatalog, setShowSaveToCatalog] = useState(false);
   const isFree = !ex.id;
   const displayName = ex.customName || exerciseDef?.name || ex.id || '—';
-  const tags = exerciseDef?.tags ?? [];
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: 8,
-      padding: '9px 16px', borderRadius: 6,
-      background: 'var(--bg-input)', border: '1px solid var(--border)',
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '9px 12px', borderRadius: 6,
+      background: isDragging ? 'var(--accent-light)' : 'var(--bg-input)',
+      border: isDragging ? '1px solid var(--accent)' : '1px solid var(--border)',
       marginBottom: 5,
       opacity: ex.done ? 0.5 : 1,
-      transition: 'opacity 0.15s',
+      transition: 'opacity 0.15s, background 0.1s, border-color 0.1s',
+      userSelect: 'none',
     }}>
+      {/* Drag handle */}
+      {canEdit && (
+        <span
+          onPointerDown={onDragHandlePointerDown}
+          style={{
+            fontSize: 18, color: 'var(--text3)', flexShrink: 0,
+            cursor: 'grab', touchAction: 'none',
+            lineHeight: 1, padding: '4px 2px',
+            userSelect: 'none',
+          }}
+          title="Træk for at flytte"
+        >⠿</span>
+      )}
+
       {/* Cirkel-afkrydsning */}
       <button
         onClick={onToggleDone}
@@ -781,21 +794,13 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
           border: ex.done ? 'none' : '2px solid var(--border2)',
           background: ex.done ? sectionColor : 'transparent',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, color: '#fff', marginTop: 1,
+          fontSize: 13, color: '#fff',
           transition: 'background 0.15s, border-color 0.15s',
         }}
         aria-label="Afkryds øvelse"
       >{ex.done ? '✓' : ''}</button>
 
-      {/* Op/ned */}
-      {canEdit && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
-          <button onClick={onMoveUp} disabled={isFirst} style={{ ...btnGhost, padding: '1px 5px', fontSize: 11, opacity: isFirst ? 0.25 : 1 }}>▲</button>
-          <button onClick={onMoveDown} disabled={isLast} style={{ ...btnGhost, padding: '1px 5px', fontSize: 11, opacity: isLast ? 0.25 : 1 }}>▼</button>
-        </div>
-      )}
-
-      {/* Navn + tags */}
+      {/* Navn */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {isFree && canEdit ? (
           <input
@@ -814,16 +819,6 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isFirst, isLast,
               cursor: !isFree ? 'pointer' : 'default',
             }}
           >{displayName}</span>
-        )}
-        {tags.length > 0 && !ex.done && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-            {tags.slice(0, 4).map(t => (
-              <span key={t} style={{
-                fontSize: 11, background: 'var(--bg-input)', border: '1px solid var(--border)',
-                borderRadius: 20, padding: '1px 7px', color: 'var(--text2)',
-              }}>{t}</span>
-            ))}
-          </div>
         )}
       </div>
 
@@ -904,6 +899,12 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
   const [collapsed, setCollapsed] = useState(false);
   const [showLoadSection, setShowLoadSection] = useState(false);
 
+  // Drag-and-drop state for exercises
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dropIdx, setDropIdx] = useState<number | null>(null);
+  const dragNodeRef = useRef<{ startY: number; rowHeight: number; total: number; idx: number } | null>(null);
+  const exerciseListRef = useRef<HTMLDivElement>(null);
+
   const color = sectionType?.color ?? '#6b6b6b';
   const label = sectionType?.label ?? section.type;
   const exList = section.exercises ?? [];
@@ -924,14 +925,6 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
     onUpdate({ exercises: exList.filter((_, i) => i !== idx) });
   }
 
-  function moveExercise(idx: number, dir: -1 | 1) {
-    const exs = [...exList];
-    const other = idx + dir;
-    if (other < 0 || other >= exs.length) return;
-    [exs[idx], exs[other]] = [exs[other], exs[idx]];
-    onUpdate({ exercises: exs });
-  }
-
   function addExercise(ex: Exercise) {
     const usedMins = exList.reduce((s, e) => s + (e.mins || 0), 0);
     const remaining = section.mins - usedMins;
@@ -943,6 +936,46 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
       done: false,
     };
     onUpdate({ exercises: [...exList, newEx] });
+  }
+
+  function handleDragStart(idx: number, e: React.PointerEvent) {
+    if (!canEdit) return;
+    e.preventDefault();
+    const container = exerciseListRef.current;
+    const rowHeight = container ? (container.scrollHeight / Math.max(exList.length, 1)) : 52;
+    dragNodeRef.current = { startY: e.clientY, rowHeight, total: exList.length, idx };
+    setDragIdx(idx);
+    setDropIdx(idx);
+
+    const onMove = (ev: PointerEvent) => {
+      if (!dragNodeRef.current) return;
+      const { startY, rowHeight, total, idx: fromIdx } = dragNodeRef.current;
+      const delta = ev.clientY - startY;
+      const rawDrop = fromIdx + Math.round(delta / rowHeight);
+      setDropIdx(Math.max(0, Math.min(total - 1, rawDrop)));
+    };
+
+    const onUp = () => {
+      if (dragNodeRef.current !== null) {
+        const { idx: fromIdx } = dragNodeRef.current;
+        setDropIdx(prev => {
+          if (prev !== null && prev !== fromIdx) {
+            const exs = [...exList];
+            const [moved] = exs.splice(fromIdx, 1);
+            exs.splice(prev, 0, moved);
+            onUpdate({ exercises: exs });
+          }
+          return null;
+        });
+      }
+      dragNodeRef.current = null;
+      setDragIdx(null);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   }
 
   const alreadyAddedIds = exList.filter(e => !!e.id).map(e => e.id!);
@@ -1098,29 +1131,38 @@ function SectionBlock({ section, sectionType, sectionIndex, totalSections, exerc
             </div>
           )}
 
-          {exList.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text3)', margin: '4px 0', textAlign: 'center' }}>Ingen øvelser</p>
-          ) : exList.map((ex, idx) => {
-            const exDef = exercises.find(e => e.id === ex.id);
-            return (
-              <ExerciseRow
-                key={idx}
-                ex={ex}
-                exerciseDef={exDef}
-                sectionColor={color}
-                canEdit={canEdit}
-                isFirst={idx === 0}
-                isLast={idx === exList.length - 1}
-                onToggleDone={() => onToggleDone(idx)}
-                onMoveUp={() => moveExercise(idx, -1)}
-                onMoveDown={() => moveExercise(idx, 1)}
-                onDelete={() => removeExercise(idx)}
-                onClickName={() => exDef && setDetailEx(exDef)}
-                onUpdate={patch => updateExercise(idx, patch)}
-                onNewExercise={onNewExercise}
-              />
-            );
-          })}
+          <div ref={exerciseListRef}>
+            {exList.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--text3)', margin: '4px 0', textAlign: 'center' }}>Ingen øvelser</p>
+            ) : (() => {
+              // Build display order: show drop indicator by reordering visually
+              const displayList = [...exList.map((ex, i) => ({ ex, origIdx: i }))];
+              if (dragIdx !== null && dropIdx !== null && dragIdx !== dropIdx) {
+                const [removed] = displayList.splice(dragIdx, 1);
+                displayList.splice(dropIdx, 0, removed);
+              }
+              return displayList.map(({ ex, origIdx }) => {
+                const exDef = exercises.find(e => e.id === ex.id);
+                const isDragging = origIdx === dragIdx;
+                return (
+                  <ExerciseRow
+                    key={origIdx}
+                    ex={ex}
+                    exerciseDef={exDef}
+                    sectionColor={color}
+                    canEdit={canEdit}
+                    isDragging={isDragging}
+                    onDragHandlePointerDown={e => handleDragStart(origIdx, e)}
+                    onToggleDone={() => onToggleDone(origIdx)}
+                    onDelete={() => removeExercise(origIdx)}
+                    onClickName={() => exDef && setDetailEx(exDef)}
+                    onUpdate={patch => updateExercise(origIdx, patch)}
+                    onNewExercise={onNewExercise}
+                  />
+                );
+              });
+            })()}
+          </div>
         </div>
       )}
 
