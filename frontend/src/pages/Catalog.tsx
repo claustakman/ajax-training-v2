@@ -403,10 +403,10 @@ function ExerciseCard({ ex, isExpanded, onToggle, canEdit, onEdit }: {
               <span style={{ fontSize: 11, color: 'var(--yellow)', letterSpacing: 1 }}>{'★'.repeat(Math.min(ex.stars, 5))}</span>
             )}
             {ex.tags.slice(0, 4).map(tag => (
-              <span key={tag} style={{ padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: 'var(--bg-input)', color: 'var(--text2)' }}>{tag}</span>
+              <span key={tag} style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 500, background: 'var(--bg-input)', color: 'var(--text2)' }}>{tag}</span>
             ))}
             {ex.age_groups.length > 0 && (
-              <span style={{ padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: 'var(--accent-light)', color: 'var(--accent)' }}>{ex.age_groups.join('/')}</span>
+              <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 500, background: 'var(--accent-light)', color: 'var(--accent)' }}>{ex.age_groups.join('/')}</span>
             )}
           </div>
         </div>

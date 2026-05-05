@@ -101,7 +101,7 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
         {/* Linje 3: sted + ansvarlig */}
         {line3Parts.length > 0 && (
           <div style={{
-            fontSize: 12, color: 'var(--text3)', marginTop: 1,
+            fontSize: 12, color: 'var(--text2)', marginTop: 1,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {line3Parts.join(' · ')}
@@ -122,7 +122,7 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
         {mins > 0 && (
-          <span style={{ fontSize: 12, color: 'var(--text3)' }}>{mins} min plan</span>
+          <span style={{ fontSize: 12, color: 'var(--text2)' }}>{mins} min plan</span>
         )}
         {training.stars > 0 && (
           <span style={{ fontSize: 13, color: '#f59e0b' }}>{'★'.repeat(training.stars)}</span>

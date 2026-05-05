@@ -101,14 +101,14 @@ function MobileCard({
             <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>{meta.join(' · ')}</div>
           )}
           {training.focus_points && (
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {training.focus_points}
             </div>
           )}
           {(training.themes?.length ?? 0) > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
               {training.themes!.slice(0, 3).map(th => (
-                <span key={th} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--bg-input)', borderRadius: 20, padding: '1px 7px', border: '1px solid var(--border)' }}>{th}</span>
+                <span key={th} style={{ fontSize: 11, color: 'var(--text2)', background: 'var(--bg-input)', borderRadius: 20, padding: '1px 7px', border: '1px solid var(--border)' }}>{th}</span>
               ))}
             </div>
           )}

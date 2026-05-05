@@ -243,7 +243,7 @@ function SkabelonerSection({ teamId, sectionTypes }: {
         <button style={tabStyle(tab === 'training')} onClick={() => setTab('training')}>
           Fulde træninger
           {trainingTemplates.length > 0 && (
-            <span style={{ marginLeft: 6, background: tab === 'training' ? 'rgba(255,255,255,0.25)' : 'var(--accent-light)', color: tab === 'training' ? '#fff' : 'var(--accent)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
+            <span style={{ marginLeft: 6, background: tab === 'training' ? 'rgba(255,255,255,0.25)' : 'var(--accent-light)', color: tab === 'training' ? '#fff' : 'var(--accent)', borderRadius: 20, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
               {trainingTemplates.length}
             </span>
           )}
@@ -251,7 +251,7 @@ function SkabelonerSection({ teamId, sectionTypes }: {
         <button style={tabStyle(tab === 'section')} onClick={() => setTab('section')}>
           Sektioner
           {sectionTemplates.length > 0 && (
-            <span style={{ marginLeft: 6, background: tab === 'section' ? 'rgba(255,255,255,0.25)' : 'var(--accent-light)', color: tab === 'section' ? '#fff' : 'var(--accent)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
+            <span style={{ marginLeft: 6, background: tab === 'section' ? 'rgba(255,255,255,0.25)' : 'var(--accent-light)', color: tab === 'section' ? '#fff' : 'var(--accent)', borderRadius: 20, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
               {sectionTemplates.length}
             </span>
           )}

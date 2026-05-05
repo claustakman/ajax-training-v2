@@ -109,6 +109,16 @@ a {
     max-height: 92dvh !important;
     width: 100% !important;
     max-width: 100% !important;
+    position: relative;
+  }
+  .modal-sheet::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin: 12px auto 0;
   }
 }
 
