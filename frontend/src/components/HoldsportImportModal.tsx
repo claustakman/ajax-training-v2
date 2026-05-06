@@ -139,6 +139,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   // Allerede importerede holdsport_id'er
   const importedIds = new Set(
@@ -228,6 +229,8 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   function deselectAll() { setSelected(new Set()); }
 
   async function handleImport() {
+    if (importing) return;
+    setImporting(true);
     const pickedActivities = activities.filter(a => selected.has(String(a.id)));
     const result: Partial<Training>[] = [];
 
@@ -245,6 +248,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
       result.push(mapActivity(detailed, teamId, appTrainerNames));
     }
     onImport(result);
+    setImporting(false);
   }
 
   const selectedCount = [...selected].filter(id => !importedIds.has(id)).length;
@@ -470,10 +474,10 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
               </button>
               <button
                 onClick={handleImport}
-                disabled={selectedCount === 0}
-                style={{ ...btnPrimary, opacity: selectedCount === 0 ? 0.4 : 1, cursor: selectedCount === 0 ? 'not-allowed' : 'pointer' }}
+                disabled={selectedCount === 0 || importing}
+                style={{ ...btnPrimary, opacity: selectedCount === 0 || importing ? 0.6 : 1, cursor: selectedCount === 0 || importing ? 'not-allowed' : 'pointer' }}
               >
-                Importer {selectedCount > 0 ? `${selectedCount} valgte` : ''}
+                {importing ? '⏳ Henter detaljer…' : `Importer ${selectedCount > 0 ? `${selectedCount} valgte` : ''}`}
               </button>
             </>
           )}
