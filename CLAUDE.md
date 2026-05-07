@@ -199,6 +199,35 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **`Catalog.tsx`** — FAB (+) knap erstatter "+ Ny øvelse" i headeren
 - Tag `'streg'` tilføjet til øvelseskatalog; tag `'overgang'` tilføjet til øvelser med overgang i navn
 
+### Session 11 — Bugfixes + UI-polish
+
+#### Ansvarlig træner fremhævet på træningskort
+- **`Trainings.tsx`** — lead_trainer-fornavn vises nu i rød (`var(--accent)`) + fed på træningskort (linje 3)
+- Sted forbliver grå — kun trænernavn fremhæves
+
+#### Holdsport import — dobbeltklik-beskyttelse
+- **`HoldsportImportModal.tsx`** — `importing` state tilføjet
+  - Importknap disabled + `cursor: not-allowed` mens import kører
+  - Tekst skifter til "⏳ Henter detaljer…" under import
+  - Forhindrer duplet-træninger ved langsom respons + utålmodige klik
+
+#### Board — CORS-fix for vedhæftninger
+- **`worker/src/index.ts`** — `X-Filename` tilføjet til `allowHeaders` i CORS-konfiguration
+  - Attachment-upload fejlede med `Access-Control-Allow-Headers`-fejl
+  - Opslag blev gemt men uden vedhæftning
+
+#### Board — auto-link bare domæner
+- **`BoardPostCard.tsx` `renderBody`** — regex udvidet til at matche bare domæner uden protokol
+  - `BODY_TOKEN_RE` matcher nu `docs.google.com/...`, `ajax-traening.pages.dev` osv.
+  - Bare domæner får `https://` prepended som `href`
+  - TLD-liste: `com|dk|org|net|io|dev|app|co|eu|uk|no|se|de|fr`
+
+#### Navigation — Årshjul omdøbt til Temaer + rækkefølge
+- **`Layout.tsx`** — "Årshjul" → "Temaer" i desktop-nav, bundnav og hamburger-menu
+- Desktop-nav ny rækkefølge: **Træning · Katalog · Temaer · Tavle** (Temaer rykket før Tavle)
+- **`Aarshjul.tsx`** — sidetitel opdateret til "Temaer"
+- URL `/aarshjul` uændret
+
 ### Session 7 — Opslagstavle (Board)
 - **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
 - **`worker/src/routes/board.ts`** — fuld CRUD: opslag, kommentarer, vedhæftninger, pin/arkiv, soft delete, unread-badge
@@ -227,7 +256,7 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **`frontend/src/components/Layout.tsx`** — opdateringer
   - Ulæst-badge (rød prik) ved Tavle i bundnav og desktop-nav
   - `refetchInterval: 60_000` på unread-query
-  - Desktop nav: **Træning | Katalog | Tavle | Årshjul** (Tavle rykket frem, Årshjul sidst)
+  - Desktop nav: **Træning | Katalog | Temaer | Tavle** (Temaer før Tavle — se Session 11)
   - Mobil bundnav: **Træning | Katalog | Tavle | ☰** (uændret)
 
 ---
@@ -359,10 +388,10 @@ Inline CSS via React `style`-props og CSS-variabler. **Ingen Tailwind.**
 
 ### Navigation
 - **Topbar** (desktop): Logo + nav-tabs + hold-switcher (hvis > 1 hold) + hamburger-menu
-  - Nav-tabs desktop: **Træning · Katalog · Tavle · Årshjul** (Tavle med rød ulæst-prik)
+  - Nav-tabs desktop: **Træning · Katalog · Temaer · Tavle** (Tavle med rød ulæst-prik)
 - **Bundnav** (mobil): **Træning · Katalog · Tavle · ☰ Mere** — hamburger i topbar skjult på mobil (`display: none !important`)
   - Tavle-ikonet i bundnav har rød ulæst-prik (8px cirkel med border)
-- **Mere-panel rækkefølge (faktisk implementeret):** Årshjul · Arkiv · Tavle *(med ulæst-prik)* · Holdindstillinger *(team_manager+)* · Brugere *(team_manager+)* · Admin *(admin)* · **Profil** · Skift hold · Log ud
+- **Mere-panel rækkefølge (faktisk implementeret):** Temaer · Arkiv · Tavle *(med ulæst-prik)* · Holdindstillinger *(team_manager+)* · Brugere *(team_manager+)* · Admin *(admin)* · **Profil** · Skift hold · Log ud
 - På mobil åbner Mere-panelet **nedefra** (over bundnav, `border-radius: 16px 16px 0 0`)
 - På desktop åbner det som dropdown fra topbar (højre side, `border-radius: 12px`)
 - Topbar: `border-bottom: 3px solid var(--accent)`
