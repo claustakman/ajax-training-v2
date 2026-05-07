@@ -38,8 +38,8 @@ function initials(name: string): string {
 
 // ─── Render @-mentions + auto-links ──────────────────────────────────────────
 
-// Matcher @-mentions og URLs (http/https/www) i ét pass
-const BODY_TOKEN_RE = /(@\w[\w\s]*|https?:\/\/[^\s]+|www\.[^\s]+)/g;
+// Matcher @-mentions og URLs (http/https/www/bare domæner) i ét pass
+const BODY_TOKEN_RE = /(@\w[\w\s]*|https?:\/\/[^\s]+|www\.[^\s]+|(?:[a-zA-Z0-9-]+\.)+(?:com|dk|org|net|io|dev|app|co|eu|uk|no|se|de|fr)[^\s]*)/g;
 
 function renderBody(text: string, currentUser: AuthUser): React.ReactNode[] {
   const parts = text.split(BODY_TOKEN_RE);
@@ -57,9 +57,11 @@ function renderBody(text: string, currentUser: AuthUser): React.ReactNode[] {
         </span>
       );
     }
-    // URL
-    if (part.startsWith('http://') || part.startsWith('https://') || part.startsWith('www.')) {
-      const href = part.startsWith('www.') ? `https://${part}` : part;
+    // URL (med eller uden protokol)
+    const isUrl = part.startsWith('http://') || part.startsWith('https://') || part.startsWith('www.')
+      || /^(?:[a-zA-Z0-9-]+\.)+(?:com|dk|org|net|io|dev|app|co|eu|uk|no|se|de|fr)/.test(part);
+    if (isUrl) {
+      const href = part.startsWith('http') ? part : `https://${part}`;
       // Vis kort label: fjern protokol og trailing slash
       const label = part.replace(/^https?:\/\//, '').replace(/\/$/, '');
       return (
