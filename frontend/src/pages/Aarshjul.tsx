@@ -118,7 +118,7 @@ export default function Aarshjul() {
   if (loading) {
     return (
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
-        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 20px' }}>Årshjul</h1>
+        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 20px' }}>Temaer</h1>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
           {QUARTER_CONFIG.map(q => (
             <div key={q.quarter} style={{
@@ -138,7 +138,7 @@ export default function Aarshjul() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: 0 }}>Årshjul</h1>
+        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: 0 }}>Temaer</h1>
         {!canEdit && (
           <span style={{ fontSize: 13, color: 'var(--text3)', background: 'var(--bg-input)', padding: '6px 12px', borderRadius: 20 }}>
             Kun visning

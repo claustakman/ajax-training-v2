@@ -9,8 +9,8 @@ import type { Team } from '../lib/auth';
 const NAV_ITEMS = [
   { to: '/',         label: 'Træning', icon: '📋' },
   { to: '/katalog',  label: 'Katalog', icon: '📚' },
+  { to: '/aarshjul', label: 'Temaer',  icon: '📅' },
   { to: '/tavle',    label: 'Tavle',   icon: '📌', showUnread: true },
-  { to: '/aarshjul', label: 'Årshjul', icon: '📅' },
 ];
 
 // Mobil bundnav — kun tre punkter + hamburger
@@ -173,8 +173,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             minWidth: 200,
             overflow: 'hidden',
           }} className="menu-dropdown">
-            {/* Årshjul: kun mobil (desktop har det i topbar) */}
-            <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)} className="mobile-only-item">Årshjul</MenuItem>
+            {/* Temaer: kun mobil (desktop har det i topbar) */}
+            <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)} className="mobile-only-item">Temaer</MenuItem>
             {/* Arkiv: altid synlig */}
             <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
