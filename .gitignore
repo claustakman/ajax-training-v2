@@ -22,3 +22,6 @@ worker/.dev.vars
 
 # Logs
 *.log
+
+# Database backups (lokale — commit ikke)
+backups/
