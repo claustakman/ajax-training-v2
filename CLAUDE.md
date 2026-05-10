@@ -228,6 +228,17 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **`Aarshjul.tsx`** — sidetitel opdateret til "Temaer"
 - URL `/aarshjul` uændret
 
+#### Database-backup
+- **`scripts/backup-db.py`** — eksporterer alle tabeller som JSON til `backups/`
+  - Henter: teams, users (uden password_hash), user_teams, trainings, exercises, quarters, section_types, templates, board_posts, board_comments, board_attachments
+  - Kør manuelt: `python3 scripts/backup-db.py`
+  - Output: `backups/backup_YYYYMMDD_HHMMSS.json`
+- **`.github/workflows/backup.yml`** — automatisk ugentlig backup via GitHub Actions
+  - Kører hver søndag kl. 03:00 UTC (+ manuelt via "Run workflow")
+  - Uploader backup som artifact med 90 dages retention
+  - Bruger `CLOUDFLARE_API_TOKEN` secret (samme som deploy)
+- **`.gitignore`** — `backups/` tilføjet så lokale backup-filer ikke committes
+
 ### Session 7 — Opslagstavle (Board)
 - **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
 - **`worker/src/routes/board.ts`** — fuld CRUD: opslag, kommentarer, vedhæftninger, pin/arkiv, soft delete, unread-badge
