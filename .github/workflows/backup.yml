@@ -1,0 +1,36 @@
+name: Weekly Database Backup
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Hver søndag kl. 03:00 UTC
+  workflow_dispatch:       # Kan også køres manuelt fra GitHub
+
+jobs:
+  backup:
+    name: Export D1 to JSON
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install worker dependencies
+        run: npm ci
+        working-directory: worker
+
+      - name: Run backup script
+        run: python3 scripts/backup-db.py
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Upload backup as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: backups/
+          retention-days: 90
