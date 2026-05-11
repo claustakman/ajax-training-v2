@@ -655,6 +655,7 @@ export default function TrainingEditor() {
         onAIWholeTraining={() => setShowAISuggest(true)}
         onAISectionIndex={setAiSectionIndex}
         sectionTypes={sectionTypes}
+        teamAgeGroup={user?.teams.find(t => t.id === currentTeamId)?.age_group}
       />
 
       {/* ── Gem skabelon modal ── */}

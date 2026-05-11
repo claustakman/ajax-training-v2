@@ -1531,7 +1531,7 @@ function MiniToast({ message, onDone }: { message: string; onDone: () => void })
   );
 }
 
-export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWholeTraining, onAISectionIndex, sectionTypes = [] }: {
+export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWholeTraining, onAISectionIndex, sectionTypes = [], teamAgeGroup }: {
   training: Training;
   canEdit: boolean;
   onUpdate: (patch: Partial<Training>) => void;
@@ -1539,6 +1539,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
   onAIWholeTraining?: () => void;
   onAISectionIndex?: (idx: number) => void;
   sectionTypes?: SectionType[];
+  teamAgeGroup?: string;
 }) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [showAddSection, setShowAddSection] = useState(false);
@@ -1593,8 +1594,9 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
 
   useEffect(() => {
     if (!teamId) return;
-    api.fetchExercises().then(setExercises).catch(() => {});
-  }, [teamId]);
+    const params = teamAgeGroup ? { age_group: teamAgeGroup } : undefined;
+    api.fetchExercises(params).then(setExercises).catch(() => {});
+  }, [teamId, teamAgeGroup]);
 
   const sections = training.sections ?? [];
 

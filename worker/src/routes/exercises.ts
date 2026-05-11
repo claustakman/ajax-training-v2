@@ -39,7 +39,8 @@ exerciseRoutes.get('/', requireAuth(), async (c) => {
   const params: unknown[] = [];
 
   if (catalog) { query += ' AND catalog = ?'; params.push(catalog); }
-  if (ageGroup) { query += " AND age_groups LIKE ?"; params.push(`%"${ageGroup}"%`); }
+  // Vis øvelser der matcher aldersgruppen ELLER ikke har nogen aldersgruppe sat (tom liste = for alle)
+  if (ageGroup) { query += " AND (age_groups LIKE ? OR age_groups = '[]')"; params.push(`%"${ageGroup}"%`); }
   query += ' ORDER BY name';
 
   const rows = await c.env.DB.prepare(query).bind(...params).all();
