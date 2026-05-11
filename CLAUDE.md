@@ -229,15 +229,23 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - URL `/aarshjul` uændret
 
 #### Database-backup
-- **`scripts/backup-db.py`** — eksporterer alle tabeller som JSON til `backups/`
+- **`scripts/backup-db.sh`** — eksporterer alle tabeller som JSON til `backups/`
   - Henter: teams, users (uden password_hash), user_teams, trainings, exercises, quarters, section_types, templates, board_posts, board_comments, board_attachments
-  - Kør manuelt: `python3 scripts/backup-db.py`
-  - Output: `backups/backup_YYYYMMDD_HHMMSS.json`
+  - Kør manuelt fra projektrod: `bash scripts/backup-db.sh`
+  - Output: `backups/backup_YYYYMMDD_HHMMSS.json` med statistik-udskrift
 - **`.github/workflows/backup.yml`** — automatisk ugentlig backup via GitHub Actions
   - Kører hver søndag kl. 03:00 UTC (+ manuelt via "Run workflow")
   - Uploader backup som artifact med 90 dages retention
   - Bruger `CLOUDFLARE_API_TOKEN` secret (samme som deploy)
 - **`.gitignore`** — `backups/` tilføjet så lokale backup-filer ikke committes
+
+#### Øvelsespicker — aldersgruppe-filter
+- **`SectionList.tsx`** — `teamAgeGroup` prop tilføjet; `fetchExercises` kaldes med `age_group=X`
+- **`TrainingEditor.tsx`** — sender `teamAgeGroup` fra `user.teams.find(t => t.id === currentTeamId)?.age_group`
+- **`worker/src/routes/exercises.ts`** — `age_group`-filter udvides: `age_groups LIKE ? OR age_groups = '[]'`
+  - Øvelser med tom aldersgruppe-liste vises for alle hold (gælder alle aldre)
+  - Øvelser med aldersgruppe-tags vises kun for matchende hold
+- Katalog (`Catalog.tsx`) henter stadig alle øvelser ufiltreret
 
 ### Session 7 — Opslagstavle (Board)
 - **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
