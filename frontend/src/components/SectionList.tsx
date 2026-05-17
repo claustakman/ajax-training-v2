@@ -770,13 +770,15 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
       {/* Drag handle */}
       {canEdit && (
         <span
-          onPointerDown={onDragHandlePointerDown}
+          onPointerDown={e => { e.preventDefault(); onDragHandlePointerDown?.(e); }}
           style={{
             fontSize: 18, color: 'var(--text3)', flexShrink: 0,
             cursor: 'grab', touchAction: 'none',
             lineHeight: 1, padding: '4px 2px',
             userSelect: 'none',
-          }}
+            WebkitUserSelect: 'none',
+            WebkitTouchCallout: 'none',
+          } as React.CSSProperties}
           title="Træk for at flytte"
         >⠿</span>
       )}
@@ -995,13 +997,15 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
         {/* Drag handle */}
         {canEdit && (
           <span
-            onPointerDown={e => { e.stopPropagation(); onDragHandlePointerDown?.(e); }}
+            onPointerDown={e => { e.preventDefault(); e.stopPropagation(); onDragHandlePointerDown?.(e); }}
             style={{
               fontSize: 20, color: 'var(--text3)', flexShrink: 0,
               cursor: 'grab', touchAction: 'none',
               lineHeight: 1, padding: '4px 3px',
               userSelect: 'none',
-            }}
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+            } as React.CSSProperties}
             title="Træk for at flytte sektion"
           >⠿</span>
         )}
