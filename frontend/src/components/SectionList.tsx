@@ -404,14 +404,9 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
     };
   }, []);
 
-  const stTags = sectionType.tags ?? [];
+  const allTags = Array.from(new Set(exercises.flatMap(ex => ex.tags ?? []))).sort();
 
-  const relevantExercises = exercises.filter(ex =>
-    stTags.length === 0 || stTags.some(t => (ex.tags ?? []).includes(t))
-  );
-  const allTags = Array.from(new Set(relevantExercises.flatMap(ex => ex.tags ?? []))).sort();
-
-  const filtered = relevantExercises.filter(ex => {
+  const filtered = exercises.filter(ex => {
     const matchSearch = !search || ex.name.toLowerCase().includes(search.toLowerCase());
     const matchTags = activeTags.length === 0 || activeTags.every(t => (ex.tags ?? []).includes(t));
     return matchSearch && matchTags;
