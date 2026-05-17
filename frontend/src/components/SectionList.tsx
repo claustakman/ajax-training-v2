@@ -737,7 +737,7 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDragHandlePointerDown,
+function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDragStart,
   onToggleDone, onDelete, onClickName, onUpdate, onNewExercise,
 }: {
   ex: SectionExercise;
@@ -745,7 +745,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
   sectionColor: string;
   canEdit: boolean;
   isDragging?: boolean;
-  onDragHandlePointerDown?: (e: React.PointerEvent) => void;
+  onDragStart?: (startY: number) => void;
   onToggleDone: () => void;
   onDelete: () => void;
   onClickName: () => void;
@@ -770,8 +770,8 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
       {/* Drag handle */}
       {canEdit && (
         <span
-          onPointerDown={onDragHandlePointerDown}
-          onTouchStart={e => e.preventDefault()}
+          onPointerDown={e => { if (e.pointerType !== 'touch') onDragStart?.(e.clientY); }}
+          onTouchStart={e => { e.preventDefault(); e.stopPropagation(); onDragStart?.(e.touches[0].clientY); }}
           style={{
             fontSize: 18, color: 'var(--text3)', flexShrink: 0,
             cursor: 'grab', touchAction: 'none',
@@ -873,7 +873,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
 function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, teamId, isDragging,
-  onUpdate, onRemove, onDragHandlePointerDown, onToggleDone, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
+  onUpdate, onRemove, onDragStart, onToggleDone, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
 }: {
   section: Section;
   sectionType: SectionType | undefined;
@@ -884,7 +884,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
   isDragging?: boolean;
   onUpdate: (patch: Partial<Section>) => void;
   onRemove: () => void;
-  onDragHandlePointerDown?: (e: React.PointerEvent) => void;
+  onDragStart?: (startY: number) => void;
   onToggleDone: (exerciseIdx: number) => void;
   onToast: (msg: string) => void;
   onAISuggest?: () => void;
@@ -935,24 +935,23 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
     onUpdate({ exercises: [...exList, newEx] });
   }
 
-  function handleDragStart(idx: number, e: React.PointerEvent) {
+  function handleDragStart(idx: number, startY: number) {
     if (!canEdit) return;
-    e.preventDefault();
     const container = exerciseListRef.current;
     const rowHeight = container ? (container.scrollHeight / Math.max(exList.length, 1)) : 52;
-    dragNodeRef.current = { startY: e.clientY, rowHeight, total: exList.length, idx };
+    dragNodeRef.current = { startY, rowHeight, total: exList.length, idx };
     setDragIdx(idx);
     setDropIdx(idx);
 
-    const onMove = (ev: PointerEvent) => {
+    const updateDrop = (clientY: number) => {
       if (!dragNodeRef.current) return;
       const { startY, rowHeight, total, idx: fromIdx } = dragNodeRef.current;
-      const delta = ev.clientY - startY;
+      const delta = clientY - startY;
       const rawDrop = fromIdx + Math.round(delta / rowHeight);
       setDropIdx(Math.max(0, Math.min(total - 1, rawDrop)));
     };
 
-    const onUp = () => {
+    const commit = () => {
       if (dragNodeRef.current !== null) {
         const { idx: fromIdx } = dragNodeRef.current;
         setDropIdx(prev => {
@@ -967,12 +966,21 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
       }
       dragNodeRef.current = null;
       setDragIdx(null);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
     };
 
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    const onPointerMove = (ev: PointerEvent) => updateDrop(ev.clientY);
+    const onPointerUp = () => commit();
+    const onTouchMove = (ev: TouchEvent) => { ev.preventDefault(); updateDrop(ev.touches[0].clientY); };
+    const onTouchEnd = () => commit();
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
   }
 
   const alreadyAddedIds = exList.filter(e => !!e.id).map(e => e.id!);
@@ -998,8 +1006,8 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
         {/* Drag handle */}
         {canEdit && (
           <span
-            onPointerDown={e => { e.stopPropagation(); onDragHandlePointerDown?.(e); }}
-            onTouchStart={e => e.preventDefault()}
+            onPointerDown={e => { if (e.pointerType !== 'touch') { e.stopPropagation(); onDragStart?.(e.clientY); } }}
+            onTouchStart={e => { e.preventDefault(); e.stopPropagation(); onDragStart?.(e.touches[0].clientY); }}
             style={{
               fontSize: 20, color: 'var(--text3)', flexShrink: 0,
               cursor: 'grab', touchAction: 'none',
@@ -1157,7 +1165,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                     sectionColor={color}
                     canEdit={canEdit}
                     isDragging={isDragging}
-                    onDragHandlePointerDown={e => handleDragStart(origIdx, e)}
+                    onDragStart={startY => handleDragStart(origIdx, startY)}
                     onToggleDone={() => onToggleDone(origIdx)}
                     onDelete={() => removeExercise(origIdx)}
                     onClickName={() => exDef && setDetailEx(exDef)}
@@ -1554,23 +1562,22 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
   const secDragRef = useRef<{ startY: number; rowHeight: number; total: number; idx: number } | null>(null);
   const sectionListRef = useRef<HTMLDivElement>(null);
 
-  function handleSectionDragStart(idx: number, e: React.PointerEvent) {
-    e.preventDefault();
+  function handleSectionDragStart(idx: number, startY: number) {
     const container = sectionListRef.current;
     const rowHeight = container ? (container.scrollHeight / Math.max(sections.length, 1)) : 80;
-    secDragRef.current = { startY: e.clientY, rowHeight, total: sections.length, idx };
+    secDragRef.current = { startY, rowHeight, total: sections.length, idx };
     setSecDragIdx(idx);
     setSecDropIdx(idx);
 
-    const onMove = (ev: PointerEvent) => {
+    const updateDrop = (clientY: number) => {
       if (!secDragRef.current) return;
       const { startY, rowHeight, total, idx: fromIdx } = secDragRef.current;
-      const delta = ev.clientY - startY;
+      const delta = clientY - startY;
       const rawDrop = fromIdx + Math.round(delta / rowHeight);
       setSecDropIdx(Math.max(0, Math.min(total - 1, rawDrop)));
     };
 
-    const onUp = () => {
+    const commit = () => {
       if (secDragRef.current !== null) {
         const { idx: fromIdx } = secDragRef.current;
         setSecDropIdx(prev => {
@@ -1585,12 +1592,21 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
       }
       secDragRef.current = null;
       setSecDragIdx(null);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
     };
 
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    const onPointerMove = (ev: PointerEvent) => updateDrop(ev.clientY);
+    const onPointerUp = () => commit();
+    const onTouchMove = (ev: TouchEvent) => { ev.preventDefault(); updateDrop(ev.touches[0].clientY); };
+    const onTouchEnd = () => commit();
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
   }
 
   useEffect(() => {
@@ -1724,7 +1740,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
                 isDragging={isDragging}
                 onUpdate={patch => updateSection(origIdx, patch)}
                 onRemove={() => removeSection(origIdx)}
-                onDragHandlePointerDown={e => handleSectionDragStart(origIdx, e)}
+                onDragStart={startY => handleSectionDragStart(origIdx, startY)}
                 onToggleDone={exIdx => toggleDone(origIdx, exIdx)}
                 onToast={setToast}
                 onAISuggest={onAISectionIndex ? () => onAISectionIndex(origIdx) : undefined}
