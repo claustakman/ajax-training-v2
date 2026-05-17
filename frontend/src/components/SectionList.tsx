@@ -770,7 +770,8 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
       {/* Drag handle */}
       {canEdit && (
         <span
-          onPointerDown={e => { e.preventDefault(); onDragHandlePointerDown?.(e); }}
+          onPointerDown={onDragHandlePointerDown}
+          onTouchStart={e => e.preventDefault()}
           style={{
             fontSize: 18, color: 'var(--text3)', flexShrink: 0,
             cursor: 'grab', touchAction: 'none',
@@ -997,7 +998,8 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
         {/* Drag handle */}
         {canEdit && (
           <span
-            onPointerDown={e => { e.preventDefault(); e.stopPropagation(); onDragHandlePointerDown?.(e); }}
+            onPointerDown={e => { e.stopPropagation(); onDragHandlePointerDown?.(e); }}
+            onTouchStart={e => e.preventDefault()}
             style={{
               fontSize: 20, color: 'var(--text3)', flexShrink: 0,
               cursor: 'grab', touchAction: 'none',
