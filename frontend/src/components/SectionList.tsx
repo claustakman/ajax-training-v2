@@ -737,16 +737,14 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDragStart,
-  onToggleDone, onDelete, onClickName, onUpdate, onNewExercise,
+function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
+  onDelete, onClickName, onUpdate, onNewExercise,
 }: {
   ex: SectionExercise;
   exerciseDef: Exercise | undefined;
-  sectionColor: string;
   canEdit: boolean;
   isDragging?: boolean;
   onDragStart?: (startY: number) => void;
-  onToggleDone: () => void;
   onDelete: () => void;
   onClickName: () => void;
   onUpdate: (patch: Partial<SectionExercise>) => void;
@@ -763,7 +761,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
       background: isDragging ? 'var(--accent-light)' : 'var(--bg-input)',
       border: isDragging ? '1px solid var(--accent)' : '1px solid var(--border)',
       marginBottom: 5,
-      opacity: ex.done ? 0.5 : 1,
+      opacity: 1,
       transition: 'opacity 0.15s, background 0.1s, border-color 0.1s',
       userSelect: 'none',
     }}>
@@ -784,20 +782,6 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
         >⠿</span>
       )}
 
-      {/* Cirkel-afkrydsning */}
-      <button
-        onClick={onToggleDone}
-        style={{
-          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-          border: ex.done ? 'none' : '2px solid var(--border2)',
-          background: ex.done ? sectionColor : 'transparent',
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, color: '#fff',
-          transition: 'background 0.15s, border-color 0.15s',
-        }}
-        aria-label="Afkryds øvelse"
-      >{ex.done ? '✓' : ''}</button>
-
       {/* Navn */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {isFree && canEdit ? (
@@ -805,15 +789,15 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
             value={ex.customName ?? ''}
             onChange={e => onUpdate({ customName: e.target.value })}
             placeholder="Fri øvelse…"
-            style={{ ...inputSm, fontSize: 14, textDecoration: ex.done ? 'line-through' : 'none' }}
+            style={{ ...inputSm, fontSize: 14 }}
           />
         ) : (
           <span
             onClick={!isFree ? onClickName : undefined}
             style={{
               fontSize: 14, fontWeight: 500,
-              textDecoration: ex.done ? 'line-through' : (!isFree ? 'underline dotted' : 'none'),
-              color: ex.done ? 'var(--text3)' : 'var(--text)',
+              textDecoration: !isFree ? 'underline dotted' : 'none',
+              color: 'var(--text)',
               cursor: !isFree ? 'pointer' : 'default',
             }}
           >{displayName}</span>
@@ -873,7 +857,7 @@ function ExerciseRow({ ex, exerciseDef, sectionColor, canEdit, isDragging, onDra
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
 
 function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, teamId, isDragging,
-  onUpdate, onRemove, onDragStart, onToggleDone, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
+  onUpdate, onRemove, onDragStart, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
 }: {
   section: Section;
   sectionType: SectionType | undefined;
@@ -885,7 +869,6 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
   onUpdate: (patch: Partial<Section>) => void;
   onRemove: () => void;
   onDragStart?: (startY: number) => void;
-  onToggleDone: (exerciseIdx: number) => void;
   onToast: (msg: string) => void;
   onAISuggest?: () => void;
   onNewExercise: (ex: Exercise) => void;
@@ -905,9 +888,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
   const color = sectionType?.color ?? '#6b6b6b';
   const label = sectionType?.label ?? section.type;
   const exList = section.exercises ?? [];
-  const doneCount = exList.filter(e => e.done).length;
   const total = exList.length;
-  const allDone = total > 0 && doneCount === total;
 
   // Gruppe-badge farver
   const groupStyle = section.group ? (GROUP_COLORS[section.group] ?? { bg: '#888', text: '#fff' }) : null;
@@ -1036,14 +1017,10 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
           {sectionIndex}. {label}
         </span>
 
-        {/* Afkrydsnings-progress */}
+        {/* Øvelses-tæller */}
         {total > 0 && (
-          <span style={{
-            fontSize: 12, flexShrink: 0,
-            color: allDone ? 'var(--green)' : 'var(--text3)',
-            fontWeight: allDone ? 700 : 400,
-          }}>
-            {allDone ? '✓' : `${doneCount}/${total}`}
+          <span style={{ fontSize: 12, flexShrink: 0, color: 'var(--text3)' }}>
+            {total} øv
           </span>
         )}
 
@@ -1162,11 +1139,10 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                     key={origIdx}
                     ex={ex}
                     exerciseDef={exDef}
-                    sectionColor={color}
+
                     canEdit={canEdit}
                     isDragging={isDragging}
                     onDragStart={startY => handleDragStart(origIdx, startY)}
-                    onToggleDone={() => onToggleDone(origIdx)}
                     onDelete={() => removeExercise(origIdx)}
                     onClickName={() => exDef && setDetailEx(exDef)}
                     onUpdate={patch => updateExercise(origIdx, patch)}
@@ -1540,7 +1516,7 @@ function MiniToast({ message, onDone }: { message: string; onDone: () => void })
   );
 }
 
-export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWholeTraining, onAISectionIndex, sectionTypes = [], teamAgeGroup }: {
+export function SectionList({ training, canEdit, onUpdate, onInstantSave: _onInstantSave, onAIWholeTraining, onAISectionIndex, sectionTypes = [], teamAgeGroup }: {
   training: Training;
   canEdit: boolean;
   onUpdate: (patch: Partial<Training>) => void;
@@ -1635,33 +1611,8 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
     updateSections(updated);
   }
 
-  // Straks-gem ved afkrydsning (ingen debounce)
-  function toggleDone(sectionIdx: number, exerciseIdx: number) {
-    const updated = sections.map((sec, si) => {
-      if (si !== sectionIdx) return sec;
-      return {
-        ...sec,
-        exercises: sec.exercises.map((ex, ei) =>
-          ei !== exerciseIdx ? ex : { ...ex, done: !ex.done }
-        ),
-      };
-    });
-    onInstantSave({ sections: updated });
-  }
 
-  // Nulstil alle afkrydsninger
-  function resetDone() {
-    const anyDone = sections.some(s => s.exercises.some(e => e.done));
-    if (!anyDone) return;
-    const updated = sections.map(sec => ({
-      ...sec,
-      exercises: sec.exercises.map(ex => ({ ...ex, done: false })),
-    }));
-    onInstantSave({ sections: updated });
-    setToast('Afkrydsninger nulstillet ✓');
-  }
 
-  const anyDone = sections.some(s => s.exercises.some(e => e.done));
 
   return (
     <div style={{
@@ -1678,13 +1629,6 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
         <span style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700, flex: 1 }}>
           Sektioner & øvelser
         </span>
-
-        {/* Nulstil afkrydsninger */}
-        {anyDone && (
-          <button onClick={resetDone} title="Nulstil alle afkrydsninger" style={{ ...btnGhost, padding: '8px 16px', fontSize: 13 }}>
-            ↺ Nulstil
-          </button>
-        )}
 
         {/* Indlæs skabelon */}
         <button onClick={() => setShowLoadTemplate(true)} title="Indlæs skabelon" style={{ ...btnGhost, padding: '8px 16px' }}>📋</button>
@@ -1741,7 +1685,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave, onAIWh
                 onUpdate={patch => updateSection(origIdx, patch)}
                 onRemove={() => removeSection(origIdx)}
                 onDragStart={startY => handleSectionDragStart(origIdx, startY)}
-                onToggleDone={exIdx => toggleDone(origIdx, exIdx)}
+
                 onToast={setToast}
                 onAISuggest={onAISectionIndex ? () => onAISectionIndex(origIdx) : undefined}
                 onNewExercise={ex => setExercises(prev => [...prev, ex])}
