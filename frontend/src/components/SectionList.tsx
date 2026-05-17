@@ -771,9 +771,10 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
           onPointerDown={e => { if (e.pointerType !== 'touch') onDragStart?.(e.clientY); }}
           onTouchStart={e => { e.preventDefault(); e.stopPropagation(); onDragStart?.(e.touches[0].clientY); }}
           style={{
-            fontSize: 18, color: 'var(--text3)', flexShrink: 0,
+            fontSize: 20, color: 'var(--text3)', flexShrink: 0,
             cursor: 'grab', touchAction: 'none',
-            lineHeight: 1, padding: '4px 2px',
+            lineHeight: 1, padding: '8px 10px',
+            marginLeft: -4, marginRight: 4,
             userSelect: 'none',
             WebkitUserSelect: 'none',
             WebkitTouchCallout: 'none',
