@@ -247,6 +247,23 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
   - Øvelser med aldersgruppe-tags vises kun for matchende hold
 - Katalog (`Catalog.tsx`) henter stadig alle øvelser ufiltreret
 
+#### ExercisePicker — søger i alle øvelser
+- Fjernet tag-filtrering baseret på sektionstype — pickeren viser nu alle øvelser (for holdets aldersgruppe) uanset hvilken sektion man er i
+- Tag-pills kan stadig bruges til manuelt at indsnævre søgningen
+
+#### Drag handles — iOS-fix + forbedret touch target
+- `onTouchStart` med `e.preventDefault()` bruges til at starte drag på mobil (i stedet for pointer events der ikke virker pålideligt på iOS Safari)
+- `onPointerDown` bruges stadig på desktop (når `pointerType !== 'touch'`)
+- Touch/pointer listeners tilføjes på `window` med `{ passive: false }` så `touchmove` kan `preventDefault()` scroll
+- Drag handle padding øget til `'8px 10px'` (fra `'4px 2px'`) — større touch target, tydeligt mellemrum til øvelsesnavn
+- `WebkitUserSelect: 'none'` + `WebkitTouchCallout: 'none'` forhindrer iOS tekstmarkering og long-press menu
+
+#### Checkboxe og nulstil-knap fjernet
+- Cirkel-afkrydsning på øvelsesrækker fjernet — fjernede konflikten med drag på mobil
+- "↺ Nulstil"-knap i card-headeren fjernet
+- `done`-felt bevares i datamodellen men vises/bruges ikke i UI
+- Øvelses-tæller i sektions-header viser nu blot `X øv` (ikke `X/Y ✓`)
+
 ### Session 7 — Opslagstavle (Board)
 - **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
 - **`worker/src/routes/board.ts`** — fuld CRUD: opslag, kommentarer, vedhæftninger, pin/arkiv, soft delete, unread-badge
