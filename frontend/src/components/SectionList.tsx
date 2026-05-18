@@ -920,11 +920,13 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
   function handleDragStart(idx: number, startY: number) {
     if (!canEdit) return;
     const container = exerciseListRef.current;
-    // Mål første barn direkte — undgår fejl ved scrollet container
+    // Mål den trukne række direkte for præcis højde
+    const draggedChild = container?.children[idx] as HTMLElement | undefined;
     const firstChild = container?.children[0] as HTMLElement | undefined;
-    const rowHeight = firstChild ? firstChild.getBoundingClientRect().height + 5 : 52; // +5 = marginBottom
-    // Gem container top-position på dette tidspunkt (viewport-relativ)
-    const containerTop = container ? container.getBoundingClientRect().top : (startY - idx * rowHeight);
+    const measuredRow = draggedChild ?? firstChild;
+    const rowHeight = measuredRow ? measuredRow.getBoundingClientRect().height + 5 : 52; // +5 = marginBottom
+    // anchorY = viewport-Y for toppen af den trukne række
+    const anchorY = measuredRow ? measuredRow.getBoundingClientRect().top : (startY - idx * rowHeight);
     dragNodeRef.current = { startY, rowHeight, total: exList.length, idx };
     setDragIdx(idx);
     setDropIdx(idx);
@@ -932,7 +934,8 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
     const updateDrop = (clientY: number) => {
       if (!dragNodeRef.current) return;
       const { rowHeight, total } = dragNodeRef.current;
-      // Beregn position relativt til containerens top — uafhængig af scroll
+      // Beregn position relativt til containerens top via anchorY
+      const containerTop = anchorY - idx * rowHeight;
       const relY = clientY - containerTop;
       const rawDrop = Math.floor(relY / rowHeight);
       setDropIdx(Math.max(0, Math.min(total - 1, rawDrop)));
@@ -1546,10 +1549,12 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave: _onIns
 
   function handleSectionDragStart(idx: number, startY: number) {
     const container = sectionListRef.current;
+    const draggedChild = container?.children[idx] as HTMLElement | undefined;
     const firstChild = container?.children[0] as HTMLElement | undefined;
-    const rowHeight = firstChild ? firstChild.getBoundingClientRect().height + 12 : 80; // +12 = margin/gap
-    // Gem container top-position (viewport-relativ) — scroll-uafhængig beregning
-    const containerTop = container ? container.getBoundingClientRect().top : (startY - idx * rowHeight);
+    const measuredRow = draggedChild ?? firstChild;
+    const rowHeight = measuredRow ? measuredRow.getBoundingClientRect().height + 12 : 80; // +12 = margin/gap
+    // anchorY = viewport-Y for toppen af den trukne sektion
+    const anchorY = measuredRow ? measuredRow.getBoundingClientRect().top : (startY - idx * rowHeight);
     secDragRef.current = { startY, rowHeight, total: sections.length, idx };
     setSecDragIdx(idx);
     setSecDropIdx(idx);
@@ -1557,7 +1562,8 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave: _onIns
     const updateDrop = (clientY: number) => {
       if (!secDragRef.current) return;
       const { rowHeight, total } = secDragRef.current;
-      // Beregn position relativt til containerens top — uafhængig af scroll
+      // Beregn position relativt til containerens top via anchorY
+      const containerTop = anchorY - idx * rowHeight;
       const relY = clientY - containerTop;
       const rawDrop = Math.floor(relY / rowHeight);
       setSecDropIdx(Math.max(0, Math.min(total - 1, rawDrop)));
