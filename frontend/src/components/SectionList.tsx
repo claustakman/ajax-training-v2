@@ -923,15 +923,18 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
     // Mål første barn direkte — undgår fejl ved scrollet container
     const firstChild = container?.children[0] as HTMLElement | undefined;
     const rowHeight = firstChild ? firstChild.getBoundingClientRect().height + 5 : 52; // +5 = marginBottom
+    // Gem container top-position på dette tidspunkt (viewport-relativ)
+    const containerTop = container ? container.getBoundingClientRect().top : (startY - idx * rowHeight);
     dragNodeRef.current = { startY, rowHeight, total: exList.length, idx };
     setDragIdx(idx);
     setDropIdx(idx);
 
     const updateDrop = (clientY: number) => {
       if (!dragNodeRef.current) return;
-      const { startY, rowHeight, total, idx: fromIdx } = dragNodeRef.current;
-      const delta = clientY - startY;
-      const rawDrop = fromIdx + Math.round(delta / rowHeight);
+      const { rowHeight, total } = dragNodeRef.current;
+      // Beregn position relativt til containerens top — uafhængig af scroll
+      const relY = clientY - containerTop;
+      const rawDrop = Math.floor(relY / rowHeight);
       setDropIdx(Math.max(0, Math.min(total - 1, rawDrop)));
     };
 
@@ -1545,15 +1548,18 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave: _onIns
     const container = sectionListRef.current;
     const firstChild = container?.children[0] as HTMLElement | undefined;
     const rowHeight = firstChild ? firstChild.getBoundingClientRect().height + 12 : 80; // +12 = margin/gap
+    // Gem container top-position (viewport-relativ) — scroll-uafhængig beregning
+    const containerTop = container ? container.getBoundingClientRect().top : (startY - idx * rowHeight);
     secDragRef.current = { startY, rowHeight, total: sections.length, idx };
     setSecDragIdx(idx);
     setSecDropIdx(idx);
 
     const updateDrop = (clientY: number) => {
       if (!secDragRef.current) return;
-      const { startY, rowHeight, total, idx: fromIdx } = secDragRef.current;
-      const delta = clientY - startY;
-      const rawDrop = fromIdx + Math.round(delta / rowHeight);
+      const { rowHeight, total } = secDragRef.current;
+      // Beregn position relativt til containerens top — uafhængig af scroll
+      const relY = clientY - containerTop;
+      const rawDrop = Math.floor(relY / rowHeight);
       setSecDropIdx(Math.max(0, Math.min(total - 1, rawDrop)));
     };
 
