@@ -920,7 +920,9 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
   function handleDragStart(idx: number, startY: number) {
     if (!canEdit) return;
     const container = exerciseListRef.current;
-    const rowHeight = container ? (container.scrollHeight / Math.max(exList.length, 1)) : 52;
+    // Mål første barn direkte — undgår fejl ved scrollet container
+    const firstChild = container?.children[0] as HTMLElement | undefined;
+    const rowHeight = firstChild ? firstChild.getBoundingClientRect().height + 5 : 52; // +5 = marginBottom
     dragNodeRef.current = { startY, rowHeight, total: exList.length, idx };
     setDragIdx(idx);
     setDropIdx(idx);
@@ -1541,7 +1543,8 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave: _onIns
 
   function handleSectionDragStart(idx: number, startY: number) {
     const container = sectionListRef.current;
-    const rowHeight = container ? (container.scrollHeight / Math.max(sections.length, 1)) : 80;
+    const firstChild = container?.children[0] as HTMLElement | undefined;
+    const rowHeight = firstChild ? firstChild.getBoundingClientRect().height + 12 : 80; // +12 = margin/gap
     secDragRef.current = { startY, rowHeight, total: sections.length, idx };
     setSecDragIdx(idx);
     setSecDropIdx(idx);
