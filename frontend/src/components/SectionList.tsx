@@ -984,6 +984,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
     dragNodeRef.current = { startY, rowHeight, total: exList.length, idx };
     setDragIdx(idx);
     setDropIdx(idx);
+    document.body.style.userSelect = 'none';
 
     const updateDrop = (clientY: number) => {
       if (!dragNodeRef.current) return;
@@ -996,6 +997,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
     };
 
     const commit = () => {
+      document.body.style.userSelect = '';
       if (dragNodeRef.current !== null) {
         const { idx: fromIdx } = dragNodeRef.current;
         setDropIdx(prev => {
@@ -1600,6 +1602,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave: _onIns
     secDragRef.current = { startY, rowHeight, total: sections.length, idx };
     setSecDragIdx(idx);
     setSecDropIdx(idx);
+    document.body.style.userSelect = 'none';
 
     const updateDrop = (clientY: number) => {
       if (!secDragRef.current) return;
@@ -1612,6 +1615,7 @@ export function SectionList({ training, canEdit, onUpdate, onInstantSave: _onIns
     };
 
     const commit = () => {
+      document.body.style.userSelect = '';
       if (secDragRef.current !== null) {
         const { idx: fromIdx } = secDragRef.current;
         setSecDropIdx(prev => {
