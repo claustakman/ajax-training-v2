@@ -735,9 +735,16 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
   );
 }
 
-// ─── ExerciseRow ──────────────────────────────────────────────────────────────
+// ─── DragHandle ──────────────────────────────────────────────────────────────
+// Bruges til både øvelse-rækker og sektion-headers.
+// Native touchstart-listener (passive:false) — React onTouchStart kan ikke
+// kalde preventDefault() da React registrerer passive listeners som standard.
 
-function DragHandle({ onDragStart }: { onDragStart?: (startY: number) => void }) {
+function DragHandle({ onDragStart, padding = '8px 10px', extraStyle }: {
+  onDragStart?: (startY: number) => void;
+  padding?: string;
+  extraStyle?: React.CSSProperties;
+}) {
   const handleRef = useRef<HTMLSpanElement>(null);
   const onDragStartRef = useRef(onDragStart);
   onDragStartRef.current = onDragStart;
@@ -757,15 +764,21 @@ function DragHandle({ onDragStart }: { onDragStart?: (startY: number) => void })
   return (
     <span
       ref={handleRef}
-      onPointerDown={e => { if (e.pointerType !== 'touch') { e.preventDefault(); onDragStartRef.current?.(e.clientY); } }}
+      onPointerDown={e => {
+        if (e.pointerType !== 'touch') {
+          e.preventDefault();
+          e.stopPropagation();
+          onDragStartRef.current?.(e.clientY);
+        }
+      }}
       style={{
         fontSize: 20, color: 'var(--text3)', flexShrink: 0,
         cursor: 'grab', touchAction: 'none',
-        lineHeight: 1, padding: '8px 10px',
-        marginLeft: -4, marginRight: 4,
+        lineHeight: 1, padding,
         userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
+        ...extraStyle,
       } as React.CSSProperties}
       title="Træk for at flytte"
     >⠿</span>
@@ -801,7 +814,7 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
       userSelect: 'none',
     }}>
       {/* Drag handle */}
-      {canEdit && <DragHandle onDragStart={onDragStart} />}
+      {canEdit && <DragHandle onDragStart={onDragStart} extraStyle={{ marginLeft: -4, marginRight: 4 }} />}
 
       {/* Navn */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -876,40 +889,6 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
 }
 
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
-
-function SectionDragHandle({ onDragStart }: { onDragStart?: (startY: number) => void }) {
-  const handleRef = useRef<HTMLSpanElement>(null);
-  const onDragStartRef = useRef(onDragStart);
-  onDragStartRef.current = onDragStart;
-
-  useEffect(() => {
-    const el = handleRef.current;
-    if (!el) return;
-    const handler = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onDragStartRef.current?.(e.touches[0].clientY);
-    };
-    el.addEventListener('touchstart', handler, { passive: false });
-    return () => el.removeEventListener('touchstart', handler);
-  }, []);
-
-  return (
-    <span
-      ref={handleRef}
-      onPointerDown={e => { if (e.pointerType !== 'touch') { e.preventDefault(); e.stopPropagation(); onDragStartRef.current?.(e.clientY); } }}
-      style={{
-        fontSize: 20, color: 'var(--text3)', flexShrink: 0,
-        cursor: 'grab', touchAction: 'none',
-        lineHeight: 1, padding: '4px 3px',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none',
-      } as React.CSSProperties}
-      title="Træk for at flytte sektion"
-    >⠿</span>
-  );
-}
 
 function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, teamId, isDragging,
   onUpdate, onRemove, onDragStart, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
@@ -1051,7 +1030,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
       >
         {/* Drag handle */}
         {canEdit && (
-          <SectionDragHandle onDragStart={startY => { onDragStart?.(startY); }} />
+          <DragHandle onDragStart={onDragStart} padding="4px 3px" />
         )}
 
         {/* Chevron */}

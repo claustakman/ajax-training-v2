@@ -251,12 +251,14 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - Fjernet tag-filtrering baseret på sektionstype — pickeren viser nu alle øvelser (for holdets aldersgruppe) uanset hvilken sektion man er i
 - Tag-pills kan stadig bruges til manuelt at indsnævre søgningen
 
-#### Drag handles — iOS-fix + forbedret touch target
-- `onTouchStart` med `e.preventDefault()` bruges til at starte drag på mobil (i stedet for pointer events der ikke virker pålideligt på iOS Safari)
-- `onPointerDown` bruges stadig på desktop (når `pointerType !== 'touch'`)
-- Touch/pointer listeners tilføjes på `window` med `{ passive: false }` så `touchmove` kan `preventDefault()` scroll
-- Drag handle padding øget til `'8px 10px'` (fra `'4px 2px'`) — større touch target, tydeligt mellemrum til øvelsesnavn
-- `WebkitUserSelect: 'none'` + `WebkitTouchCallout: 'none'` forhindrer iOS tekstmarkering og long-press menu
+#### Drag handles — cross-platform (iOS + desktop)
+- **`DragHandle`** — delt komponent til både øvelsesrækker og sektionsheaders
+  - Native `el.addEventListener('touchstart', handler, { passive: false })` via `useRef` — React's `onTouchStart` kan ikke kalde `preventDefault()` da React registrerer passive listeners som standard
+  - `onPointerDown` med `e.preventDefault()` på desktop (når `pointerType !== 'touch'`) — forhindrer tekstmarkering ved drag-start
+  - `document.body.style.userSelect = 'none'` sættes ved drag-start, fjernes ved slip — forhindrer tekstmarkering i andre rækker under drag
+  - Drop-index beregnes fra den trukne rækkens `getBoundingClientRect().top` → `containerTop = anchorY - idx * rowHeight` → scroll-uafhængig for alle rækker
+  - Padding `'8px 10px'` (øvelser) / `'4px 3px'` (sektioner) — stort touch target
+  - `WebkitUserSelect: 'none'` + `WebkitTouchCallout: 'none'` forhindrer iOS long-press menu
 
 #### Checkboxe og nulstil-knap fjernet
 - Cirkel-afkrydsning på øvelsesrækker fjernet — fjernede konflikten med drag på mobil
