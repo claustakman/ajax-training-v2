@@ -737,6 +737,41 @@ function SaveToCatalogModal({ name, onSave, onClose }: {
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
+function DragHandle({ onDragStart }: { onDragStart?: (startY: number) => void }) {
+  const handleRef = useRef<HTMLSpanElement>(null);
+  const onDragStartRef = useRef(onDragStart);
+  onDragStartRef.current = onDragStart;
+
+  useEffect(() => {
+    const el = handleRef.current;
+    if (!el) return;
+    const handler = (e: TouchEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onDragStartRef.current?.(e.touches[0].clientY);
+    };
+    el.addEventListener('touchstart', handler, { passive: false });
+    return () => el.removeEventListener('touchstart', handler);
+  }, []);
+
+  return (
+    <span
+      ref={handleRef}
+      onPointerDown={e => { if (e.pointerType !== 'touch') onDragStartRef.current?.(e.clientY); }}
+      style={{
+        fontSize: 20, color: 'var(--text3)', flexShrink: 0,
+        cursor: 'grab', touchAction: 'none',
+        lineHeight: 1, padding: '8px 10px',
+        marginLeft: -4, marginRight: 4,
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+      } as React.CSSProperties}
+      title="Træk for at flytte"
+    >⠿</span>
+  );
+}
+
 function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
   onDelete, onClickName, onUpdate, onNewExercise,
 }: {
@@ -766,22 +801,7 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
       userSelect: 'none',
     }}>
       {/* Drag handle */}
-      {canEdit && (
-        <span
-          onPointerDown={e => { if (e.pointerType !== 'touch') onDragStart?.(e.clientY); }}
-          onTouchStart={e => { e.preventDefault(); e.stopPropagation(); onDragStart?.(e.touches[0].clientY); }}
-          style={{
-            fontSize: 20, color: 'var(--text3)', flexShrink: 0,
-            cursor: 'grab', touchAction: 'none',
-            lineHeight: 1, padding: '8px 10px',
-            marginLeft: -4, marginRight: 4,
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            WebkitTouchCallout: 'none',
-          } as React.CSSProperties}
-          title="Træk for at flytte"
-        >⠿</span>
-      )}
+      {canEdit && <DragHandle onDragStart={onDragStart} />}
 
       {/* Navn */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -856,6 +876,40 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
 }
 
 // ─── SectionBlock ─────────────────────────────────────────────────────────────
+
+function SectionDragHandle({ onDragStart }: { onDragStart?: (startY: number) => void }) {
+  const handleRef = useRef<HTMLSpanElement>(null);
+  const onDragStartRef = useRef(onDragStart);
+  onDragStartRef.current = onDragStart;
+
+  useEffect(() => {
+    const el = handleRef.current;
+    if (!el) return;
+    const handler = (e: TouchEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onDragStartRef.current?.(e.touches[0].clientY);
+    };
+    el.addEventListener('touchstart', handler, { passive: false });
+    return () => el.removeEventListener('touchstart', handler);
+  }, []);
+
+  return (
+    <span
+      ref={handleRef}
+      onPointerDown={e => { if (e.pointerType !== 'touch') { e.stopPropagation(); onDragStartRef.current?.(e.clientY); } }}
+      style={{
+        fontSize: 20, color: 'var(--text3)', flexShrink: 0,
+        cursor: 'grab', touchAction: 'none',
+        lineHeight: 1, padding: '4px 3px',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+      } as React.CSSProperties}
+      title="Træk for at flytte sektion"
+    >⠿</span>
+  );
+}
 
 function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, teamId, isDragging,
   onUpdate, onRemove, onDragStart, onToast, onAISuggest, onNewExercise, onExerciseUpdated,
@@ -995,19 +1049,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
       >
         {/* Drag handle */}
         {canEdit && (
-          <span
-            onPointerDown={e => { if (e.pointerType !== 'touch') { e.stopPropagation(); onDragStart?.(e.clientY); } }}
-            onTouchStart={e => { e.preventDefault(); e.stopPropagation(); onDragStart?.(e.touches[0].clientY); }}
-            style={{
-              fontSize: 20, color: 'var(--text3)', flexShrink: 0,
-              cursor: 'grab', touchAction: 'none',
-              lineHeight: 1, padding: '4px 3px',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              WebkitTouchCallout: 'none',
-            } as React.CSSProperties}
-            title="Træk for at flytte sektion"
-          >⠿</span>
+          <SectionDragHandle onDragStart={startY => { onDragStart?.(startY); }} />
         )}
 
         {/* Chevron */}
