@@ -757,7 +757,7 @@ function DragHandle({ onDragStart }: { onDragStart?: (startY: number) => void })
   return (
     <span
       ref={handleRef}
-      onPointerDown={e => { if (e.pointerType !== 'touch') onDragStartRef.current?.(e.clientY); }}
+      onPointerDown={e => { if (e.pointerType !== 'touch') { e.preventDefault(); onDragStartRef.current?.(e.clientY); } }}
       style={{
         fontSize: 20, color: 'var(--text3)', flexShrink: 0,
         cursor: 'grab', touchAction: 'none',
@@ -897,7 +897,7 @@ function SectionDragHandle({ onDragStart }: { onDragStart?: (startY: number) => 
   return (
     <span
       ref={handleRef}
-      onPointerDown={e => { if (e.pointerType !== 'touch') { e.stopPropagation(); onDragStartRef.current?.(e.clientY); } }}
+      onPointerDown={e => { if (e.pointerType !== 'touch') { e.preventDefault(); e.stopPropagation(); onDragStartRef.current?.(e.clientY); } }}
       style={{
         fontSize: 20, color: 'var(--text3)', flexShrink: 0,
         cursor: 'grab', touchAction: 'none',
