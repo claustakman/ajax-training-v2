@@ -100,18 +100,25 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
             {timeParts.join(' · ')}
           </div>
         )}
-        {/* Linje 3: sted + ansvarlig */}
-        {line3Parts.length > 0 && (
+        {/* Linje 3: sted + ansvarlig pill */}
+        {(locationPart || leadPart) && (
           <div style={{
-            fontSize: 12, color: 'var(--text2)', marginTop: 1,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
+            whiteSpace: 'nowrap', overflow: 'hidden',
           }}>
-            {locationPart && leadPart ? (
-              <>{locationPart} · <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{leadPart}</span></>
-            ) : locationPart ? (
-              locationPart
-            ) : (
-              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{leadPart}</span>
+            {locationPart && (
+              <span style={{ fontSize: 12, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {locationPart}
+              </span>
+            )}
+            {leadPart && (
+              <span style={{
+                fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+                border: '1.5px solid var(--accent)', borderRadius: 20,
+                padding: '1px 8px', flexShrink: 0,
+              }}>
+                {leadPart}
+              </span>
             )}
           </div>
         )}
