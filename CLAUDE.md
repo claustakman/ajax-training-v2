@@ -202,8 +202,9 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 ### Session 11 — Bugfixes + UI-polish
 
 #### Ansvarlig træner fremhævet på træningskort
-- **`Trainings.tsx`** — lead_trainer-fornavn vises nu i rød (`var(--accent)`) + fed på træningskort (linje 3)
-- Sted forbliver grå — kun trænernavn fremhæves
+- **`Trainings.tsx`** — lead_trainer-fornavn vises som rød outline pill på linje 3 ved siden af sted
+  - `border: '1.5px solid var(--accent)'`, `borderRadius: 20`, rød tekst — tydelig uden at dominere
+  - Sted vises som grå tekst til venstre; pill til højre
 
 #### Holdsport import — dobbeltklik-beskyttelse
 - **`HoldsportImportModal.tsx`** — `importing` state tilføjet
@@ -265,6 +266,32 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - "↺ Nulstil"-knap i card-headeren fjernet
 - `done`-felt bevares i datamodellen men vises/bruges ikke i UI
 - Øvelses-tæller i sektions-header viser nu blot `X øv` (ikke `X/Y ✓`)
+
+### Session 12 — Drag-fix, UI-polish, admin-forbedringer
+
+#### Drag — endelig cross-platform løsning
+- **Problemet:** React registrerer `onTouchStart` som passiv listener → `e.preventDefault()` har ingen effekt → iOS overtager touch
+- **Løsning:** `DragHandle`-komponent med native `el.addEventListener('touchstart', handler, { passive: false })` via `useRef`
+- `onPointerDown` med `e.preventDefault()` på desktop forhindrer tekstmarkering ved drag-start
+- `document.body.style.userSelect = 'none'` sættes ved drag-start og fjernes ved slip — forhindrer markering i øvrige rækker under drag
+- Drop-index beregnes via `anchorY = draggedRow.getBoundingClientRect().top` → `containerTop = anchorY - idx * rowHeight` — scroll-uafhængig, virker for alle rækker
+- `SectionDragHandle` merged ind i `DragHandle` med `padding`-prop (`'8px 10px'` øvelser / `'4px 3px'` sektioner)
+
+#### Ansvarlig træner — rød outline pill på træningskort
+- **`Trainings.tsx`** — lead_trainer vises som rød outline pill (`[ Anders ]`) på linje 3 ved siden af sted
+- Tidligere: lille rød fed tekst på samme linje som sted — nu tydeligere og mere iøjefaldende
+
+#### Admin — rediger aldersgruppe og sæson per hold
+- **`Admin.tsx` `HoldTab`** — hvert holdkort har nu inline redigering:
+  - **Aldersgruppe** — dropdown (`AGE_GROUPS`), gemmer straks ved valg via `PATCH /api/teams/:id`
+  - **Sæson** — klik på `2025/2026 ✏️` → inputfelt → Enter/✓ gemmer, Escape/✗ annullerer
+  - `TeamSeasonInput` komponent til inline sæson-redigering
+  - `handlePatchTeam(teamId, patch)` — kalder `PATCH /api/teams/:id` og opdaterer lokal state
+
+#### Aldersgruppe-filter bugfix
+- **DB-fix:** Hold "Ajax U13P" havde `age_group = 'U11'` → rettet til `'U13'` direkte i D1
+- `age_groups`-semantik: eksklusive tags — øvelse med `["U15","U17"]` vises **ikke** for U13-hold
+- Øvelser med `age_groups = '[]'` vises altid for alle hold
 
 ### Session 7 — Opslagstavle (Board)
 - **D1 migration 0011_board.sql** — `board_attachments` og `board_reads` tabeller, nye kolonner på `board_posts`/`board_comments` (`deleted`, `pinned_by`, `deleted_at`)
@@ -1010,7 +1037,9 @@ Kun `admin`. To tabs:
 
 **Hold-tab:**
 - Formular: navn, aldersgruppe (select), sæson → `POST /api/teams` — kopierer globale sektionstyper
-- Liste alle hold: navn, aldersgruppe, sæson, member-count
+- Liste alle hold med inline redigering direkte på kortet:
+  - **Aldersgruppe** — dropdown, gemmer straks ved valg (`PATCH /api/teams/:id`)
+  - **Sæson** — klik → inputfelt → Enter/✓ gemmer (`TeamSeasonInput`-komponent)
 - Slet hold (bekræftelsesfase)
 
 **Brugere-tab:**
