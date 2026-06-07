@@ -57,6 +57,44 @@ export default function Admin() {
   );
 }
 
+// ─── TeamSeasonInput ──────────────────────────────────────────────────────────
+
+function TeamSeasonInput({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (!editing) {
+    return (
+      <span
+        onClick={() => { setDraft(value); setEditing(true); }}
+        style={{ fontSize: 13, color: 'var(--text2)', cursor: 'pointer', padding: '5px 8px', borderRadius: 6, border: '1px solid transparent' }}
+        title="Klik for at redigere sæson"
+      >
+        {value} ✏️
+      </span>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+      <input
+        autoFocus
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && draft.trim()) { onSave(draft.trim()); setEditing(false); }
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        style={{ ...inputStyle, fontSize: 13, padding: '5px 8px', minHeight: 'auto', width: 120 }}
+      />
+      <button onClick={() => { if (draft.trim()) { onSave(draft.trim()); } setEditing(false); }}
+        style={{ padding: '5px 10px', borderRadius: 6, fontSize: 13, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}>✓</button>
+      <button onClick={() => setEditing(false)}
+        style={{ padding: '5px 10px', borderRadius: 6, fontSize: 13, background: 'var(--bg-input)', color: 'var(--text2)', border: '1px solid var(--border2)', cursor: 'pointer' }}>✗</button>
+    </div>
+  );
+}
+
 // ─── Hold-tab ─────────────────────────────────────────────────────────────────
 
 function HoldTab() {
@@ -110,6 +148,15 @@ function HoldTab() {
     }
   }
 
+  async function handlePatchTeam(teamId: string, patch: { age_group?: string; season?: string }) {
+    try {
+      await api.patch(`/api/teams/${teamId}`, patch);
+      setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...patch } : t));
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : 'Gem fejlede');
+    }
+  }
+
   if (loading) return <div style={{ color: 'var(--text3)', padding: 24 }}>Henter hold…</div>;
 
   return (
@@ -144,13 +191,25 @@ function HoldTab() {
       )}
       {teams.map(team => (
         <div key={team.id} style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{team.name}</div>
-              <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>{team.age_group} · {team.season}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{team.name}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  value={team.age_group}
+                  onChange={e => handlePatchTeam(team.id, { age_group: e.target.value })}
+                  style={{ ...inputStyle, fontSize: 13, padding: '5px 8px', minHeight: 'auto' }}
+                >
+                  {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+                <TeamSeasonInput
+                  value={team.season}
+                  onSave={season => handlePatchTeam(team.id, { season })}
+                />
+              </div>
             </div>
             <button onClick={() => handleDelete(team.id, team.name)}
-              style={{ padding: '8px 16px', borderRadius: 8, fontSize: 12, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer' }}>
+              style={{ padding: '8px 16px', borderRadius: 8, fontSize: 12, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer', flexShrink: 0 }}>
               Slet
             </button>
           </div>
