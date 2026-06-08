@@ -361,47 +361,12 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [showFree, setShowFree] = useState(false);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
-  const [viewportH, setViewportH] = useState(window.visualViewport?.height ?? window.innerHeight);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
 
-  // Fix 1 — forsinket autoFocus: vent til bottom sheet animation er færdig
   useEffect(() => {
-    const timer = setTimeout(() => {
-      searchInputRef.current?.focus();
-    }, 300);
+    const timer = setTimeout(() => searchInputRef.current?.focus(), 100);
     return () => clearTimeout(timer);
-  }, []);
-
-  // Fix 4 — visualViewport højde
-  // Fix 2 + 3 — scroll modal op og beregn tastaturhøjde
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const handler = () => {
-      setViewportH(vv.height);
-
-      // Fix 3 — beregn tastaturhøjde og løft modalen
-      if (window.innerWidth <= 640) {
-        const kbHeight = window.innerHeight - vv.height - vv.offsetTop;
-        setKeyboardHeight(Math.max(0, kbHeight));
-      }
-
-      // Fix 2 — scroll modal til toppen så søgefeltet er synligt
-      if (window.innerWidth <= 640) {
-        modalRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    };
-
-    vv.addEventListener('resize', handler);
-    vv.addEventListener('scroll', handler);
-    return () => {
-      vv.removeEventListener('resize', handler);
-      vv.removeEventListener('scroll', handler);
-    };
   }, []);
 
   const allTags = Array.from(new Set(exercises.flatMap(ex => ex.tags ?? []))).sort();
@@ -423,142 +388,117 @@ function ExercisePicker({ sectionType, exercises, alreadyAdded, onPick, onClose 
 
   return (
     <>
-      {/* Overlay */}
+      {/* Fullscreen overlay */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 400,
-        background: 'rgba(0,0,0,0.5)', display: 'flex',
-        alignItems: 'flex-end',
-      }} onClick={onClose}>
-          {/* Fix 3+4 — brug visualViewport-højde + løft modalen over tastatur */}
-        <div
-          ref={modalRef}
-          style={{
-            background: 'var(--bg)',
-            borderRadius: '16px 16px 0 0',
-            width: '100%',
-            maxHeight: `${viewportH * 0.92}px`,
-            display: 'flex', flexDirection: 'column',
-            boxShadow: '0 -4px 24px rgba(0,0,0,0.18)',
-            overflow: 'hidden',
-            ...(keyboardHeight > 0
-              ? { marginBottom: keyboardHeight, transition: 'margin-bottom 0.25s ease' }
-              : { transition: 'margin-bottom 0.25s ease' }
-            ),
-          }}
-          onClick={e => e.stopPropagation()}
-        >
-
-          {/* Fix 1 — fast header: aldrig scrollet væk */}
-          <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: '16px 16px 0 0',
-            padding: '12px 16px 12px',
-            borderBottom: '1px solid var(--border)',
-            flexShrink: 0,
-          }}>
-            {/* Handle */}
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border2)', margin: '0 auto 14px' }} />
-
-            {/* Titel + luk */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20, color: sectionType.color }}>
-                Tilføj øvelse — {sectionType.label}
-              </h2>
-              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
-            </div>
-
-            {/* Fix 1+3 — søgefelt: ingen autoFocus (bruger forsinket focus via ref) */}
-            <input
-              ref={searchInputRef}
-              type="search"
-              inputMode="search"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Søg øvelse…"
-              style={{ ...inputSm, marginBottom: 8, fontSize: 16, padding: '10px 12px', minHeight: 44 }}
-            />
-
-            {/* Tag-filter pills */}
-            {allTags.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {allTags.map(tag => {
-                  const active = activeTags.includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      style={{
-                        fontSize: 12, borderRadius: 20, padding: '8px 16px', border: 'none',
-                        cursor: 'pointer', fontWeight: active ? 600 : 400,
-                        background: active ? sectionType.color : 'var(--bg-input)',
-                        color: active ? '#fff' : 'var(--text2)',
-                        transition: 'background 0.12s',
-                        minHeight: 30,
-                      }}
-                    >{tag}</button>
-                  );
-                })}
-              </div>
-            )}
+        background: 'var(--bg)',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'var(--bg-card)',
+          borderBottom: '1px solid var(--border)',
+          padding: '12px 16px',
+          flexShrink: 0,
+          paddingTop: 'calc(12px + env(safe-area-inset-top))',
+        }}>
+          {/* Titel + luk */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20, color: sectionType.color }}>
+              {sectionType.label}
+            </h2>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
           </div>
 
-          {/* Fix 1 + 5 — scrollbar resultatliste med safe-area padding i bunden */}
-          <div
-            ref={resultsRef}
-            style={{
-              overflowY: 'auto',
-              flex: 1,
-              minHeight: 160,
-              WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
-            }}
-          >
-            {filtered.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '32px 16px' }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>
-                  Ingen øvelser fundet
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text3)' }}>
-                  Prøv en anden søgning eller tilføj en fri øvelse nedenfor.
-                </div>
-              </div>
-            )}
+          {/* Søgefelt */}
+          <input
+            ref={searchInputRef}
+            type="search"
+            inputMode="search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Søg øvelse…"
+            style={{ ...inputSm, marginBottom: 8, fontSize: 16, padding: '10px 12px', minHeight: 44 }}
+          />
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {filtered.map(ex => {
-                const added = alreadyAdded.includes(ex.id);
+          {/* Tag-filter pills */}
+          {allTags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {allTags.map(tag => {
+                const active = activeTags.includes(tag);
                 return (
-                  <ExercisePickerCard
-                    key={ex.id}
-                    ex={ex}
-                    added={added}
-                    accentColor={sectionType.color}
-                    onPick={() => { if (!added) onPick(ex); }}
-                    onDetail={() => setDetailEx(ex)}
-                  />
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    style={{
+                      fontSize: 12, borderRadius: 20, padding: '8px 16px', border: 'none',
+                      cursor: 'pointer', fontWeight: active ? 600 : 400,
+                      background: active ? sectionType.color : 'var(--bg-input)',
+                      color: active ? '#fff' : 'var(--text2)',
+                      transition: 'background 0.12s',
+                      minHeight: 30,
+                    }}
+                  >{tag}</button>
                 );
               })}
+            </div>
+          )}
+        </div>
 
-              {/* Fri øvelse */}
-              <div
-                onClick={() => setShowFree(true)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '14px 16px',
-                  borderTop: '1px dashed var(--border2)',
-                  cursor: 'pointer',
-                  paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-input)')}
-                onMouseLeave={e => (e.currentTarget.style.background = '')}
-              >
-                <span style={{ fontSize: 18 }}>✏️</span>
-                <span style={{ fontSize: 15, color: 'var(--text2)', fontStyle: 'italic' }}>+ Fri øvelse…</span>
+        {/* Resultatliste */}
+        <div
+          ref={resultsRef}
+          style={{
+            overflowY: 'auto', flex: 1,
+            WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
+          }}
+        >
+          {filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>
+                Ingen øvelser fundet
               </div>
+              <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+                Prøv en anden søgning eller tilføj en fri øvelse nedenfor.
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {filtered.map(ex => {
+              const added = alreadyAdded.includes(ex.id);
+              return (
+                <ExercisePickerCard
+                  key={ex.id}
+                  ex={ex}
+                  added={added}
+                  accentColor={sectionType.color}
+                  onPick={() => { if (!added) onPick(ex); }}
+                  onDetail={() => setDetailEx(ex)}
+                />
+              );
+            })}
+
+            {/* Fri øvelse */}
+            <div
+              onClick={() => setShowFree(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px',
+                borderTop: '1px dashed var(--border2)',
+                cursor: 'pointer',
+                paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-input)')}
+              onMouseLeave={e => (e.currentTarget.style.background = '')}
+            >
+              <span style={{ fontSize: 18 }}>✏️</span>
+              <span style={{ fontSize: 15, color: 'var(--text2)', fontStyle: 'italic' }}>+ Fri øvelse…</span>
             </div>
           </div>
         </div>
