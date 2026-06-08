@@ -59,6 +59,13 @@ input, textarea, select {
   font-size: 16px; /* undgår iOS auto-zoom */
 }
 
+/* iOS auto-zoom: tving 16px på alle inputs på mobil uanset inline styles */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;

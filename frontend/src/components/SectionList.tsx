@@ -50,7 +50,7 @@ const GROUP_OPTIONS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 const inputSm: React.CSSProperties = {
   background: 'var(--bg-input)', border: '1px solid var(--border2)',
-  borderRadius: 6, padding: '5px 8px', fontSize: 14, color: 'var(--text)',
+  borderRadius: 6, padding: '5px 8px', fontSize: 16, color: 'var(--text)',
   width: '100%', boxSizing: 'border-box', minHeight: 34,
 };
 
@@ -209,19 +209,19 @@ function AddSectionModal({ sectionTypes, onAdd, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <div className="modal-overlay" style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      background: 'rgba(0,0,0,0.4)',
-    }} onClick={onClose}>
-      <div className="modal-sheet" style={{
-        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Tilføj sektion</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
-        </div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{
+        background: 'var(--bg-card)', borderBottom: '1px solid var(--border)',
+        padding: '12px 16px', flexShrink: 0,
+        paddingTop: 'calc(12px + env(safe-area-inset-top))',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Tilføj sektion</h2>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
+      </div>
+      {/* Grid */}
+      <div style={{ overflowY: 'auto', flex: 1, padding: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {sectionTypes.map(st => (
             <button
@@ -230,14 +230,14 @@ function AddSectionModal({ sectionTypes, onAdd, onClose }: {
               style={{
                 borderLeft: `4px solid ${st.color}`,
                 background: 'var(--bg-card)', border: `1px solid var(--border)`,
-                borderRadius: 8, padding: '12px 14px', cursor: 'pointer',
+                borderRadius: 8, padding: '16px 14px', cursor: 'pointer',
                 textAlign: 'left', transition: 'background 0.12s',
               }}
               onMouseEnter={e => (e.currentTarget.style.background = `rgba(${hexToRgb(st.color)},0.09)`)}
               onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-card)')}
             >
               <span style={{
-                fontFamily: 'var(--font-heading)', fontSize: 14, fontWeight: 700,
+                fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 700,
                 color: st.color, display: 'block',
               }}>{st.label}</span>
               {st.required === 1 && <span style={{ fontSize: 11, color: 'var(--text3)' }}>Krævet</span>}
@@ -763,7 +763,7 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
             value={ex.customName ?? ''}
             onChange={e => onUpdate({ customName: e.target.value })}
             placeholder="Fri øvelse…"
-            style={{ ...inputSm, fontSize: 14 }}
+            style={{ ...inputSm }}
           />
         ) : (
           <span
@@ -786,7 +786,7 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
             value={ex.mins || ''}
             onChange={e => onUpdate({ mins: Number(e.target.value) || 0 })}
             min={1}
-            style={{ ...inputSm, width: 50, textAlign: 'center', padding: '3px 5px', fontSize: 14 }}
+            style={{ ...inputSm, width: 50, textAlign: 'center', padding: '3px 5px' }}
           />
         ) : (
           <span style={{ fontSize: 13, color: 'var(--text2)' }}>{ex.mins}</span>
@@ -1057,7 +1057,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
               value={section.note ?? ''}
               onChange={e => onUpdate({ note: e.target.value })}
               placeholder="Note til sektionen…"
-              style={{ ...inputSm, marginBottom: 8, fontSize: 13 }}
+              style={{ ...inputSm, marginBottom: 8 }}
             />
           )}
           {!canEdit && section.note && (
@@ -1071,7 +1071,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                 value={section.group ?? ''}
                 onChange={e => onUpdate({ group: e.target.value || undefined })}
                 title="Gruppe"
-                style={{ ...inputSm, width: 'auto', fontSize: 13, padding: '5px 8px', minHeight: 'auto', flexShrink: 0 }}
+                style={{ ...inputSm, width: 'auto', padding: '5px 8px', minHeight: 'auto', flexShrink: 0 }}
               >
                 <option value="">–</option>
                 {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
@@ -1203,22 +1203,20 @@ function LoadTemplateModal({ teamId, sectionCount, onLoad, onClose }: {
   }
 
   return (
-    <div className="modal-overlay" style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      background: 'rgba(0,0,0,0.4)',
-    }} onClick={onClose}>
-      <div className="modal-sheet" style={{
-        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 480, maxHeight: '82vh', overflowY: 'auto',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-      }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{
+        background: 'var(--bg-card)', borderBottom: '1px solid var(--border)',
+        padding: '12px 16px', flexShrink: 0,
+        paddingTop: 'calc(12px + env(safe-area-inset-top))',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Indlæs træningsskabelon</h2>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
+      </div>
 
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Indlæs træningsskabelon</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
-        </div>
-
+      {/* Indhold */}
+      <div style={{ overflowY: 'auto', flex: 1, padding: 16 }}>
         {/* Advarsel */}
         {sectionCount > 0 && (
           <div style={{
@@ -1234,9 +1232,9 @@ function LoadTemplateModal({ teamId, sectionCount, onLoad, onClose }: {
         {loading ? (
           <p style={{ color: 'var(--text3)', fontSize: 14 }}>Indlæser…</p>
         ) : templates.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text3)' }}>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>📋</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Ingen træningsskabeloner endnu</div>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>📋</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Ingen træningsskabeloner endnu</div>
             <div style={{ fontSize: 13 }}>Gem en træning som skabelon via 💾 i toolbar.</div>
           </div>
         ) : (
@@ -1248,27 +1246,19 @@ function LoadTemplateModal({ teamId, sectionCount, onLoad, onClose }: {
                   key={t.id}
                   onClick={() => handleLoad(t)}
                   style={{
-                    padding: '12px 14px', background: 'var(--bg-input)', borderRadius: 10,
+                    padding: '14px 16px', background: 'var(--bg-card)', borderRadius: 10,
                     cursor: 'pointer', transition: 'background 0.12s',
+                    border: '1px solid var(--border)',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-light)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-input)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-card)')}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Navn */}
                       <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3 }}>{t.name}</div>
-
-                      {/* Beskrivelse */}
                       {t.description && (
-                        <div style={{
-                          fontSize: 13, color: 'var(--text2)', marginBottom: 6,
-                          display: '-webkit-box', WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                        }}>{t.description}</div>
+                        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 6 }}>{t.description}</div>
                       )}
-
-                      {/* Temaer */}
                       {t.themes && t.themes.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
                           {t.themes.map(th => (
@@ -1280,14 +1270,10 @@ function LoadTemplateModal({ teamId, sectionCount, onLoad, onClose }: {
                           ))}
                         </div>
                       )}
-
-                      {/* Tæller */}
                       <div style={{ fontSize: 12, color: 'var(--text3)' }}>
                         {t.sections?.length ?? 0} sektioner · {totalEx} øvelser
                       </div>
                     </div>
-
-                    {/* Slet */}
                     <button
                       onClick={e => { e.stopPropagation(); handleDelete(t.id); }}
                       style={{ ...btnGhost, padding: '4px 8px', color: 'var(--red)', fontSize: 14, flexShrink: 0 }}
@@ -1339,25 +1325,24 @@ function LoadSectionTemplateModal({ teamId, sectionTypeId, sectionTypeLabel, exe
   }
 
   return (
-    <div className="modal-overlay" style={{
-      position: 'fixed', inset: 0, zIndex: 600,
-      background: 'rgba(0,0,0,0.45)',
-    }} onClick={onClose}>
-      <div className="modal-sheet" style={{
-        background: 'var(--bg-card)', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 460, maxHeight: '80vh', overflowY: 'auto',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-      }} onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{
+        background: 'var(--bg-card)', borderBottom: '1px solid var(--border)',
+        padding: '12px 16px', flexShrink: 0,
+        paddingTop: 'calc(12px + env(safe-area-inset-top))',
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 20 }}>Indlæs øvelser fra skabelon</h2>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22 }}>Indlæs sektionsskabelon</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: 'var(--text2)' }}>
           Viser skabeloner for <strong>{sectionTypeLabel}</strong>
         </div>
+      </div>
 
+      {/* Indhold */}
+      <div style={{ overflowY: 'auto', flex: 1, padding: 16 }}>
         {/* Advarsel */}
         {exerciseCount > 0 && (
           <div style={{
@@ -1469,7 +1454,7 @@ function LoadSectionTemplateModal({ teamId, sectionTypeId, sectionTypeLabel, exe
   );
 }
 
-// ─── SectionList (hoved-eksport) ──────────────────────────────────────────────
+// ─── SectionList (hoved-eksport) ───────────────────────────────────────────────
 
 // ─── Mini-toast ───────────────────────────────────────────────────────────────
 function MiniToast({ message, onDone }: { message: string; onDone: () => void }) {

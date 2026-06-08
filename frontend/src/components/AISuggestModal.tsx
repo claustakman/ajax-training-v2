@@ -140,31 +140,21 @@ export default function AISuggestModal({
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.4)' }}
-    >
-      <div
-        className="modal-sheet"
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: 'var(--bg-card)', borderRadius: 16,
-          width: '100%', maxWidth: 640,
-          maxHeight: '90dvh', overflowY: 'auto',
-          display: 'flex', flexDirection: 'column',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
-        }}
-      >
-        {/* Header */}
-        <div style={{ padding: '20px 24px 0', flexShrink: 0 }}>
-          <h2 style={{
-            fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 700,
-            margin: 0, marginBottom: step === 'loading' ? 0 : 16,
-          }}>
-            {title}
-          </h2>
-        </div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{
+        background: 'var(--bg-card)', borderBottom: '1px solid var(--border)',
+        padding: '12px 16px', flexShrink: 0,
+        paddingTop: 'calc(12px + env(safe-area-inset-top))',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 700, margin: 0 }}>
+          {title}
+        </h2>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: 'var(--text2)', padding: '4px 8px', lineHeight: 1, minHeight: 44, display: 'flex', alignItems: 'center' }}>×</button>
+      </div>
+      {/* Scrollbar indhold */}
+      <div style={{ overflowY: 'auto', flex: 1, padding: '16px' }}>
 
         {/* ── Step: configure ──────────────────────────────────────────────── */}
         {step === 'configure' && (
@@ -469,13 +459,16 @@ export default function AISuggestModal({
           </div>
         )}
 
-        {/* ── Footer ────────────────────────────────────────────────────────── */}
-        <div style={{
-          padding: '16px 24px',
-          borderTop: '1px solid var(--border)',
-          display: 'flex', justifyContent: 'flex-end', gap: 8,
-          flexShrink: 0,
-        }}>
+      </div>
+      {/* Footer — fast i bunden */}
+      <div style={{
+        padding: '12px 16px',
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+        borderTop: '1px solid var(--border)',
+        background: 'var(--bg-card)',
+        display: 'flex', justifyContent: 'flex-end', gap: 8,
+        flexShrink: 0,
+      }}>
           {step === 'configure' && (
             <>
               <button
@@ -563,7 +556,6 @@ export default function AISuggestModal({
               </button>
             </>
           )}
-        </div>
       </div>
     </div>
   );
