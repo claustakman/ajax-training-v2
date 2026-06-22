@@ -740,11 +740,26 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
 }) {
   const [showSaveToCatalog, setShowSaveToCatalog] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [fixedPos, setFixedPos] = useState<{ left: number; top: number; width: number } | null>(null);
   const isFree = !ex.id;
   const displayName = ex.customName || exerciseDef?.name || ex.id || '—';
 
+  function handleNameFocus() {
+    const rect = rowRef.current?.getBoundingClientRect();
+    if (rect) {
+      const margin = 8;
+      setFixedPos({
+        left: margin,
+        top: rect.top,
+        width: window.innerWidth - margin * 2,
+      });
+    }
+    setNameFocused(true);
+  }
+
   return (
-    <div style={{
+    <div ref={rowRef} style={{
       display: 'flex', alignItems: 'center', gap: 8,
       padding: '9px 12px', borderRadius: 6,
       background: isDragging ? 'var(--accent-light)' : 'var(--bg-input)',
@@ -764,17 +779,17 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
           <input
             value={ex.customName ?? ''}
             onChange={e => onUpdate({ customName: e.target.value })}
-            onFocus={() => setNameFocused(true)}
+            onFocus={handleNameFocus}
             onBlur={() => setNameFocused(false)}
             placeholder="Fri øvelse…"
             title={ex.customName || undefined}
             style={{
               ...inputSm,
               textOverflow: 'ellipsis',
-              ...(nameFocused ? {
-                position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-                width: 'max(100%, 240px)', zIndex: 10,
-                boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+              ...(nameFocused && fixedPos ? {
+                position: 'fixed', left: fixedPos.left, top: fixedPos.top,
+                width: fixedPos.width, zIndex: 1000,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
               } : {}),
             }}
           />
