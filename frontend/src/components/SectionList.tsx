@@ -739,6 +739,7 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
   onNewExercise: (ex: Exercise) => void;
 }) {
   const [showSaveToCatalog, setShowSaveToCatalog] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
   const isFree = !ex.id;
   const displayName = ex.customName || exerciseDef?.name || ex.id || '—';
 
@@ -752,18 +753,30 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
       opacity: 1,
       transition: 'opacity 0.15s, background 0.1s, border-color 0.1s',
       userSelect: 'none',
+      position: 'relative',
     }}>
       {/* Drag handle */}
       {canEdit && <DragHandle onDragStart={onDragStart} extraStyle={{ marginLeft: -4, marginRight: 4 }} />}
 
       {/* Navn */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
         {isFree && canEdit ? (
           <input
             value={ex.customName ?? ''}
             onChange={e => onUpdate({ customName: e.target.value })}
+            onFocus={() => setNameFocused(true)}
+            onBlur={() => setNameFocused(false)}
             placeholder="Fri øvelse…"
-            style={{ ...inputSm }}
+            title={ex.customName || undefined}
+            style={{
+              ...inputSm,
+              textOverflow: 'ellipsis',
+              ...(nameFocused ? {
+                position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+                width: 'max(100%, 240px)', zIndex: 10,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+              } : {}),
+            }}
           />
         ) : (
           <span
