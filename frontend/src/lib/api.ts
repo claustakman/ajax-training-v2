@@ -51,7 +51,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
-    if (res.status === 401 && token) notifySessionExpired();
+    if (res.status === 401 && token) {
+      notifySessionExpired();
+      throw new ApiError(res.status, 'Din session er udløbet. Log ind igen.');
+    }
     throw new ApiError(res.status, body.error ?? res.statusText);
   }
 
@@ -209,7 +212,10 @@ export const api = {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
-      if (res.status === 401 && token) notifySessionExpired();
+      if (res.status === 401 && token) {
+        notifySessionExpired();
+        throw new ApiError(res.status, 'Din session er udløbet. Log ind igen.');
+      }
       throw new ApiError(res.status, body.error ?? res.statusText);
     }
     return res.json() as Promise<BoardAttachment>;
