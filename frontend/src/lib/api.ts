@@ -31,6 +31,14 @@ export class ApiError extends Error {
   }
 }
 
+// Sendes når en request returnerer 401 — auth.tsx lytter på dette for at
+// logge ud og vise en "session udløbet"-besked, i stedet for et silent logout.
+export const SESSION_EXPIRED_EVENT = 'ajax:session-expired';
+
+function notifySessionExpired() {
+  window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = localStorage.getItem('ajax_token');
   const headers: Record<string, string> = {
@@ -43,6 +51,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+    if (res.status === 401 && token) notifySessionExpired();
     throw new ApiError(res.status, body.error ?? res.statusText);
   }
 
@@ -200,6 +209,7 @@ export const api = {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+      if (res.status === 401 && token) notifySessionExpired();
       throw new ApiError(res.status, body.error ?? res.statusText);
     }
     return res.json() as Promise<BoardAttachment>;

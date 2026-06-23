@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { ApiError } from '../lib/api';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, sessionExpired, dismissSessionExpired } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,6 +15,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
+      dismissSessionExpired();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login fejlede');
     } finally {
@@ -36,6 +37,16 @@ export default function Login() {
           <img src="/ajax-logo.png" alt="Ajax København" style={{ width: 120, height: 120, objectFit: 'contain', marginBottom: 12 }} />
           <div style={{ color: 'var(--text2)', fontSize: 14 }}>Træningsplanlægger</div>
         </div>
+
+        {sessionExpired && (
+          <div style={{
+            background: 'rgba(217,119,6,0.1)', border: '1px solid rgba(217,119,6,0.3)',
+            borderRadius: 8, padding: '10px 12px', color: 'var(--yellow)', fontSize: 14,
+            marginBottom: 16,
+          }}>
+            Din session er udløbet. Log ind igen.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>

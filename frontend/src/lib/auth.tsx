@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import { api } from './api';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { api, SESSION_EXPIRED_EVENT } from './api';
 
 export interface Team {
   id: string;
@@ -24,6 +24,7 @@ interface AuthState {
   user: AuthUser | null;
   token: string | null;
   currentTeamId: string | null;
+  sessionExpired: boolean;
 }
 
 interface AuthContextValue extends AuthState {
@@ -32,6 +33,7 @@ interface AuthContextValue extends AuthState {
   logout: () => void;
   setCurrentTeam: (teamId: string) => void;
   refreshUser: () => Promise<void>;
+  dismissSessionExpired: () => void;
   /** Rollen for det aktive hold. Admin returnerer 'admin'. */
   currentTeamRole: 'guest' | 'trainer' | 'team_manager' | 'admin' | null;
 }
@@ -48,13 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         user: userRaw ? (JSON.parse(userRaw) as AuthUser) : null,
         currentTeamId,
+        sessionExpired: false,
       };
     } catch {
       // Korrupt localStorage — ryd op og vis login
       localStorage.removeItem('ajax_token');
       localStorage.removeItem('ajax_user');
       localStorage.removeItem('ajax_current_team');
-      return { token: null, user: null, currentTeamId: null };
+      return { token: null, user: null, currentTeamId: null, sessionExpired: false };
     }
   });
 
@@ -66,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.getItem('ajax_current_team') ??
       res.user.teams[0]?.id ?? null;
     if (currentTeamId) localStorage.setItem('ajax_current_team', currentTeamId);
-    setState({ token: res.token, user: res.user, currentTeamId });
+    setState({ token: res.token, user: res.user, currentTeamId, sessionExpired: false });
   }, []);
 
   const loginWithToken = useCallback((token: string, user: AuthUser) => {
@@ -74,13 +77,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('ajax_user', JSON.stringify(user));
     const currentTeamId = user.teams[0]?.id ?? null;
     if (currentTeamId) localStorage.setItem('ajax_current_team', currentTeamId);
-    setState({ token, user, currentTeamId });
+    setState({ token, user, currentTeamId, sessionExpired: false });
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('ajax_token');
     localStorage.removeItem('ajax_user');
-    setState({ token: null, user: null, currentTeamId: null });
+    setState(s => ({ ...s, token: null, user: null, currentTeamId: null }));
+  }, []);
+
+  const dismissSessionExpired = useCallback(() => {
+    setState(s => ({ ...s, sessionExpired: false }));
+  }, []);
+
+  // Lyt på 401-events fra api.ts — log ud og vis besked i stedet for silent logout
+  useEffect(() => {
+    const handler = () => {
+      localStorage.removeItem('ajax_token');
+      localStorage.removeItem('ajax_user');
+      setState(s => ({ ...s, token: null, user: null, currentTeamId: null, sessionExpired: true }));
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handler);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handler);
   }, []);
 
   const setCurrentTeam = useCallback((teamId: string) => {
@@ -105,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })();
 
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithToken, logout, setCurrentTeam, refreshUser, currentTeamRole }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithToken, logout, setCurrentTeam, refreshUser, dismissSessionExpired, currentTeamRole }}>
       {children}
     </AuthContext.Provider>
   );
