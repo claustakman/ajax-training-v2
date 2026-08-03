@@ -231,6 +231,33 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  // ── WebAuthn / Passkeys ───────────────────────────────────────────────────
+  webauthnRegisterOptions: () =>
+    request<Record<string, unknown>>('/api/auth/webauthn/register-options', { method: 'POST' }),
+
+  webauthnRegisterVerify: (body: unknown) =>
+    request<{ ok: boolean; deviceName: string }>('/api/auth/webauthn/register-verify', {
+      method: 'POST', body: JSON.stringify(body),
+    }),
+
+  webauthnLoginOptions: (email: string) =>
+    request<Record<string, unknown>>('/api/auth/webauthn/login-options', {
+      method: 'POST', body: JSON.stringify({ email }),
+    }),
+
+  webauthnLoginVerify: (body: unknown) =>
+    request<{ token: string; user: import('./auth').AuthUser }>('/api/auth/webauthn/login-verify', {
+      method: 'POST', body: JSON.stringify(body),
+    }),
+
+  webauthnCredentials: () =>
+    request<{ id: string; device_name: string; created_at: string; last_used_at: string | null }[]>(
+      '/api/auth/webauthn/credentials'
+    ),
+
+  webauthnDeleteCredential: (id: string) =>
+    request<{ ok: boolean }>(`/api/auth/webauthn/credentials/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
   // ── Sektionstyper ─────────────────────────────────────────────────────────
   fetchSectionTypes: (teamId: string) =>
     request<import('./types').SectionType[]>(`/api/section-types?team_id=${teamId}`),

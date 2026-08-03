@@ -7,6 +7,73 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
+## Hvad er bygget (Sessions 1–13)
+
+### Session 13 — WebAuthn / Face ID / Touch ID
+
+#### Arkitektur
+- **Ingen external dependencies** — ren Web Crypto API i worker, native `navigator.credentials` i browser
+- **RP ID:** `ajax-traening.pages.dev` — tilladt origin: prod + localhost:5173/4173
+- **Algoritmer:** ES256 (COSE -7, P-256 ECDSA) primær, RS256 (COSE -257) fallback
+- **Platform authenticators only** (`authenticatorAttachment: 'platform'`, `userVerification: 'required'`)
+
+#### Database (`database/migrations/0012_webauthn.sql`)
+- `webauthn_credentials` — én række per enhed per bruger: credential ID (base64url), SPKI public key, COSE algoritme, counter, transports, device name, created/last_used timestamps
+- `webauthn_challenges` — kortlivede challenges (5 min TTL): UUID, user_id, type (register|authenticate). Single-use: slettes ved brug + prunes stale ved hvert kald
+
+#### Worker (`worker/src/routes/webauthn.ts`)
+Mounted under `/api/auth/webauthn`:
+
+| Method | Path | Auth | Beskrivelse |
+|--------|------|------|-------------|
+| POST | `/register-options` | auth | Generér registration challenge for innlogget bruger |
+| POST | `/register-verify` | auth | Verificér attestation, gem credential (SPKI key) |
+| POST | `/login-options` | public | Challenge scoped til brugerens credential IDs. Samme generisk respons uanset om email eksisterer/har credentials |
+| POST | `/login-verify` | public | Verificér assertion → counter-check → udsted JWT |
+| GET | `/credentials` | auth | Liste egne registrerede enheder |
+| DELETE | `/credentials/:id` | auth | Slet enhed (kun egne) |
+
+**CBOR-parser:** Minimal håndkodet dekoder for major types 0–5 (uint, negint, bytes, text, array, map) — kun hvad WebAuthn kræver.
+
+**Signatur-verificering:** DER → raw ES256 (`derToRaw` konverterer SEQUENCE{r,s} til 64-byte r||s for SubtleCrypto ECDSA). RS256 verificeres direkte.
+
+**Counter-beskyttelse:** `authData.counter > stored_counter` påkrævet (begge kan være 0 — hardware-tokens bruger 0). Fejler med "Mulig kloning af autentifikator" ved replay.
+
+**Gotcha:** `@cloudflare/workers-types` SubtleCrypto kræver `ArrayBuffer` ikke `Uint8Array` — brug `.buffer as ArrayBuffer` på Uint8Array-instanser.
+
+#### Frontend
+
+**`api.ts`** — 6 nye hjælpere: `webauthnRegisterOptions`, `webauthnRegisterVerify`, `webauthnLoginOptions`, `webauthnLoginVerify`, `webauthnCredentials`, `webauthnDeleteCredential`
+
+**`Login.tsx`**
+- Email-felt prefyldt fra `localStorage['ajax_last_email']`; gemmes ved hvert login (password eller biometri)
+- "Log ind med Face ID / Touch ID"-knap vises kun når `PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()` → true
+- Biometri-knap trigger: `webauthnLoginOptions(email)` → `navigator.credentials.get()` → `webauthnLoginVerify()`
+- Sat `sessionStorage['ajax_biometric_prompt'] = '1'` efter password-login (signal til BiometricSetupSheet)
+- Eksporterer `BIOMETRIC_PROMPT_KEY` konstant
+
+**`BiometricSetupSheet.tsx`** (ny komponent)
+- Monteret i `App.tsx` inde i `RequireAuth` (men uden for `Layout`) — overlever Login-unmount
+- Trigger: `sessionStorage['ajax_biometric_prompt'] === '1'` + platformAuthenticator available + ikke allerede enrolled + ikke dismissed
+- Steps: idle prompt → enrolling → success (auto-luk 2s) | error (retry-knap)
+- Tre valg: **Aktivér** (kører enrollment-flow), **Ikke nu** (dismiss for session), **Spørg mig ikke igen** (sætter `localStorage['ajax_biometric_dismissed'] = '1'`)
+- Enrollment sætter `localStorage['ajax_biometric_enrolled'] = '1'`
+- Biometri-login sætter også `ajax_biometric_enrolled = '1'` (enheden er allerede sat op)
+
+**`Profile.tsx`**
+- Ny sektion "Face ID / Touch ID" (vises kun når platform authenticator tilgængelig)
+- Liste over registrerede enheder: device name, oprettet-dato, sidst-brugt-dato, Fjern-knap
+- "+ Tilføj denne enhed"-knap kører samme enrollment-flow som BiometricSetupSheet
+- Fjernelse af alle enheder rydder `ajax_biometric_enrolled`-flag
+
+#### localStorage / sessionStorage flags
+| Nøgle | Type | Formål |
+|-------|------|--------|
+| `ajax_last_email` | localStorage | Husk email på enheden til prefill |
+| `ajax_biometric_enrolled` | localStorage | Enhed er registreret — undertrykker BiometricSetupSheet |
+| `ajax_biometric_dismissed` | localStorage | Bruger har valgt "Spørg ikke igen" |
+| `ajax_biometric_prompt` | sessionStorage | Engangs-signal fra Login til BiometricSetupSheet (forbruges straks ved mount) |
+
 ## Hvad er bygget (Sessions 1–9)
 
 ### Session 1 — Fundament

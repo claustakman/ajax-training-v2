@@ -11,6 +11,7 @@ import { boardRoutes } from './routes/board';
 import { holdsportRoutes } from './routes/holdsport';
 import { aiRoutes } from './routes/ai';
 import { templateRoutes } from './routes/templates';
+import { webauthnRoutes } from './routes/webauthn';
 
 export type Env = {
   DB: D1Database;
@@ -39,6 +40,7 @@ app.route('/api/board', boardRoutes);
 app.route('/api/holdsport', holdsportRoutes);
 app.route('/api/ai', aiRoutes);
 app.route('/api/templates', templateRoutes);
+app.route('/api/auth/webauthn', webauthnRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
 app.onError((err, c) => {

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
+import BiometricSetupSheet from './components/BiometricSetupSheet';
 import Login from './pages/Login';
 import AcceptInvite from './pages/AcceptInvite';
 import Trainings from './pages/Trainings';
@@ -32,6 +33,7 @@ export default function App() {
           path="/*"
           element={
             <RequireAuth>
+              <BiometricSetupSheet />
               <Layout>
                 <Routes>
                   <Route path="/" element={<Trainings />} />
