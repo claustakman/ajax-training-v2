@@ -11,6 +11,13 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ### Session 13 — WebAuthn / Face ID / Touch ID
 
+#### Gotchas (deployment)
+- **Routing:** `/api/auth/webauthn` skal mountes **før** `/api/auth` i `index.ts` — ellers matcher Hono `/api/auth/webauthn/*` mod `authRoutes` og returnerer 500
+- **DB-migration:** `deploy.yml` kørte ikke migrationer automatisk ved første deploy — tabellerne manglede på prod. Løst med to ting:
+  1. `deploy.yml` kører nu alle `.sql`-filer i `database/migrations/` ved hvert push (`|| true` så allerede-kørte filer ikke stopper pipelinen)
+  2. Nødmigration kørt manuelt: `wrangler d1 execute ajax-traening --remote --file=database/migrations/0012_webauthn.sql` fra `worker/`-mappen
+- **`onError` i index.ts** returnerer nu `err.message` i stedet for den generiske "Internal server error" — gør debugging markant nemmere
+
 #### Arkitektur
 - **Ingen external dependencies** — ren Web Crypto API i worker, native `navigator.credentials` i browser
 - **RP ID:** `ajax-traening.pages.dev` — tilladt origin: prod + localhost:5173/4173
