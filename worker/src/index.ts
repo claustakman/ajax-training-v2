@@ -29,6 +29,7 @@ app.use('*', cors({
   allowHeaders: ['Content-Type', 'Authorization', 'X-Filename'],
 }));
 
+app.route('/api/auth/webauthn', webauthnRoutes);
 app.route('/api/auth', authRoutes);
 app.route('/api/teams', teamRoutes);
 app.route('/api/users', userRoutes);
@@ -40,7 +41,6 @@ app.route('/api/board', boardRoutes);
 app.route('/api/holdsport', holdsportRoutes);
 app.route('/api/ai', aiRoutes);
 app.route('/api/templates', templateRoutes);
-app.route('/api/auth/webauthn', webauthnRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
 app.onError((err, c) => {
