@@ -307,38 +307,43 @@ async function buildUserResponse(db: D1Database, userId: string, jwtSecret: stri
 
 // POST /register-options — start enrollment for the logged-in user
 webauthnRoutes.post('/register-options', requireAuth(), async (c) => {
-  const { sub: userId, name: userName } = c.get('user');
+  try {
+    const { sub: userId, name: userName } = c.get('user');
 
-  // Delete any pre-existing register challenge for this user
-  await c.env.DB.prepare("DELETE FROM webauthn_challenges WHERE user_id = ? AND type = 'register'").bind(userId).run();
+    // Delete any pre-existing register challenge for this user
+    await c.env.DB.prepare("DELETE FROM webauthn_challenges WHERE user_id = ? AND type = 'register'").bind(userId).run();
 
-  const challenge = await storeChallenge(c.env.DB, userId, 'register');
+    const challenge = await storeChallenge(c.env.DB, userId, 'register');
 
-  // Existing credential IDs — exclude them from the ceremony so the user can't register the same device twice
-  const existing = await c.env.DB.prepare('SELECT id FROM webauthn_credentials WHERE user_id = ?').bind(userId).all<{ id: string }>();
+    // Existing credential IDs — exclude them from the ceremony so the user can't register the same device twice
+    const existing = await c.env.DB.prepare('SELECT id FROM webauthn_credentials WHERE user_id = ?').bind(userId).all<{ id: string }>();
 
-  return c.json({
-    challenge,
-    rp: { id: RP_ID, name: RP_NAME },
-    user: {
-      id: b64url(new TextEncoder().encode(userId)),
-      name: userName,
-      displayName: userName,
-    },
-    pubKeyCredParams: SUPPORTED_ALGS.map(alg => ({ type: 'public-key', alg })),
-    authenticatorSelection: {
-      authenticatorAttachment: 'platform',
-      userVerification: 'required',
-      residentKey: 'preferred',
-    },
-    timeout: 60000,
-    attestation: 'none',
-    excludeCredentials: existing.results.map(row => ({
-      type: 'public-key',
-      id: row.id,
-      transports: ['internal'],
-    })),
-  });
+    return c.json({
+      challenge,
+      rp: { id: RP_ID, name: RP_NAME },
+      user: {
+        id: b64url(new TextEncoder().encode(userId)),
+        name: userName,
+        displayName: userName,
+      },
+      pubKeyCredParams: SUPPORTED_ALGS.map(alg => ({ type: 'public-key', alg })),
+      authenticatorSelection: {
+        authenticatorAttachment: 'platform',
+        userVerification: 'required',
+        residentKey: 'preferred',
+      },
+      timeout: 60000,
+      attestation: 'none',
+      excludeCredentials: existing.results.map(row => ({
+        type: 'public-key',
+        id: row.id,
+        transports: ['internal'],
+      })),
+    });
+  } catch (err) {
+    console.error('register-options error:', err);
+    return c.json({ error: `register-options fejlede: ${(err as Error)?.message ?? err}` }, 500);
+  }
 });
 
 // POST /register-verify — complete enrollment

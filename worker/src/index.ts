@@ -44,8 +44,8 @@ app.route('/api/templates', templateRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
 app.onError((err, c) => {
-  console.error(err);
-  return c.json({ error: 'Internal server error' }, 500);
+  console.error('Unhandled error:', err?.message ?? err, err?.stack);
+  return c.json({ error: err?.message ?? 'Internal server error' }, 500);
 });
 
 export default app;
