@@ -27,7 +27,7 @@ const HAL_TAGS = [
   'sammenspil', 'beslutning', 'taktik', 'duel', 'kamp',
   'stafet', 'leg', 'returløb', 'småspil', 'tvekamp',
 ];
-const FYS_TAGS = ['plyometrik', 'eksplosion', 'styrke', 'hurtighed', 'finter', 'opvarmning'];
+const FYS_TAGS = ['plyometrik', 'eksplosion', 'styrke', 'hurtighed', 'løb', 'finter', 'opvarmning'];
 const KEEPER_TAGS = ['keeper', 'teknik', 'aflevering', 'skud', 'forsvar'];
 
 // Tags der placerer en øvelse under Fysisk-tab
