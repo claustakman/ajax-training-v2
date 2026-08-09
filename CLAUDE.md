@@ -245,10 +245,10 @@ Mounted under `/api/auth/webauthn`:
 - `catalog`-feltet er nu altid `'hal'` i DB — `'fys'` bruges ikke længere
 - Tab-logik i `Catalog.tsx` er udelukkende tag-baseret:
   - **Hal-tab**: alle øvelser undtagen rene keeper-øvelser
-  - **Fysisk-tab**: øvelser med mindst ét af `plyometrik`, `styrke`, `eksplosion`, `hurtighed`
+  - **Fysisk-tab**: øvelser med mindst ét af `plyometrik`, `styrke`, `eksplosion`, `hurtighed`, `løb`
   - **Keeper-tab**: øvelser med `keeper`-tag
   - En øvelse kan vises under flere tabs (fx styrkeøvelse med keeper-tag)
-- `FYS_TAB_TAGS = new Set(['plyometrik', 'styrke', 'eksplosion', 'hurtighed'])` i Catalog.tsx
+- `FYS_TAB_TAGS = new Set(['plyometrik', 'styrke', 'eksplosion', 'hurtighed', 'løb'])` i Catalog.tsx
 - `ExerciseEditor` i Catalog: 2-vejs Markspiller/Keeper toggle (ikke 3-vejs)
 - **FAB (+)-knap** i Catalog erstatter "+ Ny øvelse" i headeren (samme mønster som Trainings)
 - Duplikerede øvelser ryddet op i DB (11 fundet, 10 slettet)
@@ -1007,7 +1007,7 @@ CREATE TABLE templates (
 ### `Catalog.tsx` (`/katalog`)
 - Tabs: **Hal** · **Keeper** · **Fysisk** — styres udelukkende af tags (ét samlet katalog i DB)
   - **Hal-tab**: alle øvelser undtagen rene keeper-øvelser
-  - **Fysisk-tab**: øvelser med mindst ét af `plyometrik`, `styrke`, `eksplosion`, `hurtighed`
+  - **Fysisk-tab**: øvelser med mindst ét af `plyometrik`, `styrke`, `eksplosion`, `hurtighed`, `løb`
   - **Keeper-tab**: øvelser med `keeper`-tag
   - En øvelse kan vises under flere tabs samtidig (fx styrkeøvelse med hal-tags)
 - `catalog`-feltet i DB er altid `'hal'` — `'fys'` bruges ikke længere
