@@ -31,7 +31,7 @@ const FYS_TAGS = ['plyometrik', 'eksplosion', 'styrke', 'hurtighed', 'finter', '
 const KEEPER_TAGS = ['keeper', 'teknik', 'aflevering', 'skud', 'forsvar'];
 
 // Tags der placerer en øvelse under Fysisk-tab
-const FYS_TAB_TAGS = new Set(['plyometrik', 'styrke', 'eksplosion', 'hurtighed']);
+const FYS_TAB_TAGS = new Set(['plyometrik', 'styrke', 'eksplosion', 'hurtighed', 'løb']);
 const AGE_GROUPS = ['U9', 'U11', 'U13', 'U15', 'U17', 'U19'];
 
 type SortOrder = 'newest' | 'oldest' | 'name';
@@ -607,7 +607,7 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
               </button>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
-              Fysiske øvelser vises automatisk under Fysisk-tab ved tags som styrke, plyometrik, eksplosion, hurtighed.
+              Fysiske øvelser vises automatisk under Fysisk-tab ved tags som styrke, plyometrik, eksplosion, hurtighed, løb.
             </div>
           </div>
 
