@@ -273,6 +273,12 @@ export default function Trainings() {
           .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
           .map(m => m.name)
       );
+      // Trænere uden Holdsport-sync bevares altid i trainers-listen
+      const nonSyncNames = new Set(
+        members
+          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync === 0)
+          .map(m => m.name)
+      );
       const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
 
       let updated = 0;
@@ -300,6 +306,11 @@ export default function Trainings() {
           }
         } else {
           playerCount = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
+        }
+
+        // Bevar non-sync trænere der allerede er på træningen
+        for (const name of (t.trainers ?? [])) {
+          if (nonSyncNames.has(name)) trainerList.push(name);
         }
 
         const patch: Partial<Training> = {
