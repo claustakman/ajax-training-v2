@@ -243,7 +243,11 @@ export default function Trainings() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, [currentTeamId]);
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [currentTeamId]);
 
   function handleNew() {
     navigate('/traininger/ny');

@@ -7,7 +7,27 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–13)
+## Hvad er bygget (Sessions 1–14)
+
+### Session 14 — Holdsport sync-flag + automatisk frontend-refresh
+
+#### `holdsport_sync` flag per træner per hold
+- **Problem:** En træner er ikke på Holdsport og melder til/fra direkte i appen — Holdsport-sync overskrev hendes tilmeldinger
+- **Løsning:** Nyt felt `holdsport_sync INTEGER DEFAULT 1` på `user_teams`-tabellen
+- **Migration:** `database/migrations/0013_holdsport_sync.sql` — `ALTER TABLE user_teams ADD COLUMN holdsport_sync INTEGER NOT NULL DEFAULT 1`
+- **Worker (`worker/src/routes/users.ts`):**
+  - `GET /api/users/team-members` returnerer nu `holdsport_sync` per bruger
+  - `GET /api/users` (med `?team_id=X`) returnerer `holdsport_sync` i `teams`-arrayet
+  - `PATCH /api/users/:id/teams/:tid` accepterer nu `{ holdsport_sync: 0 | 1 }` i body (ud over `role`)
+- **Sync-logik (3 steder):** Trænere med `holdsport_sync = 0` filtreres fra `appTrainerNames`-settet OG bevares altid i `trainers`-listen via merge efter Holdsport-data:
+  - `frontend/src/pages/Trainings.tsx` — `handleSyncAll`
+  - `frontend/src/pages/TrainingEditor.tsx` — `handleHoldsportUpdate`
+  - `frontend/src/components/HoldsportImportModal.tsx` — `useEffect` der bygger `appTrainerNames`
+- **UI (`frontend/src/pages/Brugere.tsx`):** Checkbox "Synkronisér tilmelding fra Holdsport" per bruger (kun trainer/team_manager) med forklaringstekst. Optimistisk UI + PATCH ved ændring.
+- **Gotcha:** Det er ikke nok at filtrere træneren fra `appTrainerNames` — sync erstatter hele `trainers`-listen, så non-sync trænere skal også merges *ind* bagefter fra den eksisterende træning
+
+#### Automatisk frontend-refresh
+- **`frontend/src/pages/Trainings.tsx`** — `setInterval(load, 5 * 60 * 1000)` i `useEffect` — henter nye træningsdata fra DB hvert 5. minut i baggrunden uden at forstyrre brugeren
 
 ### Session 13 — WebAuthn / Face ID / Touch ID
 
