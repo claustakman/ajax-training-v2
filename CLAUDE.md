@@ -29,6 +29,17 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 #### Automatisk frontend-refresh
 - **`frontend/src/pages/Trainings.tsx`** — `setInterval(load, 5 * 60 * 1000)` i `useEffect` — henter nye træningsdata fra DB hvert 5. minut i baggrunden uden at forstyrre brugeren
 
+#### Natlig Holdsport-sync via GitHub Actions
+- **`scripts/holdsport-sync.mjs`** — Node-script der porter præcis samme logik som `handleSyncAll` i `Trainings.tsx`
+  - Logger ind via `POST /api/auth/login` med service-credentials (admin-brugerens email/password)
+  - Henter Holdsport-config per hold via `GET /api/holdsport/config`
+  - Kalder Holdsport-workeren direkte (detalje-endpoint først, fallback til liste)
+  - Respekterer `holdsport_sync`-flag — non-sync trænere bevares i `trainers`-listen
+  - Patcher træninger via `PATCH /api/trainings/:id`
+- **`.github/workflows/holdsport-sync.yml`** — kører `holdsport-sync.mjs` hver nat kl. 02:00 UTC + manuelt via "Run workflow"
+- **GitHub Secrets der kræves:** `VITE_API_URL` (allerede sat), `SYNC_EMAIL`, `SYNC_PASSWORD` (admin-brugerens credentials)
+- **Ingen service-bruger** — brug admin-brugerens egne credentials så der ikke opstår en falsk træner i listerne
+
 ### Session 13 — WebAuthn / Face ID / Touch ID
 
 #### Gotchas (deployment)
