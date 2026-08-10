@@ -311,8 +311,10 @@ export default function Trainings() {
         updated++;
       }
       setToast({ message: `${updated} træning${updated !== 1 ? 'er' : ''} synkroniseret ✓`, type: 'success' });
-    } catch {
-      setToast({ message: 'Fejl ved synkronisering', type: 'error' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Sync fejl:', err);
+      setToast({ message: `Fejl ved synkronisering: ${msg}`, type: 'error' });
     } finally {
       setSyncing(false);
     }
