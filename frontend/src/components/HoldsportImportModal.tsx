@@ -48,7 +48,7 @@ function isTraining(activity: HoldsportActivity): boolean {
   return name.includes('træning') || name.includes('training');
 }
 
-type TeamMember = { id: string; name: string; team_role: string };
+type TeamMember = { id: string; name: string; team_role: string; holdsport_sync: number };
 
 // Udtræk spillerantal og trænere fra en Holdsport-aktivitet.
 // Tilmeldte (status_code=1) hvis navn matcher en app-træner → trainer, ellers spiller.
@@ -161,10 +161,10 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
           api.get<TeamMember[]>(`/api/users/team-members?team_id=${teamId}`),
         ]);
 
-        // Trænere = trainer eller team_manager i appen
+        // Trænere = trainer eller team_manager i appen med Holdsport-sync aktiveret
         const trainerNames = new Set(
           members
-            .filter(m => m.team_role === 'trainer' || m.team_role === 'team_manager')
+            .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
             .map(m => m.name)
         );
         setAppTrainerNames(trainerNames);

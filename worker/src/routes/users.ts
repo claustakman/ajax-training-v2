@@ -11,10 +11,10 @@ userRoutes.get('/team-members', requireAuth(), async (c) => {
   const teamId = c.req.query('team_id');
   if (!teamId) return c.json({ error: 'team_id påkrævet' }, 400);
   const rows = await c.env.DB.prepare(
-    `SELECT u.id, u.name, ut.role as team_role FROM users u
+    `SELECT u.id, u.name, ut.role as team_role, ut.holdsport_sync FROM users u
      JOIN user_teams ut ON ut.user_id = u.id
      WHERE ut.team_id = ? ORDER BY u.name`
-  ).bind(teamId).all<{ id: string; name: string; team_role: string }>();
+  ).bind(teamId).all<{ id: string; name: string; team_role: string; holdsport_sync: number }>();
   return c.json(rows.results);
 });
 
@@ -37,7 +37,7 @@ userRoutes.get('/', requireAuth('team_manager'), async (c) => {
 
     // Returner kun brugere på dette hold
     const teamUsers = await c.env.DB.prepare(
-      `SELECT u.id, u.name, u.email, u.role, u.last_seen, u.created_at, ut.role as team_role
+      `SELECT u.id, u.name, u.email, u.role, u.last_seen, u.created_at, ut.role as team_role, ut.holdsport_sync
        FROM users u JOIN user_teams ut ON ut.user_id = u.id
        WHERE ut.team_id = ? ORDER BY u.name`
     ).bind(teamId).all();
@@ -49,14 +49,14 @@ userRoutes.get('/', requireAuth('team_manager'), async (c) => {
     return c.json(teamUsers.results.map((u: Record<string, unknown>) => ({
       id: u.id, name: u.name, email: u.email, role: u.role,
       last_seen: u.last_seen, created_at: u.created_at,
-      teams: teamInfo ? [{ ...teamInfo, role: u.team_role }] : [],
+      teams: teamInfo ? [{ ...teamInfo, role: u.team_role, holdsport_sync: u.holdsport_sync }] : [],
     })));
   }
 
   // Admin med team_id — returner kun brugere på det hold (samme logik som team_manager)
   if (teamId) {
     const teamUsers = await c.env.DB.prepare(
-      `SELECT u.id, u.name, u.email, u.role, u.last_seen, u.created_at, ut.role as team_role
+      `SELECT u.id, u.name, u.email, u.role, u.last_seen, u.created_at, ut.role as team_role, ut.holdsport_sync
        FROM users u JOIN user_teams ut ON ut.user_id = u.id
        WHERE ut.team_id = ? ORDER BY u.name`
     ).bind(teamId).all();
@@ -68,7 +68,7 @@ userRoutes.get('/', requireAuth('team_manager'), async (c) => {
     return c.json(teamUsers.results.map((u: Record<string, unknown>) => ({
       id: u.id, name: u.name, email: u.email, role: u.role,
       last_seen: u.last_seen, created_at: u.created_at,
-      teams: teamInfo ? [{ ...teamInfo, role: u.team_role }] : [],
+      teams: teamInfo ? [{ ...teamInfo, role: u.team_role, holdsport_sync: u.holdsport_sync }] : [],
     })));
   }
 
@@ -146,14 +146,17 @@ userRoutes.post('/:id/teams', requireAuth('team_manager'), async (c) => {
   return c.json({ ok: true });
 });
 
-// PATCH /api/users/:id/teams/:tid — opdater rolle på et hold
+// PATCH /api/users/:id/teams/:tid — opdater rolle eller holdsport_sync på et hold
 // Admin: altid. team_manager: kun på hold de selv er team_manager på.
 userRoutes.patch('/:id/teams/:tid', requireAuth('team_manager'), async (c) => {
   const userId = c.req.param('id');
   const teamId = c.req.param('tid');
   const { sub, role: callerRole } = c.get('user');
-  const { role } = await c.req.json<{ role: string }>();
-  if (!role) return c.json({ error: 'role påkrævet' }, 400);
+  const body = await c.req.json<{ role?: string; holdsport_sync?: number }>();
+
+  if (body.role === undefined && body.holdsport_sync === undefined) {
+    return c.json({ error: 'role eller holdsport_sync påkrævet' }, 400);
+  }
 
   // Non-admin: tjek at caller er team_manager på dette hold
   if (callerRole !== 'admin') {
@@ -163,15 +166,23 @@ userRoutes.patch('/:id/teams/:tid', requireAuth('team_manager'), async (c) => {
     if (!membership || membership.role !== 'team_manager') {
       return c.json({ error: 'Forbidden' }, 403);
     }
-    // team_manager kan maks tildele trainer-niveau
-    const ROLE_LEVEL: Record<string, number> = { guest: 1, trainer: 2, team_manager: 3, admin: 4 };
-    if ((ROLE_LEVEL[role] ?? 0) > ROLE_LEVEL['team_manager']) {
-      return c.json({ error: 'Du kan ikke tildele admin-rolle' }, 403);
+    if (body.role !== undefined) {
+      // team_manager kan maks tildele trainer-niveau
+      const ROLE_LEVEL: Record<string, number> = { guest: 1, trainer: 2, team_manager: 3, admin: 4 };
+      if ((ROLE_LEVEL[body.role] ?? 0) > ROLE_LEVEL['team_manager']) {
+        return c.json({ error: 'Du kan ikke tildele admin-rolle' }, 403);
+      }
     }
   }
 
-  await c.env.DB.prepare('UPDATE user_teams SET role = ? WHERE user_id = ? AND team_id = ?')
-    .bind(role, userId, teamId).run();
+  if (body.role !== undefined) {
+    await c.env.DB.prepare('UPDATE user_teams SET role = ? WHERE user_id = ? AND team_id = ?')
+      .bind(body.role, userId, teamId).run();
+  }
+  if (body.holdsport_sync !== undefined) {
+    await c.env.DB.prepare('UPDATE user_teams SET holdsport_sync = ? WHERE user_id = ? AND team_id = ?')
+      .bind(body.holdsport_sync, userId, teamId).run();
+  }
   return c.json({ ok: true });
 });
 

@@ -264,13 +264,13 @@ export default function Trainings() {
     try {
       const [config, members] = await Promise.all([
         api.fetchHoldsportConfig(currentTeamId),
-        api.get<Array<{ id: string; name: string; team_role: string }>>(
+        api.get<Array<{ id: string; name: string; team_role: string; holdsport_sync: number }>>(
           `/api/users/team-members?team_id=${currentTeamId}`
         ),
       ]);
       const trainerNames = new Set(
         members
-          .filter(m => m.team_role === 'trainer' || m.team_role === 'team_manager')
+          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
           .map(m => m.name)
       );
       const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);

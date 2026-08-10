@@ -1,0 +1,1 @@
+ALTER TABLE user_teams ADD COLUMN holdsport_sync INTEGER NOT NULL DEFAULT 1;

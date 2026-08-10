@@ -3,6 +3,10 @@ import { Navigate } from 'react-router-dom';
 import { useAuth, hasRole, ROLE_LABELS, type Team } from '../lib/auth';
 import { api, ApiError } from '../lib/api';
 
+interface TeamEntry extends Team {
+  holdsport_sync?: number;
+}
+
 interface TeamUser {
   id: string;
   name: string;
@@ -10,7 +14,7 @@ interface TeamUser {
   role: 'guest' | 'trainer' | 'team_manager' | 'admin';
   last_seen: string | null;
   created_at: string;
-  teams: Team[];
+  teams: TeamEntry[];
 }
 
 // Roller der kan inviteres/tildeles af en team_manager (maks trainer)
@@ -54,7 +58,20 @@ export default function Brugere() {
     try {
       await api.patch(`/api/users/${userId}/teams/${currentTeamId}`, { role: newRole });
     } catch {
-      load(); // revert ved fejl
+      load();
+    }
+  }
+
+  async function handleHoldsportSyncChange(userId: string, enabled: boolean) {
+    const val = enabled ? 1 : 0;
+    setUsers(prev => prev.map(u => {
+      if (u.id !== userId) return u;
+      return { ...u, teams: u.teams.map(t => t.id === currentTeamId ? { ...t, holdsport_sync: val } : t) };
+    }));
+    try {
+      await api.patch(`/api/users/${userId}/teams/${currentTeamId}`, { holdsport_sync: val });
+    } catch {
+      load();
     }
   }
 
@@ -154,6 +171,7 @@ export default function Brugere() {
               onRemove={() => handleRemove(u.id, u.name)}
               onResetPassword={() => handleResetPassword(u.id, u.name)}
               onNameChange={newName => setUsers(prev => prev.map(x => x.id === u.id ? { ...x, name: newName } : x))}
+              onHoldsportSyncChange={enabled => handleHoldsportSyncChange(u.id, enabled)}
             />
           ))}
         </div>
@@ -162,19 +180,21 @@ export default function Brugere() {
   );
 }
 
-function UserRow({ user, currentTeamId, onTeamRoleChange, onRemove, onResetPassword, onNameChange }: {
+function UserRow({ user, currentTeamId, onTeamRoleChange, onRemove, onResetPassword, onNameChange, onHoldsportSyncChange }: {
   user: TeamUser;
   currentTeamId: string;
   onTeamRoleChange: (role: string) => void;
   onRemove: () => void;
   onResetPassword: () => void;
   onNameChange: (newName: string) => void;
+  onHoldsportSyncChange: (enabled: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(user.name);
   const teamEntry = user.teams.find(t => t.id === currentTeamId);
   const displayRole = user.role === 'admin' ? 'admin' : (teamEntry?.role ?? 'guest');
+  const holdsportSync = teamEntry?.holdsport_sync !== 0;
 
   async function saveName() {
     const trimmed = nameValue.trim();
@@ -239,6 +259,24 @@ function UserRow({ user, currentTeamId, onTeamRoleChange, onRemove, onResetPassw
           )}
           {user.role === 'admin' && (
             <div style={{ marginTop: 14, fontSize: 13, color: 'var(--text3)' }}>Admin — global rolle, kan ikke ændres her</div>
+          )}
+
+          {/* Holdsport-sync toggle — kun for trainer og team_manager */}
+          {(displayRole === 'trainer' || displayRole === 'team_manager') && (
+            <div>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={holdsportSync}
+                  onChange={e => onHoldsportSyncChange(e.target.checked)}
+                  style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0 }}
+                />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>Synkronisér tilmelding fra Holdsport</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Slå fra hvis træneren ikke er på Holdsport og selv registrerer fremmøde i appen</div>
+                </div>
+              </label>
+            </div>
           )}
 
           {/* Seneste login */}
