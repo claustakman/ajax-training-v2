@@ -1,0 +1,22 @@
+name: Nightly Holdsport Sync
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # Hver nat kl. 02:00 UTC
+  workflow_dispatch:        # Kan også køres manuelt fra GitHub
+
+jobs:
+  sync:
+    name: Sync Holdsport → DB
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Kør Holdsport-sync
+        run: node scripts/holdsport-sync.mjs
+        env:
+          API_URL: ${{ secrets.VITE_API_URL }}
+          SYNC_EMAIL: ${{ secrets.SYNC_EMAIL }}
+          SYNC_PASSWORD: ${{ secrets.SYNC_PASSWORD }}
