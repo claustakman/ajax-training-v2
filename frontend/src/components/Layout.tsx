@@ -177,6 +177,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)} className="mobile-only-item">Temaer</MenuItem>
             {/* Arkiv: altid synlig */}
             <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
+            {/* Statistik: altid synlig */}
+            <MenuItem to="/statistik" onClick={() => setMenuOpen(false)}>Statistik</MenuItem>
             {hasRole(user, 'team_manager', currentTeamRole) && (
               <MenuItem to="/holdindstillinger" onClick={() => setMenuOpen(false)}>Holdindstillinger</MenuItem>
             )}

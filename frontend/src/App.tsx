@@ -14,6 +14,7 @@ import Brugere from './pages/Brugere';
 import TeamSettings from './pages/TeamSettings';
 import TrainingEditor from './pages/TrainingEditor';
 import Archive from './pages/Archive';
+import Statistik from './pages/Statistik';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -40,6 +41,7 @@ export default function App() {
                   <Route path="/traininger" element={<Trainings />} />
                   <Route path="/traininger/:id" element={<TrainingEditor />} />
                   <Route path="/arkiv" element={<Archive />} />
+                  <Route path="/statistik" element={<Statistik />} />
                   <Route path="/aarshjul" element={<Aarshjul />} />
                   <Route path="/katalog" element={<Catalog />} />
                   <Route path="/tavle" element={<Board />} />
