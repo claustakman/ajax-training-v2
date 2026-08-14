@@ -7,7 +7,48 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–14)
+## Hvad er bygget (Sessions 1–15)
+
+### Session 15 — Statistik-side
+
+#### `frontend/src/pages/Statistik.tsx` (ny side)
+- **Route:** `/statistik` — tilgængelig for alle roller
+- **Menupunkt:** I hamburger-menuen under Arkiv, over Holdindstillinger (`Layout.tsx`)
+- **Data:** Henter både aktive og arkiverede træninger + øvelseskatalog via React Query
+
+#### Counters
+- **Antal træninger i alt**
+- **Gennemsnitlig antal trænere per træning**
+
+#### Histogrammer (søjlediagrammer med relativ bredde)
+| Histogram | Farve | Beskrivelse |
+|-----------|-------|-------------|
+| Gennemsnitlig antal trænere per ugedag | lilla | Kun ugedage med mindst én træning vises. Sorteret man→søn. Subtitle viser antal træninger per dag. |
+| Ansvarlig træner | rød (accent) | Antal gange som `lead_trainer`, sorteret hyppighed |
+| Temaer | blå | Alle `themes`-værdier på tværs af træninger, sorteret hyppighed |
+| Mest anvendte øvelser — top 20 | grøn | Katalogøvelser (fri øvelser springes over), filtreres på tags |
+
+#### Tag-filter (øvelseshistogram)
+- Collapsed som default — enkelt "Filtrer på tags ▼"-knap
+- Rød badge viser antal aktive filtre
+- Folders ud som pill-grid ved klik
+- Øvelsen skal matche ALLE valgte tags (AND-logik)
+
+#### Komponenter i Statistik.tsx
+- `StatCard` — stor talvisning med label (bruges til counters)
+- `Section` — kort-wrapper med overskrift
+- `Bar` — søjle til heltalstællinger (label 140px, bar, count)
+- `BarFloat` — søjle til decimalgennemsnit (label 80px med subtitle, bar, én decimal)
+- `Empty` — grå hjælpetekst ved ingen data
+
+#### Ugedag-logik
+```ts
+const WEEKDAY_ORDER = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
+function getWeekday(dateStr: string): string {
+  const d = new Date(dateStr);
+  return WEEKDAY_ORDER[(d.getDay() + 6) % 7]; // getDay() 0=søndag → offset +6
+}
+```
 
 ### Session 14 — Holdsport sync-flag + automatisk frontend-refresh
 
@@ -503,6 +544,7 @@ ajax-traening-v2/
 │   │       ├── Trainings.tsx        # Træningsliste (/) med SkeletonCard + HoldsportImportModal
 │   │       ├── TrainingEditor.tsx   # Trænings-editor (/traininger/:id) med auto-gem
 │   │       ├── Archive.tsx          # Arkiv (/arkiv) — desktop tabel + mobil kortliste
+│   │       ├── Statistik.tsx        # Statistik (/statistik) — counters + histogrammer
 │   │       ├── Aarshjul.tsx         # Årshjul (/aarshjul) — 6 kvartaler med temaer
 │   │       ├── Catalog.tsx          # Øvelseskatalog (/katalog) — hal/keeper/fys tabs
 │   │       ├── Board.tsx            # Opslagstavle (/tavle) — fuldt implementeret
@@ -1027,6 +1069,18 @@ CREATE TABLE templates (
 - Handlinger: ⎘ Kopi (duplikér som ny aktiv → navigate til editor), ↩ Genskab (archived=0), ✕ Permanent slet
 - Kopi stripper: id, created_at, updated_at, archived, holdsport_id
 - Toast (grøn/rød, 3s) ved alle handlinger
+
+### `Statistik.tsx` (`/statistik`)
+- Tilgængelig for alle roller — menupunkt i hamburger under Arkiv
+- Henter aktive + arkiverede træninger og øvelseskatalog via React Query
+- **Counters** (StatCard-komponent): Antal træninger i alt · Gennemsnitlig antal trænere per træning
+- **Histogrammer** (Bar/BarFloat-komponent — relativ søjlebredde):
+  - *Gennemsnitlig antal trænere per ugedag* (lilla) — kun ugedage med træninger, man→søn, subtitle viser træningsantal
+  - *Ansvarlig træner* (rød) — antal gange som `lead_trainer`
+  - *Temaer* (blå) — hyppighed af alle `themes`-værdier
+  - *Mest anvendte øvelser — top 20* (grøn) — katalogøvelser (fri øvelser springes over)
+- **Tag-filter** på øvelseshistogram: collapsed som default, toggle-knap med rød badge for aktive filtre, AND-logik
+- Ugedag-beregning: `(d.getDay() + 6) % 7` konverterer JS `getDay()` (0=søndag) til mandag=0
 
 ### `Aarshjul.tsx` (`/aarshjul`)
 - 6 kvartaler: Q2 (Maj–Jun), Q3 (Aug–Sep), Q4 (Okt–Dec), Q1 (Jan–Mar), Overgang (Apr), Q2 næste (Maj–Jun)
