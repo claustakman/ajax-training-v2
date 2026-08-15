@@ -184,20 +184,15 @@ export default function Statistik() {
       </p>
 
       {/* ── Counters ────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <StatCard label="Træninger i alt" value={totalCount} />
-        <StatCard label="Spillere pr. træning (gns.)" value={avgPlayers !== null ? avgPlayers.toFixed(1) : '–'} />
-        <StatCard label="Trænere pr. træning (gns.)" value={avgTrainers.toFixed(1)} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+        {/* Række 1: Træninger i alt — fuld bredde */}
+        <StatCard label="Træninger i alt" value={totalCount} fullWidth />
+        {/* Række 2: de to gennemsnit side om side */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <StatCard label="Spillere pr. træning (gns.)" value={avgPlayers !== null ? avgPlayers.toFixed(1) : '–'} />
+          <StatCard label="Trænere pr. træning (gns.)" value={avgTrainers.toFixed(1)} />
+        </div>
       </div>
-
-      {/* ── Tidsserie: spillere ─────────────────────────────────────────────── */}
-      <Section title="Spillere til træning over tid">
-        {playerTimeSeries.length < 2 ? (
-          <Empty text="Ikke nok data til at vise tidsserie — synkronisér træningerne med Holdsport" />
-        ) : (
-          <PlayerChart data={playerTimeSeries} avg={avgPlayers ?? 0} />
-        )}
-      </Section>
 
       {/* ── Spillere per ugedag ─────────────────────────────────────────────── */}
       <Section title="Gennemsnitlig antal spillere per ugedag">
@@ -214,6 +209,15 @@ export default function Statistik() {
               color="var(--blue)"
             />
           ))
+        )}
+      </Section>
+
+      {/* ── Tidsserie: spillere ─────────────────────────────────────────────── */}
+      <Section title="Spillere til træning over tid">
+        {playerTimeSeries.length < 2 ? (
+          <Empty text="Ikke nok data til at vise tidsserie — synkronisér træningerne med Holdsport" />
+        ) : (
+          <PlayerChart data={playerTimeSeries} avg={avgPlayers ?? 0} />
         )}
       </Section>
 
@@ -347,12 +351,12 @@ export default function Statistik() {
 
 // ── Hjælpekomponenter ─────────────────────────────────────────────────────────
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({ label, value, fullWidth }: { label: string; value: string | number; fullWidth?: boolean }) {
   return (
     <div style={{
       background: 'var(--bg-card)', borderRadius: 12,
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      padding: '16px 24px', flex: '1 1 140px', minWidth: 120,
+      padding: '16px 24px', flex: fullWidth ? '1 1 100%' : '1 1 140px', minWidth: fullWidth ? 0 : 120,
     }}>
       <div style={{ fontSize: 32, fontWeight: 700, fontFamily: 'var(--font-heading)', color: 'var(--accent)', lineHeight: 1 }}>
         {value}
