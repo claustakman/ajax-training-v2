@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
@@ -77,6 +77,14 @@ export default function Statistik() {
     if (withData.length === 0) return null;
     const sum = withData.reduce((acc, t) => acc + (t.participant_count ?? 0), 0);
     return sum / withData.length;
+  }, [allTrainings]);
+
+  // Tidsserie: træninger med deltagertal, sorteret kronologisk
+  const playerTimeSeries = useMemo(() => {
+    return allTrainings
+      .filter(t => t.date && (t.participant_count ?? 0) > 0)
+      .sort((a, b) => a.date!.localeCompare(b.date!))
+      .map(t => ({ date: t.date!, count: t.participant_count! }));
   }, [allTrainings]);
 
   // Gennemsnitlig antal spillere per ugedag
@@ -181,6 +189,15 @@ export default function Statistik() {
         <StatCard label="Spillere pr. træning (gns.)" value={avgPlayers !== null ? avgPlayers.toFixed(1) : '–'} />
         <StatCard label="Trænere pr. træning (gns.)" value={avgTrainers.toFixed(1)} />
       </div>
+
+      {/* ── Tidsserie: spillere ─────────────────────────────────────────────── */}
+      <Section title="Spillere til træning over tid">
+        {playerTimeSeries.length < 2 ? (
+          <Empty text="Ikke nok data til at vise tidsserie — synkronisér træningerne med Holdsport" />
+        ) : (
+          <PlayerChart data={playerTimeSeries} avg={avgPlayers ?? 0} />
+        )}
+      </Section>
 
       {/* ── Spillere per ugedag ─────────────────────────────────────────────── */}
       <Section title="Gennemsnitlig antal spillere per ugedag">
@@ -398,5 +415,185 @@ function BarFloat({ label, value, max, subtitle, color }: { label: string; value
 function Empty({ text }: { text: string }) {
   return (
     <div style={{ color: 'var(--text3)', fontSize: 14, padding: '8px 0' }}>{text}</div>
+  );
+}
+
+// ── Tidsserie-graf ────────────────────────────────────────────────────────────
+
+interface ChartPoint { date: string; count: number }
+
+function PlayerChart({ data, avg }: { data: ChartPoint[]; avg: number }) {
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; point: ChartPoint } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const W = 660;
+  const H = 180;
+  const PAD = { top: 16, right: 16, bottom: 32, left: 36 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const minVal = 0;
+  const maxVal = Math.max(...data.map(d => d.count), avg * 1.2, 1);
+
+  const xScale = (i: number) => PAD.left + (i / (data.length - 1)) * innerW;
+  const yScale = (v: number) => PAD.top + innerH - ((v - minVal) / (maxVal - minVal)) * innerH;
+
+  // Y-akse ticks — 4 jævnt fordelte
+  const yTicks = useMemo(() => {
+    const step = Math.ceil(maxVal / 4);
+    return Array.from({ length: 5 }, (_, i) => i * step).filter(v => v <= maxVal + step);
+  }, [maxVal]);
+
+  // X-akse: vis måned+år ved første datapunkt i hver måned
+  const xLabels = useMemo(() => {
+    const seen = new Set<string>();
+    return data.map((d, i) => {
+      const key = d.date.slice(0, 7); // YYYY-MM
+      if (seen.has(key)) return null;
+      seen.add(key);
+      const dt = new Date(d.date);
+      const label = dt.toLocaleDateString('da-DK', { month: 'short', year: '2-digit' });
+      return { i, label };
+    }).filter(Boolean) as { i: number; label: string }[];
+  }, [data]);
+
+  // SVG polyline points-streng
+  const linePoints = data.map((d, i) => `${xScale(i)},${yScale(d.count)}`).join(' ');
+
+  // Fyldt areal under linjen
+  const areaPoints = [
+    `${xScale(0)},${PAD.top + innerH}`,
+    ...data.map((d, i) => `${xScale(i)},${yScale(d.count)}`),
+    `${xScale(data.length - 1)},${PAD.top + innerH}`,
+  ].join(' ');
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const svgX = ((e.clientX - rect.left) / rect.width) * W;
+    const relX = svgX - PAD.left;
+    const idx = Math.max(0, Math.min(data.length - 1, Math.round((relX / innerW) * (data.length - 1))));
+    const point = data[idx];
+    setTooltip({ x: xScale(idx), y: yScale(point.count), point });
+  }, [data, innerW, xScale, yScale]);
+
+  const avgY = yScale(avg);
+
+  return (
+    <div style={{ position: 'relative', overflowX: 'auto' }}>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: '100%', minWidth: 280, display: 'block', cursor: 'crosshair' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setTooltip(null)}
+      >
+        <defs>
+          <linearGradient id="area-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--blue)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="var(--blue)" stopOpacity="0.01" />
+          </linearGradient>
+        </defs>
+
+        {/* Y-grid + ticks */}
+        {yTicks.map(v => (
+          <g key={v}>
+            <line
+              x1={PAD.left} y1={yScale(v)} x2={PAD.left + innerW} y2={yScale(v)}
+              stroke="var(--border)" strokeWidth="1"
+            />
+            <text x={PAD.left - 6} y={yScale(v) + 4} textAnchor="end" fontSize="10" fill="var(--text3)">
+              {v}
+            </text>
+          </g>
+        ))}
+
+        {/* Areal */}
+        <polygon points={areaPoints} fill="url(#area-grad)" />
+
+        {/* Linje */}
+        <polyline
+          points={linePoints}
+          fill="none"
+          stroke="var(--blue)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Datapunkter */}
+        {data.map((d, i) => (
+          <circle
+            key={i}
+            cx={xScale(i)} cy={yScale(d.count)} r="3"
+            fill="var(--blue)" stroke="var(--bg-card)" strokeWidth="1.5"
+          />
+        ))}
+
+        {/* Gennemsnits-linje (stiplet, sekundær) */}
+        <line
+          x1={PAD.left} y1={avgY} x2={PAD.left + innerW} y2={avgY}
+          stroke="var(--text3)" strokeWidth="1.5" strokeDasharray="5 4"
+        />
+        <text x={PAD.left + innerW - 2} y={avgY - 5} textAnchor="end" fontSize="10" fill="var(--text3)">
+          gns. {avg.toFixed(1)}
+        </text>
+
+        {/* X-akse labels */}
+        {xLabels.map(({ i, label }) => (
+          <text key={i} x={xScale(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--text3)">
+            {label}
+          </text>
+        ))}
+
+        {/* Tooltip — lodret linje + cirkel fremhævet */}
+        {tooltip && (
+          <>
+            <line
+              x1={tooltip.x} y1={PAD.top} x2={tooltip.x} y2={PAD.top + innerH}
+              stroke="var(--text3)" strokeWidth="1" strokeDasharray="3 3"
+            />
+            <circle cx={tooltip.x} cy={tooltip.y} r="5" fill="var(--blue)" stroke="var(--bg-card)" strokeWidth="2" />
+          </>
+        )}
+      </svg>
+
+      {/* Tooltip boks — positioneres relativt til SVG-container */}
+      {tooltip && (() => {
+        const svgEl = svgRef.current;
+        const rect = svgEl?.getBoundingClientRect();
+        const containerRect = svgEl?.parentElement?.getBoundingClientRect();
+        if (!rect || !containerRect) return null;
+        const pxX = ((tooltip.x / W) * rect.width) + rect.left - containerRect.left;
+        const pxY = ((tooltip.y / H) * rect.height) + rect.top - containerRect.top;
+        const flipLeft = pxX > containerRect.width * 0.65;
+        return (
+          <div style={{
+            position: 'absolute',
+            left: flipLeft ? undefined : pxX + 10,
+            right: flipLeft ? containerRect.width - pxX + 10 : undefined,
+            top: Math.max(0, pxY - 28),
+            background: 'var(--text)', color: 'var(--bg-card)',
+            borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600,
+            pointerEvents: 'none', whiteSpace: 'nowrap',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          }}>
+            {tooltip.point.date.slice(5).replace('-', '/')} — {tooltip.point.count} spillere
+          </div>
+        );
+      })()}
+
+      {/* Legende */}
+      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: 'var(--text3)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <svg width="20" height="3"><line x1="0" y1="1.5" x2="20" y2="1.5" stroke="var(--blue)" strokeWidth="2" /></svg>
+          Antal spillere
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <svg width="20" height="3"><line x1="0" y1="1.5" x2="20" y2="1.5" stroke="var(--text3)" strokeWidth="1.5" strokeDasharray="5 4" /></svg>
+          Gennemsnit
+        </span>
+      </div>
+    </div>
   );
 }
