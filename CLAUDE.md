@@ -15,18 +15,52 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **Route:** `/statistik` — tilgængelig for alle roller
 - **Menupunkt:** I hamburger-menuen under Arkiv, over Holdindstillinger (`Layout.tsx`)
 - **Data:** Henter både aktive og arkiverede træninger + øvelseskatalog via React Query
+- **Filter:** Kun afholdte træninger — dato sat + dato ≤ i dag (`isPast()`). Subtitle "Kun afholdte træninger" under overskriften.
 
-#### Counters
-- **Antal træninger i alt**
-- **Gennemsnitlig antal trænere per træning**
+#### Counters (3 kort, 2 rækker)
+```tsx
+<div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+  {/* Række 1: fuld bredde */}
+  <StatCard label="Træninger i alt" value={totalCount} fullWidth />
+  {/* Række 2: to kort side om side */}
+  <div style={{ display: 'flex', gap: 12 }}>
+    <StatCard label="Spillere pr. træning (gns.)" value={avgPlayers !== null ? avgPlayers.toFixed(1) : '–'} />
+    <StatCard label="Trænere pr. træning (gns.)" value={avgTrainers.toFixed(1)} />
+  </div>
+</div>
+```
+- `avgPlayers` returnerer `null` (viser `–`) hvis ingen træninger har `participant_count > 0`
+
+#### Sektionsrækkefølge
+1. Counters
+2. Gennemsnitlig antal spillere per ugedag (blå)
+3. Spillere til træning over tid (tidsserie)
+4. Gennemsnitlig antal trænere per ugedag (lilla)
+5. Ansvarlig træner (rød)
+6. Temaer (blå)
+7. Mest anvendte øvelser — top 20 (grøn)
 
 #### Histogrammer (søjlediagrammer med relativ bredde)
 | Histogram | Farve | Beskrivelse |
 |-----------|-------|-------------|
-| Gennemsnitlig antal trænere per ugedag | lilla | Kun ugedage med mindst én træning vises. Sorteret man→søn. Subtitle viser antal træninger per dag. |
+| Gennemsnitlig antal spillere per ugedag | blå | Kun dage med `participant_count > 0`. Subtitle viser antal træninger. |
+| Gennemsnitlig antal trænere per ugedag | lilla | Kun ugedage med mindst én træning vises. Sorteret man→søn. Subtitle viser antal træninger. |
 | Ansvarlig træner | rød (accent) | Antal gange som `lead_trainer`, sorteret hyppighed |
 | Temaer | blå | Alle `themes`-værdier på tværs af træninger, sorteret hyppighed |
 | Mest anvendte øvelser — top 20 | grøn | Katalogøvelser (fri øvelser springes over), filtreres på tags |
+
+#### Tidsserie — `PlayerChart`
+Ren SVG-komponent (ingen externe libraries):
+- Primær linje: blå `<polyline>` med gradient-fyld (`<polygon>` + `linearGradient`)
+- Sekundær linje: grå stiplet gennemsnits-linje
+- Hover: `onMouseMove` finder nærmeste indeks → viser tooltip-div (flipper til venstre-anker hvis x > 65% af container)
+- X-akse: første datapunkt per måned (YYYY-MM dedup) — dansk `toLocaleDateString`
+- Y-akse: 5 ticks via `Math.ceil(maxVal / 4)` step
+- Legende under grafen
+```ts
+const W = 660; const H = 180;
+const PAD = { top: 16, right: 16, bottom: 32, left: 36 };
+```
 
 #### Tag-filter (øvelseshistogram)
 - Collapsed som default — enkelt "Filtrer på tags ▼"-knap
@@ -35,20 +69,35 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - Øvelsen skal matche ALLE valgte tags (AND-logik)
 
 #### Komponenter i Statistik.tsx
-- `StatCard` — stor talvisning med label (bruges til counters)
+- `StatCard` — stor talvisning med label. `fullWidth?` prop → `flex: '1 1 100%'`
 - `Section` — kort-wrapper med overskrift
 - `Bar` — søjle til heltalstællinger (label 140px, bar, count)
 - `BarFloat` — søjle til decimalgennemsnit (label 80px med subtitle, bar, én decimal)
 - `Empty` — grå hjælpetekst ved ingen data
+- `PlayerChart` — SVG tidsserie med hover-tooltip og gennemsnits-linje
 
-#### Ugedag-logik
+#### Hjælpefunktioner
 ```ts
+function isPast(dateStr: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(dateStr) <= today;
+}
+
 const WEEKDAY_ORDER = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
 function getWeekday(dateStr: string): string {
   const d = new Date(dateStr);
   return WEEKDAY_ORDER[(d.getDay() + 6) % 7]; // getDay() 0=søndag → offset +6
 }
 ```
+
+#### `frontend/src/pages/Archive.tsx` — Holdsport engangssync
+- **`handleSyncArchive()`** — synkroniserer alle arkiverede Holdsport-træninger med aktuelle deltagertal:
+  - Henter Holdsport-config + team-members med `holdsport_sync`-flag
+  - Bygger `trainerNames` (sync=1) og `nonSyncNames` (sync=0) sets
+  - Itererer alle arkiverede HS-træninger, henter aktivitetsdetaljer, beregner `playerCount` + `trainerList`
+  - `PATCH`'er `participant_count` + `trainers` og opdaterer lokal state
+- **"↻ Sync arkiv"-knap** i headeren: vises for trainer+ når arkiverede HS-træninger eksisterer; disabled + "⏳ Synkroniserer…" under kørsel
 
 ### Session 14 — Holdsport sync-flag + automatisk frontend-refresh
 
@@ -1073,14 +1122,19 @@ CREATE TABLE templates (
 ### `Statistik.tsx` (`/statistik`)
 - Tilgængelig for alle roller — menupunkt i hamburger under Arkiv
 - Henter aktive + arkiverede træninger og øvelseskatalog via React Query
-- **Counters** (StatCard-komponent): Antal træninger i alt · Gennemsnitlig antal trænere per træning
-- **Histogrammer** (Bar/BarFloat-komponent — relativ søjlebredde):
-  - *Gennemsnitlig antal trænere per ugedag* (lilla) — kun ugedage med træninger, man→søn, subtitle viser træningsantal
-  - *Ansvarlig træner* (rød) — antal gange som `lead_trainer`
-  - *Temaer* (blå) — hyppighed af alle `themes`-værdier
-  - *Mest anvendte øvelser — top 20* (grøn) — katalogøvelser (fri øvelser springes over)
+- **Kun afholdte træninger** — `isPast(date)` filter; subtitle "Kun afholdte træninger" under overskriften
+- **Counters** (3 StatCard — 2 rækker): Træninger i alt (fuld bredde) · Spillere pr. træning gns. · Trænere pr. træning gns.
+  - `avgPlayers` viser `–` hvis ingen træninger har `participant_count > 0`
+- **Histogrammer og grafer** (sektionsrækkefølge):
+  1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun dage med deltagerdata
+  2. *Spillere til træning over tid* — SVG tidsserie (`PlayerChart`): blå linje + gradient-fyldt areal + stiplet gennemsnits-linje + hover-tooltip
+  3. *Gennemsnitlig antal trænere per ugedag* (lilla, BarFloat) — kun ugedage med træninger, subtitle viser træningsantal
+  4. *Ansvarlig træner* (rød, Bar) — antal gange som `lead_trainer`
+  5. *Temaer* (blå, Bar) — hyppighed af alle `themes`-værdier
+  6. *Mest anvendte øvelser — top 20* (grøn, Bar) — katalogøvelser (fri øvelser springes over)
 - **Tag-filter** på øvelseshistogram: collapsed som default, toggle-knap med rød badge for aktive filtre, AND-logik
 - Ugedag-beregning: `(d.getDay() + 6) % 7` konverterer JS `getDay()` (0=søndag) til mandag=0
+- `PlayerChart` — ren SVG, ingen biblioteker. Tooltip flipper til venstre-anker ved x > 65% af container.
 
 ### `Aarshjul.tsx` (`/aarshjul`)
 - 6 kvartaler: Q2 (Maj–Jun), Q3 (Aug–Sep), Q4 (Okt–Dec), Q1 (Jan–Mar), Overgang (Apr), Q2 næste (Maj–Jun)
