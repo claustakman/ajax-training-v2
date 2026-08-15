@@ -245,6 +245,7 @@ export default function Archive() {
 
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Filtre
@@ -281,6 +282,82 @@ export default function Archive() {
     if (filterTrainer && !allTrainers(t).includes(filterTrainer)) return false;
     return true;
   }), [trainings, filterStars, filterLocation, filterTrainer]);
+
+  // ── Holdsport-arkiv-sync ────────────────────────────────────────────────────
+
+  async function handleSyncArchive() {
+    if (!currentTeamId || syncing) return;
+    const hsTrainings = trainings.filter(t => t.holdsport_id && t.date);
+    if (hsTrainings.length === 0) {
+      setToast({ message: 'Ingen Holdsport-træninger i arkivet', type: 'error' });
+      return;
+    }
+    setSyncing(true);
+    try {
+      const [config, members] = await Promise.all([
+        api.fetchHoldsportConfig(currentTeamId),
+        api.get<Array<{ id: string; name: string; team_role: string; holdsport_sync: number }>>(
+          `/api/users/team-members?team_id=${currentTeamId}`
+        ),
+      ]);
+      const trainerNames = new Set(
+        members
+          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
+          .map(m => m.name)
+      );
+      const nonSyncNames = new Set(
+        members
+          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync === 0)
+          .map(m => m.name)
+      );
+      const hsTeams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
+
+      let updated = 0;
+      for (const t of hsTrainings) {
+        let found = null;
+        for (const team of hsTeams) {
+          found = await api.fetchHoldsportActivity(
+            config.workerUrl, config.token, team.id, t.holdsport_id!, t.date!
+          );
+          if (found) break;
+        }
+        if (!found) continue;
+
+        const rec = found as unknown as Record<string, unknown>;
+        const users = rec.activities_users;
+        let playerCount = 0;
+        const trainerList: string[] = [];
+        if (Array.isArray(users)) {
+          for (const u of users) {
+            const ur = u as Record<string, unknown>;
+            if (ur.status_code !== 1) continue;
+            const name = ur.name as string;
+            if (trainerNames.has(name)) trainerList.push(name);
+            else playerCount++;
+          }
+        } else {
+          playerCount = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
+        }
+        for (const name of (t.trainers ?? [])) {
+          if (nonSyncNames.has(name)) trainerList.push(name);
+        }
+
+        const patch: Partial<Training> = {
+          participant_count: playerCount > 0 ? playerCount : undefined,
+          trainers: trainerList,
+        };
+        await api.patch(`/api/trainings/${t.id}`, patch);
+        setTrainings(prev => prev.map(x => x.id === t.id ? { ...x, ...patch } : x));
+        updated++;
+      }
+      setToast({ message: `${updated} arkiverede træning${updated !== 1 ? 'er' : ''} synkroniseret ✓`, type: 'success' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setToast({ message: `Fejl: ${msg}`, type: 'error' });
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   // ── Handlinger ──────────────────────────────────────────────────────────────
 
@@ -334,9 +411,25 @@ export default function Archive() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)', fontSize: 14, padding: '4px 0' }}
           >← Tilbage</button>
         </div>
-        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 26, fontWeight: 900, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-          Arkiv
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 26, fontWeight: 900, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+            Arkiv
+          </h1>
+          {canEdit && !loading && trainings.some(t => t.holdsport_id) && (
+            <button
+              onClick={handleSyncArchive}
+              disabled={syncing}
+              title="Synkronisér deltagerantal fra Holdsport for alle arkiverede træninger"
+              style={{
+                padding: '6px 14px', borderRadius: 8, fontSize: 13, cursor: syncing ? 'not-allowed' : 'pointer',
+                background: 'var(--bg-input)', border: '1px solid var(--border2)', color: 'var(--text2)',
+                opacity: syncing ? 0.6 : 1, whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >
+              {syncing ? '⏳ Synkroniserer…' : '↻ Sync arkiv'}
+            </button>
+          )}
+        </div>
         <div style={{ fontSize: 14, color: 'var(--text2)' }}>
           {loading ? 'Indlæser…' : `${trainings.length} arkiverede træning${trainings.length !== 1 ? 'er' : ''}`}
         </div>

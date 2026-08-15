@@ -8,8 +8,14 @@ const WEEKDAY_ORDER = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lør
 
 function getWeekday(dateStr: string): string {
   const d = new Date(dateStr);
-  // getDay() returnerer 0=søndag, 1=mandag osv.
   return WEEKDAY_ORDER[(d.getDay() + 6) % 7];
+}
+
+// Dato-streng (YYYY-MM-DD) ≤ i dag
+function isPast(dateStr: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(dateStr) <= today;
 }
 
 export default function Statistik() {
@@ -38,8 +44,9 @@ export default function Statistik() {
 
   const isLoading = loadingActive || loadingArchived;
 
+  // Kun afholdte træninger (dato sat + dato ≤ i dag)
   const allTrainings: Training[] = useMemo(
-    () => [...activeTrainings, ...archivedTrainings],
+    () => [...activeTrainings, ...archivedTrainings].filter(t => t.date && isPast(t.date)),
     [activeTrainings, archivedTrainings]
   );
 
@@ -65,7 +72,29 @@ export default function Statistik() {
     return sum / totalCount;
   }, [allTrainings, totalCount]);
 
-  // Gennemsnitlig antal trænere per ugedag — kun ugedage med mindst én træning
+  const avgPlayers = useMemo(() => {
+    const withData = allTrainings.filter(t => (t.participant_count ?? 0) > 0);
+    if (withData.length === 0) return null;
+    const sum = withData.reduce((acc, t) => acc + (t.participant_count ?? 0), 0);
+    return sum / withData.length;
+  }, [allTrainings]);
+
+  // Gennemsnitlig antal spillere per ugedag
+  const playersByWeekday = useMemo(() => {
+    const sums: Record<string, number> = {};
+    const counts: Record<string, number> = {};
+    for (const t of allTrainings) {
+      if (!t.date || !((t.participant_count ?? 0) > 0)) continue;
+      const day = getWeekday(t.date);
+      sums[day] = (sums[day] ?? 0) + (t.participant_count ?? 0);
+      counts[day] = (counts[day] ?? 0) + 1;
+    }
+    return WEEKDAY_ORDER
+      .filter(day => counts[day] > 0)
+      .map(day => ({ day, avg: sums[day] / counts[day], count: counts[day] }));
+  }, [allTrainings]);
+
+  // Gennemsnitlig antal trænere per ugedag
   const trainersByWeekday = useMemo(() => {
     const sums: Record<string, number> = {};
     const counts: Record<string, number> = {};
@@ -118,6 +147,7 @@ export default function Statistik() {
       .slice(0, 20);
   }, [allTrainings, exerciseMap, tagFilter]);
 
+  const maxPlayers = Math.max(...playersByWeekday.map(r => r.avg), 1);
   const maxWeekday = Math.max(...trainersByWeekday.map(r => r.avg), 1);
   const maxLead = leadTrainerCounts[0]?.[1] ?? 1;
   const maxTheme = themeCounts[0]?.[1] ?? 1;
@@ -126,7 +156,7 @@ export default function Statistik() {
   if (isLoading) {
     return (
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 24px' }}>
+        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 4px' }}>
           Statistik
         </h1>
         {[1, 2, 3].map(i => (
@@ -138,15 +168,37 @@ export default function Statistik() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 24px' }}>
+      <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 4px' }}>
         Statistik
       </h1>
+      <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>
+        Kun afholdte træninger
+      </p>
 
       {/* ── Counters ────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <StatCard label="Træninger i alt" value={totalCount} />
+        <StatCard label="Spillere pr. træning (gns.)" value={avgPlayers !== null ? avgPlayers.toFixed(1) : '–'} />
         <StatCard label="Trænere pr. træning (gns.)" value={avgTrainers.toFixed(1)} />
       </div>
+
+      {/* ── Spillere per ugedag ─────────────────────────────────────────────── */}
+      <Section title="Gennemsnitlig antal spillere per ugedag">
+        {playersByWeekday.length === 0 ? (
+          <Empty text="Ingen spillerdata — synkronisér træningerne med Holdsport" />
+        ) : (
+          playersByWeekday.map(({ day, avg, count }) => (
+            <BarFloat
+              key={day}
+              label={day}
+              value={avg}
+              max={maxPlayers}
+              subtitle={`${count} træning${count !== 1 ? 'er' : ''}`}
+              color="var(--blue)"
+            />
+          ))
+        )}
+      </Section>
 
       {/* ── Trænere per ugedag ──────────────────────────────────────────────── */}
       <Section title="Gennemsnitlig antal trænere per ugedag">
@@ -283,7 +335,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
     <div style={{
       background: 'var(--bg-card)', borderRadius: 12,
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      padding: '16px 24px', flex: '1 1 160px', minWidth: 140,
+      padding: '16px 24px', flex: '1 1 140px', minWidth: 120,
     }}>
       <div style={{ fontSize: 32, fontWeight: 700, fontFamily: 'var(--font-heading)', color: 'var(--accent)', lineHeight: 1 }}>
         {value}
@@ -325,7 +377,6 @@ function Bar({ label, count, max, color }: { label: string; count: number; max: 
   );
 }
 
-// Bar til float-værdier (gennemsnit) — viser én decimal + grå subtitle
 function BarFloat({ label, value, max, subtitle, color }: { label: string; value: number; max: number; subtitle?: string; color: string }) {
   const pct = Math.max(4, Math.round((value / max) * 100));
   return (
