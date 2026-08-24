@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training } from '../lib/types';
@@ -223,31 +224,25 @@ export default function Trainings() {
   const navigate = useNavigate();
   const { user, currentTeamId, currentTeamRole } = useAuth();
   const canEdit = hasRole(user, 'trainer', currentTeamRole);
+  const queryClient = useQueryClient();
 
-  const [trainings, setTrainings] = useState<Training[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: trainings = [], isLoading: loading, error: queryError, refetch } = useQuery<Training[]>({
+    queryKey: ['trainings', currentTeamId, 'active'],
+    queryFn: () => api.fetchTrainings(currentTeamId!, 0),
+    enabled: !!currentTeamId,
+    staleTime: 0,
+    refetchInterval: 5 * 60 * 1000,
+  });
+
+  const error = queryError ? (queryError as Error).message ?? 'Fejl ved indlæsning' : null;
+
   const [showHoldsportModal, setShowHoldsportModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [syncing, setSyncing] = useState(false);
 
-
-
   function load() {
-    if (!currentTeamId) return;
-    setLoading(true);
-    setError(null);
-    api.fetchTrainings(currentTeamId, 0)
-      .then(setTrainings)
-      .catch(e => setError(e.message ?? 'Fejl ved indlæsning'))
-      .finally(() => setLoading(false));
+    refetch();
   }
-
-  useEffect(() => {
-    load();
-    const interval = setInterval(load, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [currentTeamId]);
 
   function handleNew() {
     navigate('/traininger/ny');
@@ -322,7 +317,9 @@ export default function Trainings() {
           trainers: trainerList,
         };
         await api.patch(`/api/trainings/${t.id}`, patch);
-        setTrainings(prev => prev.map(x => x.id === t.id ? { ...x, ...patch } : x));
+        queryClient.setQueryData<Training[]>(['trainings', currentTeamId, 'active'], prev =>
+          (prev ?? []).map(x => x.id === t.id ? { ...x, ...patch } : x)
+        );
         updated++;
       }
       setToast({ message: `${updated} træning${updated !== 1 ? 'er' : ''} synkroniseret ✓`, type: 'success' });

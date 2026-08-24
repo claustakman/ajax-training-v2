@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
+
+const WEEKDAY_NAMES = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
 import { SectionList } from '../components/SectionList';
 import SaveTemplateModal from '../components/SaveTemplateModal';
 import AISuggestModal from '../components/AISuggestModal';
@@ -240,6 +242,38 @@ export default function TrainingEditor() {
     enabled: !!currentTeamId,
     staleTime: 5 * 60_000,
   });
+
+  const { data: activeTrainings = [] } = useQuery<Training[]>({
+    queryKey: ['trainings', currentTeamId, 'active'],
+    queryFn: () => api.fetchTrainings(currentTeamId!, 0),
+    enabled: !!currentTeamId,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: archivedTrainings = [] } = useQuery<Training[]>({
+    queryKey: ['trainings', currentTeamId, 'archived'],
+    queryFn: () => api.fetchTrainings(currentTeamId!, 1),
+    enabled: !!currentTeamId,
+    staleTime: 5 * 60_000,
+  });
+
+  // Gennemsnitligt antal spillere for træningens ugedag (kun afholdte træninger med deltagerdata)
+  const weekdayAvgPlayers = useMemo(() => {
+    if (!training?.date) return null;
+    const trainingWeekday = new Date(training.date).getDay(); // 0=søndag
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const allT = [...activeTrainings, ...archivedTrainings];
+    const relevant = allT.filter(t => {
+      if (!t.date || !t.id || t.id === training.id) return false;
+      if (new Date(t.date) > today) return false;
+      if ((t.participant_count ?? 0) === 0) return false;
+      return new Date(t.date).getDay() === trainingWeekday;
+    });
+    if (relevant.length === 0) return null;
+    const sum = relevant.reduce((acc, t) => acc + (t.participant_count ?? 0), 0);
+    return { avg: sum / relevant.length, count: relevant.length, weekday: WEEKDAY_NAMES[trainingWeekday] };
+  }, [training?.date, training?.id, activeTrainings, archivedTrainings]);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trainingRef = useRef<Training | null>(null);
@@ -577,6 +611,11 @@ export default function TrainingEditor() {
                   {training.holdsport_id && (
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
                       Hentet fra Holdsport — kan ændres
+                    </div>
+                  )}
+                  {weekdayAvgPlayers && (
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                      Gns. på {weekdayAvgPlayers.weekday.toLowerCase()}: {weekdayAvgPlayers.avg.toFixed(1)} spillere ({weekdayAvgPlayers.count} træning{weekdayAvgPlayers.count !== 1 ? 'er' : ''})
                     </div>
                   )}
                 </Field>
