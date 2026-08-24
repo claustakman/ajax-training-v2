@@ -7,7 +7,29 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–15)
+## Hvad er bygget (Sessions 1–16)
+
+### Session 16 — UX-forbedringer: ugedag-statistik + auto-refresh
+
+#### `frontend/src/pages/TrainingEditor.tsx` — Statistisk gennemsnit per ugedag
+- **Vises under "Antal spillere"-feltet** i headeren (grå 11px tekst):
+  > `Gns. på onsdag: 18.4 spillere (12 træninger)`
+- **Beregning:** `weekdayAvgPlayers` via `useMemo` — filtrerer alle aktive + arkiverede træninger til:
+  - Samme ugedag som træningen der redigeres (`new Date(t.date).getDay()`)
+  - Dato ≤ i dag (kun afholdte)
+  - `participant_count > 0` (kun træninger med registrerede spillere)
+  - Udelukker træningen selv (`t.id !== training.id`)
+- **Data:** Henter aktive + arkiverede træninger via React Query (`staleTime: 5 min`) — genbruger samme cache-nøgler som Statistik-siden
+- **Vises ikke** hvis ingen relevante træninger eksisterer for ugedagen
+- `WEEKDAY_NAMES = ['Søndag', 'Mandag', 'Tirsdag', ...]` til dansk ugedagsnavn fra `getDay()` (0=søndag)
+
+#### `frontend/src/pages/Trainings.tsx` — Auto-refresh ved navigation tilbage
+- **Problem:** Ændringer i TrainingEditor (auto-gem) blev ikke reflekteret i træningskortene ved navigation tilbage
+- **Løsning:** Konverteret fra `useState` + manuel `load()` til **React Query** med `staleTime: 0`
+  - `staleTime: 0` → data anses altid som forældet → genindlæses automatisk ved komponent-mount (dvs. ved navigation tilbage)
+  - `refetchInterval: 5 * 60 * 1000` → 5-minutters baggrunds-refresh bevaret
+  - `queryClient.setQueryData` bruges til optimistisk opdatering i `handleSyncAll` (erstatter `setTrainings`)
+- **Query-nøgle:** `['trainings', currentTeamId, 'active']` — samme nøgle som TrainingEditor bruger, så cache deles
 
 ### Session 15 — Statistik-side
 
@@ -117,7 +139,7 @@ function getWeekday(dateStr: string): string {
 - **Gotcha:** Det er ikke nok at filtrere træneren fra `appTrainerNames` — sync erstatter hele `trainers`-listen, så non-sync trænere skal også merges *ind* bagefter fra den eksisterende træning
 
 #### Automatisk frontend-refresh
-- **`frontend/src/pages/Trainings.tsx`** — `setInterval(load, 5 * 60 * 1000)` i `useEffect` — henter nye træningsdata fra DB hvert 5. minut i baggrunden uden at forstyrre brugeren
+- **`frontend/src/pages/Trainings.tsx`** — React Query med `staleTime: 0` + `refetchInterval: 5 * 60 * 1000` — data genindlæses automatisk ved navigation tilbage fra TrainingEditor (mount = stale) og hvert 5. minut i baggrunden
 
 #### Natlig Holdsport-sync via GitHub Actions
 - **`scripts/holdsport-sync.mjs`** — Node-script der porter præcis samme logik som `handleSyncAll` i `Trainings.tsx`
@@ -1039,6 +1061,7 @@ CREATE TABLE templates (
 
 ### `Trainings.tsx` (`/`)
 - Liste over kommende (ikke-arkiverede) træninger for `currentTeamId`
+- **React Query** med `staleTime: 0` — genindlæses automatisk ved mount (navigation tilbage fra editor) og hvert 5. min
 - `SkeletonCard` med shimmer loading (3 kort) mens data hentes
 - Dato-boks (`DateBox`): dag/måned/ugedag med rød accent
 - **Trænings-kort — fast 4-linje layout** (ingen layout-shift uanset feltlængder):
@@ -1057,6 +1080,7 @@ CREATE TABLE templates (
 - Auto-gem med debounce 1200ms — `SaveIndicator` viser Gemmer…/✓ Gemt/✗ Fejl
 - Collapsible header-kort med ▾/▴ toggle:
   - Dato, start/slut-tid, sted, antal spillere (+↺ Opdater-knap ved holdsport_id)
+  - Under "Antal spillere": grå hjælpetekst med statistisk gennemsnit for ugedagen — fx `Gns. på onsdag: 18.4 spillere (12 træninger)`. Beregnes fra afholdte træninger med deltagerdata på samme ugedag. Vises ikke hvis ingen data.
   - Ansvarlig (`UserSelect` — dropdown), Trænere (`UserMultiSelect` — chips + dropdown)
   - Temaer (fra årshjulet — dropdown + Chip-komponenter)
   - Fokuspunkter, noter (textarea), stjerne-vurdering (1–5 klik)
