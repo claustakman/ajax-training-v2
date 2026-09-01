@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
@@ -239,6 +239,7 @@ export default function Trainings() {
   const [showHoldsportModal, setShowHoldsportModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const syncingRef = useRef(false);
 
   function load() {
     refetch();
@@ -252,14 +253,11 @@ export default function Trainings() {
     setShowHoldsportModal(true);
   }
 
-  async function handleSyncAll() {
-    if (!currentTeamId || syncing) return;
-    const hsTrainings = trainings.filter(t => t.holdsport_id && t.date);
-    if (hsTrainings.length === 0) {
-      setToast({ message: 'Ingen Holdsport-træninger at synkronisere', type: 'error' });
-      return;
-    }
-    setSyncing(true);
+  // Delt sync-kerne — kører på et givet sæt træninger
+  // silent=true: ingen toast, kun console-timing (bruges til auto-sync)
+  async function syncTrainings(hsTrainings: Training[], silent = false) {
+    if (!currentTeamId || hsTrainings.length === 0) return;
+    const t0 = performance.now();
     try {
       const [config, members] = await Promise.all([
         api.fetchHoldsportConfig(currentTeamId),
@@ -272,7 +270,6 @@ export default function Trainings() {
           .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
           .map(m => m.name)
       );
-      // Trænere uden Holdsport-sync bevares altid i trainers-listen
       const nonSyncNames = new Set(
         members
           .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync === 0)
@@ -306,8 +303,6 @@ export default function Trainings() {
         } else {
           playerCount = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
         }
-
-        // Bevar non-sync trænere der allerede er på træningen
         for (const name of (t.trainers ?? [])) {
           if (nonSyncNames.has(name)) trainerList.push(name);
         }
@@ -322,15 +317,83 @@ export default function Trainings() {
         );
         updated++;
       }
-      setToast({ message: `${updated} træning${updated !== 1 ? 'er' : ''} synkroniseret ✓`, type: 'success' });
+
+      const ms = Math.round(performance.now() - t0);
+      console.log(`[AutoSync] ${updated}/${hsTrainings.length} træninger synkroniseret på ${ms}ms`);
+      if (!silent) {
+        setToast({ message: `${updated} træning${updated !== 1 ? 'er' : ''} synkroniseret ✓`, type: 'success' });
+      }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('Sync fejl:', err);
-      setToast({ message: `Fejl ved synkronisering: ${msg}`, type: 'error' });
-    } finally {
-      setSyncing(false);
+      const ms = Math.round(performance.now() - t0);
+      console.error(`[AutoSync] Fejl efter ${ms}ms:`, err);
+      if (!silent) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setToast({ message: `Fejl ved synkronisering: ${msg}`, type: 'error' });
+      }
     }
   }
+
+  async function handleSyncAll() {
+    if (!currentTeamId || syncing) return;
+    const hsTrainings = trainings.filter(t => t.holdsport_id && t.date);
+    if (hsTrainings.length === 0) {
+      setToast({ message: 'Ingen Holdsport-træninger at synkronisere', type: 'error' });
+      return;
+    }
+    setSyncing(true);
+    await syncTrainings(hsTrainings, false);
+    setSyncing(false);
+  }
+
+  // Auto-sync: ved mount og når tabben bliver aktiv igen
+  // Kun træninger inden for -1 til +7 dage — throttle 10 min per session
+  const AUTO_SYNC_KEY = `hs_autosync_${currentTeamId}`;
+  const AUTO_SYNC_INTERVAL = 10 * 60 * 1000;
+
+  async function runAutoSync(currentTrainings: Training[]) {
+    if (!currentTeamId || syncingRef.current) return;
+    const last = parseInt(sessionStorage.getItem(AUTO_SYNC_KEY) ?? '0', 10);
+    if (Date.now() - last < AUTO_SYNC_INTERVAL) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoffFuture = new Date(today);
+    cutoffFuture.setDate(today.getDate() + 7);
+    const cutoffPast = new Date(today);
+    cutoffPast.setDate(today.getDate() - 1);
+
+    const nearby = currentTrainings.filter(t => {
+      if (!t.holdsport_id || !t.date) return false;
+      const d = new Date(t.date);
+      return d >= cutoffPast && d <= cutoffFuture;
+    });
+    if (nearby.length === 0) return;
+
+    sessionStorage.setItem(AUTO_SYNC_KEY, String(Date.now()));
+    syncingRef.current = true;
+    await syncTrainings(nearby, true);
+    syncingRef.current = false;
+  }
+
+  // Kør auto-sync ved mount (når trainings er loaded)
+  useEffect(() => {
+    if (trainings.length > 0 && canEdit) {
+      runAutoSync(trainings);
+    }
+  }, [trainings.length, currentTeamId]);
+
+  // Kør auto-sync når bruger vender tilbage til tabben
+  useEffect(() => {
+    if (!canEdit) return;
+    function onVisible() {
+      if (document.visibilityState === 'visible') {
+        queryClient.invalidateQueries({ queryKey: ['trainings', currentTeamId, 'active'] });
+        // trainings opdateres via React Query — auto-sync kicker i ovenstående useEffect
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [currentTeamId, canEdit]);
 
   async function handleHoldsportImport(activities: Parameters<typeof api.createTraining>[0][]) {
     setShowHoldsportModal(false);
