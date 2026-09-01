@@ -31,6 +31,21 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
   - `queryClient.setQueryData` bruges til optimistisk opdatering i `handleSyncAll` (erstatter `setTrainings`)
 - **Query-nøgle:** `['trainings', currentTeamId, 'active']` — samme nøgle som TrainingEditor bruger, så cache deles
 
+#### `frontend/src/pages/Trainings.tsx` — Automatisk Holdsport-sync
+- **Motivation:** Afbud sker samme dag eller dagen før — manuel sync-knap glemmes
+- **Trigger:** Ved komponent-mount (når trainings er loadet) + når tabben bliver aktiv igen (`visibilitychange`)
+- **Begrænsninger:**
+  - Kun træninger med `holdsport_id` og dato inden for **-1 til +7 dage** fra i dag
+  - **Throttle:** maks. én auto-sync per 10 minutter per session (`sessionStorage['hs_autosync_{teamId}']`)
+  - Kører **stille** i baggrunden — ingen toast, ingen loading-indikator
+- **Performance-logging:** `console.log('[AutoSync] N/M træninger synkroniseret på Xms')` — synlig i DevTools
+- **Sync-knappen** fungerer uændret: alle HS-træninger uanset dato, viser toast, ingen throttle
+- **Implementering:**
+  - `syncTrainings(hsTrainings, silent)` — delt kerne brugt af både auto-sync og knap
+  - `runAutoSync(trainings)` — filtrer til nærtliggende, tjek throttle, sæt `syncingRef.current`
+  - `syncingRef` (useRef) — forhindrer overlap mellem samtidige sync-kald uden re-render
+  - `visibilitychange`-listener i `useEffect` → `queryClient.invalidateQueries` → React Query re-fetcher → `trainings.length`-dependency trigger auto-sync
+
 ### Session 15 — Statistik-side
 
 #### `frontend/src/pages/Statistik.tsx` (ny side)
