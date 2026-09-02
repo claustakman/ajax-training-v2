@@ -1489,6 +1489,19 @@ fysisk       → tags: [styrke, plyometrik]    → farve: #f59e0b   required: tr
 - Ved import: `participant_count` tæller kun `status_code === 1` (mødte op); `trainers[]` matches mod app-brugere med trainer/team_manager-rolle via navn-match (case-insensitive)
 - `GET /api/users/team-members` returnerer `team_role` — bruges til at filtrere ud kun trainer/team_manager
 
+### Holdsport-worker — per hold, per bruger
+
+**Den nuværende worker** (`https://holdsport-worker.claus-takman.workers.dev`) er bygget til én specifik Holdsport-bruger (Claus Takman) og giver kun adgang til de hold den bruger er tilknyttet på Holdsport — der er ingen hold-dropdown. Workeren eksponerer direkte de aktiviteter brugeren kan se.
+
+**Konsekvens for andre hold i appen:**
+- Hvert hold i appen der vil bruge Holdsport-sync skal have sin egen worker — deployet af en person med Holdsport-adgang til det pågældende hold
+- Den ansvarlige konfigurerer `holdsport_worker_url` + `holdsport_token` under Holdindstillinger for holdet
+- `holdsport_worker_url` og `holdsport_token` er **per hold** i DB — hvert hold kan have sin egen worker
+
+**Opsætning af ny worker for et hold:**
+1. En person med Holdsport-adgang til holdet deployer en Holdsport-worker (samme mønster som `holdsport-worker.claus-takman.workers.dev`)
+2. Team manager på holdet indtaster worker-URL + token under Holdindstillinger → Holdsport
+
 ---
 
 ## Årshjul-konfiguration
