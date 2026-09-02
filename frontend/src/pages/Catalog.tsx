@@ -23,12 +23,12 @@ export interface Exercise {
 }
 
 const HAL_TAGS = [
-  'opvarmning', 'aflevering', 'skud', 'finter', 'forsvar', 'kontra',
-  'sammenspil', 'beslutning', 'taktik', 'duel', 'kamp',
-  'stafet', 'leg', 'returløb', 'småspil', 'tvekamp',
+  'aflevering', 'beslutning', 'duel', 'finter', 'forsvar', 'kamp',
+  'kontra', 'leg', 'opvarmning', 'returløb', 'sammenspil', 'skud',
+  'småspil', 'stafet', 'taktik', 'tvekamp',
 ];
-const FYS_TAGS = ['plyometrik', 'eksplosion', 'styrke', 'hurtighed', 'løb', 'finter', 'opvarmning'];
-const KEEPER_TAGS = ['keeper', 'teknik', 'aflevering', 'skud', 'forsvar'];
+const FYS_TAGS = ['eksplosion', 'finter', 'hurtighed', 'løb', 'opvarmning', 'plyometrik', 'styrke'];
+const KEEPER_TAGS = ['aflevering', 'forsvar', 'keeper', 'skud', 'teknik'];
 
 // Tags der placerer en øvelse under Fysisk-tab
 const FYS_TAB_TAGS = new Set(['plyometrik', 'styrke', 'eksplosion', 'hurtighed', 'løb']);
@@ -483,7 +483,7 @@ export function ExerciseEditor({ ex, isNew, onSaved, onDeleted, onClose, zIndex 
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api.fetchExerciseTags().then(tags => setAllTags(tags)).catch(() => {});
+    api.fetchExerciseTags().then(tags => setAllTags([...tags].sort())).catch(() => {});
   }, []);
 
   const set = (k: keyof Exercise, v: unknown) => setForm(f => ({ ...f, [k]: v }));

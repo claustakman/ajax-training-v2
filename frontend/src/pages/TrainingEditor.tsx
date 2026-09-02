@@ -287,7 +287,7 @@ export default function TrainingEditor() {
     api.fetchTeamMembers(currentTeamId).then(setTeamMembers).catch(() => {});
     api.fetchQuarters(currentTeamId).then(quarters => {
       // Samle alle unikke temaer fra alle kvartaler
-      const themes = Array.from(new Set(quarters.flatMap(q => q.themes ?? [])));
+      const themes = Array.from(new Set(quarters.flatMap(q => q.themes ?? []))).sort();
       setAllThemes(themes);
     }).catch(() => {});
   }, [currentTeamId]);
