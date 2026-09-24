@@ -240,6 +240,7 @@ export default function TrainingEditor() {
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showCopyPanel, setShowCopyPanel] = useState(false);
   const [copyCustomDate, setCopyCustomDate] = useState('');
+  const copyDateRef = useRef<HTMLInputElement>(null);
   const [showAISuggest, setShowAISuggest] = useState(false);
   const [aiSectionIndex, setAiSectionIndex] = useState<number | null>(null);
   const [miniToast, setMiniToast] = useState<string | null>(null);
@@ -593,19 +594,26 @@ export default function TrainingEditor() {
               whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >Næste 3 uger</button>
-          <input
-            type="date"
-            value={copyCustomDate}
-            onChange={e => {
-              setCopyCustomDate(e.target.value);
-              if (e.target.value) handleCopy(null, e.target.value);
-            }}
-            style={{
-              borderRadius: 8, border: '1px solid var(--border2)', padding: '7px 10px',
-              fontSize: 13, background: 'var(--bg-input)', color: copyCustomDate ? 'var(--text)' : 'var(--text3)',
-              minHeight: 36, flexShrink: 0, minWidth: 0,
-            }}
-          />
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              onClick={() => copyDateRef.current?.showPicker?.() ?? copyDateRef.current?.click()}
+              style={{
+                background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer',
+                color: copyCustomDate ? 'var(--text)' : 'var(--text3)', whiteSpace: 'nowrap',
+              }}
+            >{copyCustomDate || 'Vælg dato'}</button>
+            <input
+              ref={copyDateRef}
+              type="date"
+              value={copyCustomDate}
+              onChange={e => {
+                setCopyCustomDate(e.target.value);
+                if (e.target.value) handleCopy(null, e.target.value);
+              }}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, top: 0, left: 0 }}
+            />
+          </div>
         </div>
       )}
 
