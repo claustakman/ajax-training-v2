@@ -240,7 +240,6 @@ export default function TrainingEditor() {
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showCopyPanel, setShowCopyPanel] = useState(false);
   const [copyCustomDate, setCopyCustomDate] = useState('');
-  const copyDateRef = useRef<HTMLInputElement>(null);
   const [showAISuggest, setShowAISuggest] = useState(false);
   const [aiSectionIndex, setAiSectionIndex] = useState<number | null>(null);
   const [miniToast, setMiniToast] = useState<string | null>(null);
@@ -511,7 +510,16 @@ export default function TrainingEditor() {
         {canEdit && !isNew && (
           <>
             <button
-              onClick={() => { setShowCopyPanel(o => !o); setCopyCustomDate(''); }}
+              onClick={() => {
+                setShowCopyPanel(o => {
+                  if (!o && training?.date) {
+                    const d = new Date(training.date);
+                    d.setDate(d.getDate() + 7);
+                    setCopyCustomDate(d.toISOString().slice(0, 10));
+                  }
+                  return !o;
+                });
+              }}
               title="Kopier træning"
               style={{
                 background: showCopyPanel ? 'var(--accent-light)' : 'var(--bg-input)',
@@ -594,27 +602,24 @@ export default function TrainingEditor() {
               whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >Næste 3 uger</button>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div style={{
+          <input
+            type="date"
+            value={copyCustomDate}
+            onChange={e => setCopyCustomDate(e.target.value)}
+            style={{
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '7px 12px', fontSize: 13,
-              color: copyCustomDate ? 'var(--text)' : 'var(--text3)', whiteSpace: 'nowrap',
-              pointerEvents: 'none', userSelect: 'none',
-            }}>{copyCustomDate || 'Vælg dato'}</div>
-            <input
-              ref={copyDateRef}
-              type="date"
-              value={copyCustomDate}
-              onChange={e => {
-                setCopyCustomDate(e.target.value);
-                if (e.target.value) handleCopy(null, e.target.value);
-              }}
-              style={{
-                position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer',
-                width: '100%', height: '100%', margin: 0, padding: 0, border: 'none',
-              }}
-            />
-          </div>
+              borderRadius: 8, padding: '7px 8px', fontSize: 13, cursor: 'pointer',
+              color: 'var(--text)', flexShrink: 0, minHeight: 36,
+            }}
+          />
+          <button
+            onClick={() => handleCopy(null, copyCustomDate)}
+            style={{
+              background: 'var(--accent)', border: 'none',
+              borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer',
+              color: '#fff', whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >Kopier</button>
         </div>
       )}
 
