@@ -595,14 +595,12 @@ export default function TrainingEditor() {
             }}
           >Næste 3 uger</button>
           <div style={{ position: 'relative', flexShrink: 0 }}>
-            <button
-              onClick={() => copyDateRef.current?.showPicker?.() ?? copyDateRef.current?.click()}
-              style={{
-                background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer',
-                color: copyCustomDate ? 'var(--text)' : 'var(--text3)', whiteSpace: 'nowrap',
-              }}
-            >{copyCustomDate || 'Vælg dato'}</button>
+            <div style={{
+              background: 'var(--bg-input)', border: '1px solid var(--border2)',
+              borderRadius: 8, padding: '7px 12px', fontSize: 13,
+              color: copyCustomDate ? 'var(--text)' : 'var(--text3)', whiteSpace: 'nowrap',
+              pointerEvents: 'none', userSelect: 'none',
+            }}>{copyCustomDate || 'Vælg dato'}</div>
             <input
               ref={copyDateRef}
               type="date"
@@ -611,7 +609,10 @@ export default function TrainingEditor() {
                 setCopyCustomDate(e.target.value);
                 if (e.target.value) handleCopy(null, e.target.value);
               }}
-              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, top: 0, left: 0 }}
+              style={{
+                position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer',
+                width: '100%', height: '100%', margin: 0, padding: 0, border: 'none',
+              }}
             />
           </div>
         </div>
