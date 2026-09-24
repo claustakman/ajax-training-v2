@@ -224,8 +224,16 @@ export default function Trainings() {
   const navigate = useNavigate();
   const { user, currentTeamId, currentTeamRole } = useAuth();
   const canEdit = hasRole(user, 'trainer', currentTeamRole);
-  const hasHoldsport = !!(user?.teams.find(t => t.id === currentTeamId)?.holdsport_worker_url);
   const queryClient = useQueryClient();
+
+  const { data: hsConfig } = useQuery({
+    queryKey: ['holdsport-config', currentTeamId],
+    queryFn: () => api.fetchHoldsportConfig(currentTeamId!),
+    enabled: !!currentTeamId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const hasHoldsport = !!(hsConfig?.workerUrl);
 
   const { data: trainings = [], isLoading: loading, error: queryError, refetch } = useQuery<Training[]>({
     queryKey: ['trainings', currentTeamId, 'active'],

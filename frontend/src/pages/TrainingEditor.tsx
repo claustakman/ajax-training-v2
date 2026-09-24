@@ -210,7 +210,15 @@ export default function TrainingEditor() {
   const navigate = useNavigate();
   const { user, currentTeamId, currentTeamRole } = useAuth();
   const canEdit = hasRole(user, 'trainer', currentTeamRole);
-  const hasHoldsport = !!(user?.teams.find(t => t.id === currentTeamId)?.holdsport_worker_url);
+
+  const { data: hsConfig } = useQuery({
+    queryKey: ['holdsport-config', currentTeamId],
+    queryFn: () => api.fetchHoldsportConfig(currentTeamId!),
+    enabled: !!currentTeamId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const hasHoldsport = !!(hsConfig?.workerUrl);
 
   const [training, setTraining] = useState<Training | null>(null);
   const [loading, setLoading] = useState(true);
@@ -497,12 +505,15 @@ export default function TrainingEditor() {
               style={{
                 background: showCopyPanel ? 'var(--accent-light)' : 'var(--bg-input)',
                 border: `1px solid ${showCopyPanel ? 'var(--accent)' : 'var(--border2)'}`,
-                borderRadius: 8, padding: '8px 12px', fontSize: 16, cursor: 'pointer',
+                borderRadius: 8, padding: '6px 10px', fontSize: 16, cursor: 'pointer',
                 color: showCopyPanel ? 'var(--accent)' : 'var(--text)',
-                minHeight: 44,
+                minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
               }}
               aria-label="Kopier træning"
-            >🔁</button>
+            >
+              <span>🔁</span>
+              <span style={{ fontSize: 10, lineHeight: 1, color: 'var(--text2)' }}>Gentag</span>
+            </button>
 
             {training.sections.length > 0 && (
               <button
@@ -510,11 +521,14 @@ export default function TrainingEditor() {
                 title="Gem som skabelon"
                 style={{
                   background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                  borderRadius: 8, padding: '8px 12px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
-                  minHeight: 44,
+                  borderRadius: 8, padding: '6px 10px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
+                  minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
                 }}
                 aria-label="Gem som skabelon"
-              >💾</button>
+              >
+                <span>💾</span>
+                <span style={{ fontSize: 10, lineHeight: 1, color: 'var(--text2)' }}>Gem</span>
+              </button>
             )}
 
             <button
@@ -522,22 +536,28 @@ export default function TrainingEditor() {
               title={training.archived ? 'Gendan fra arkiv' : 'Arkivér træning'}
               style={{
                 background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '8px 12px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
-                minHeight: 44,
+                borderRadius: 8, padding: '6px 10px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
+                minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
               }}
               aria-label={training.archived ? 'Gendan' : 'Arkivér'}
-            >{training.archived ? '↩' : '🗄️'}</button>
+            >
+              <span>{training.archived ? '↩' : '🗄️'}</span>
+              <span style={{ fontSize: 10, lineHeight: 1, color: 'var(--text2)' }}>{training.archived ? 'Gendan' : 'Arkiv'}</span>
+            </button>
 
             <button
               onClick={handleDelete}
               title="Slet træning"
               style={{
                 background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '8px 12px', fontSize: 16, cursor: 'pointer', color: 'var(--red)',
-                minHeight: 44,
+                borderRadius: 8, padding: '6px 10px', fontSize: 16, cursor: 'pointer', color: 'var(--red)',
+                minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
               }}
               aria-label="Slet træning"
-            >🗑</button>
+            >
+              <span>🗑</span>
+              <span style={{ fontSize: 10, lineHeight: 1, color: 'var(--red)' }}>Slet</span>
+            </button>
           </>
         )}
       </div>
