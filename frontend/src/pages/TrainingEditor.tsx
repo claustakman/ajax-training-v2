@@ -586,40 +586,41 @@ export default function TrainingEditor() {
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border2)',
           borderRadius: 10, padding: '10px 14px', marginBottom: 16,
-          display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto',
+          display: 'flex', flexDirection: 'column', gap: 8,
         }}>
-          <button onClick={() => handleCopy(7)}
-            style={{
-              background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
-              whiteSpace: 'nowrap', flexShrink: 0,
-            }}
-          >Næste uge</button>
-          <button onClick={() => handleCopy(7, undefined, 3)}
-            style={{
-              background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
-              whiteSpace: 'nowrap', flexShrink: 0,
-            }}
-          >Næste 3 uger</button>
-          <input
-            type="date"
-            value={copyCustomDate}
-            onChange={e => setCopyCustomDate(e.target.value)}
-            style={{
-              background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '7px 8px', fontSize: 13, cursor: 'pointer',
-              color: 'var(--text)', flexShrink: 0, minHeight: 36,
-            }}
-          />
-          <button
-            onClick={() => handleCopy(null, copyCustomDate)}
-            style={{
-              background: 'var(--accent)', border: 'none',
-              borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer',
-              color: '#fff', whiteSpace: 'nowrap', flexShrink: 0,
-            }}
-          >Kopier</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => handleCopy(7)}
+              style={{
+                flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, padding: '8px 4px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+              }}
+            >Næste uge</button>
+            <button onClick={() => handleCopy(7, undefined, 3)}
+              style={{
+                flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, padding: '8px 4px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+              }}
+            >Næste 3 uger</button>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="date"
+              value={copyCustomDate}
+              onChange={e => setCopyCustomDate(e.target.value)}
+              style={{
+                flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, padding: '8px', fontSize: 16, color: 'var(--text)', minHeight: 40,
+              }}
+            />
+            <button
+              onClick={() => handleCopy(null, copyCustomDate)}
+              style={{
+                background: 'var(--accent)', border: 'none',
+                borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer',
+                color: '#fff', whiteSpace: 'nowrap',
+              }}
+            >Kopier</button>
+          </div>
         </div>
       )}
 
