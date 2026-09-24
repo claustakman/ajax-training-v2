@@ -445,8 +445,19 @@ export default function TrainingEditor() {
     }
   }
 
-  async function handleCopy(offsetDays: number | null, customDate?: string) {
+  async function handleCopy(offsetDays: number | null, customDate?: string, repeatWeeks?: number) {
     if (!training) return;
+    const { id: _id, created_at: _ca, updated_at: _ua, archived: _ar, holdsport_id: _hs, ...rest } = training;
+    if (repeatWeeks && repeatWeeks > 1 && training.date) {
+      for (let w = 1; w <= repeatWeeks; w++) {
+        const d = new Date(training.date);
+        d.setDate(d.getDate() + w * 7);
+        await api.createTraining({ ...rest, date: d.toISOString().slice(0, 10), archived: false, holdsport_id: undefined });
+      }
+      setShowCopyPanel(false);
+      navigate('/');
+      return;
+    }
     let newDate: string | undefined;
     if (customDate) {
       newDate = customDate;
@@ -455,7 +466,6 @@ export default function TrainingEditor() {
       d.setDate(d.getDate() + offsetDays);
       newDate = d.toISOString().slice(0, 10);
     }
-    const { id: _id, created_at: _ca, updated_at: _ua, archived: _ar, holdsport_id: _hs, ...rest } = training;
     const copy = await api.createTraining({ ...rest, date: newDate, archived: false, holdsport_id: undefined });
     setShowCopyPanel(false);
     navigate(`/traininger/${copy.id}`);
@@ -566,39 +576,36 @@ export default function TrainingEditor() {
       {showCopyPanel && !isNew && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border2)',
-          borderRadius: 10, padding: '12px 16px', marginBottom: 16,
-          display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
+          borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+          display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto',
         }}>
-          <span style={{ fontSize: 13, color: 'var(--text2)', marginRight: 4 }}>Kopier til:</span>
-          {[
-            { label: '+1 uge', days: 7 },
-            { label: '+2 uger', days: 14 },
-            { label: '+3 uger', days: 21 },
-          ].map(({ label, days }) => (
-            <button key={days} onClick={() => handleCopy(days)}
-              style={{
-                background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
-              }}
-            >{label}</button>
-          ))}
+          <button onClick={() => handleCopy(7)}
+            style={{
+              background: 'var(--bg-input)', border: '1px solid var(--border2)',
+              borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >Næste uge</button>
+          <button onClick={() => handleCopy(7, undefined, 3)}
+            style={{
+              background: 'var(--bg-input)', border: '1px solid var(--border2)',
+              borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >Næste 3 uger</button>
           <input
             type="date"
             value={copyCustomDate}
-            onChange={e => setCopyCustomDate(e.target.value)}
+            onChange={e => {
+              setCopyCustomDate(e.target.value);
+              if (e.target.value) handleCopy(null, e.target.value);
+            }}
             style={{
-              borderRadius: 8, border: '1px solid var(--border2)', padding: '6px 10px',
-              fontSize: 13, background: 'var(--bg-input)', color: 'var(--text)', minHeight: 36,
+              borderRadius: 8, border: '1px solid var(--border2)', padding: '7px 10px',
+              fontSize: 13, background: 'var(--bg-input)', color: copyCustomDate ? 'var(--text)' : 'var(--text3)',
+              minHeight: 36, flexShrink: 0, minWidth: 0,
             }}
           />
-          {copyCustomDate && (
-            <button onClick={() => handleCopy(null, copyCustomDate)}
-              style={{
-                background: 'var(--accent)', border: 'none',
-                borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer', color: '#fff',
-              }}
-            >Kopier</button>
-          )}
         </div>
       )}
 

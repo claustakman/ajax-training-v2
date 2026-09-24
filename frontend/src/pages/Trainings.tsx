@@ -468,8 +468,15 @@ export default function Trainings() {
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
               borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: syncing ? 'default' : 'pointer',
               color: 'var(--text)', opacity: syncing ? 0.6 : 1,
+              display: 'inline-flex', alignItems: 'center', gap: 5,
             }}
-          >{syncing ? '↻ Synkroniserer…' : '↻ Sync'}</button>
+          >
+            <span style={{
+              display: 'inline-block',
+              animation: syncing ? 'spin 0.8s linear infinite' : 'none',
+            }}>↻</span>
+            Sync
+          </button>
         )}
 
         {canEdit && hasHoldsport && (
