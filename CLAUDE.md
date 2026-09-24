@@ -7,7 +7,21 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–16)
+## Hvad er bygget (Sessions 1–17)
+
+### Session 17 — Kopier-panel i TrainingEditor
+
+#### `frontend/src/pages/TrainingEditor.tsx` — Kopier-panel
+- **Toolbar-knap** "Gentag" (🔁) åbner/lukker et kopier-panel under toolbaren
+- **Panel — tre knapper på én række:**
+  - "Næste uge" → kopierer træningen til samme ugedag næste uge
+  - "Næste 3 uger" → kopierer træningen til samme ugedag de næste 3 uger
+  - "Vælg dato" → usynligt `<input type="date">` med synlig label ovenpå — kopierer direkte ved datovalg
+- **iOS-fix:** `copyCustomDate` initialiseres til `training.date + 7 dage` når panelet åbnes — input er aldrig tomt, så iOS auto-fyrer ikke `onChange` ved mount
+- **Label-trick:** `<input type="date">` har `opacity: 0` + `position: absolute` + `zIndex: 1` — en `<span>` med teksten "Vælg dato" ligger bagved med `pointerEvents: none`. Sikrer ensartet visning (13px) på tværs af platforme uden at iOS-datepickeren brydes
+- **`handleCopy(offsetDays, date?, count?)`** — opretter N kopier af træningen med forskudte datoer, navigerer til den seneste
+- **States:** `showCopyPanel` (boolean), `copyCustomDate` (string — pre-sat ved panel-åbning)
+- **Holdsport-UI** skjult når `holdsport_worker_url` ikke er konfigureret på holdet
 
 ### Session 16 — UX-forbedringer: ugedag-statistik + auto-refresh
 
