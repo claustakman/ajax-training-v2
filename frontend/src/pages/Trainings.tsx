@@ -224,6 +224,7 @@ export default function Trainings() {
   const navigate = useNavigate();
   const { user, currentTeamId, currentTeamRole } = useAuth();
   const canEdit = hasRole(user, 'trainer', currentTeamRole);
+  const hasHoldsport = !!(user?.teams.find(t => t.id === currentTeamId)?.holdsport_worker_url);
   const queryClient = useQueryClient();
 
   const { data: trainings = [], isLoading: loading, error: queryError, refetch } = useQuery<Training[]>({
@@ -239,6 +240,9 @@ export default function Trainings() {
   const [showHoldsportModal, setShowHoldsportModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [sortAsc, setSortAsc] = useState<boolean>(() => {
+    try { return localStorage.getItem('trainings_sort_asc') !== '0'; } catch { return true; }
+  });
   const syncingRef = useRef(false);
 
   function load() {
@@ -434,7 +438,20 @@ export default function Trainings() {
           margin: 0, flex: 1,
         }}>Træninger</h1>
 
-        {canEdit && (
+        <button
+          onClick={() => setSortAsc(o => {
+            const next = !o;
+            try { localStorage.setItem('trainings_sort_asc', next ? '1' : '0'); } catch {}
+            return next;
+          })}
+          title={sortAsc ? 'Sortér faldende' : 'Sortér stigende'}
+          style={{
+            background: 'var(--bg-input)', border: '1px solid var(--border2)',
+            borderRadius: 8, padding: '8px 12px', fontSize: 14, cursor: 'pointer', color: 'var(--text2)',
+          }}
+        >{sortAsc ? '↑ Dato' : '↓ Dato'}</button>
+
+        {canEdit && hasHoldsport && (
           <button
             onClick={handleSyncAll}
             disabled={syncing}
@@ -447,7 +464,7 @@ export default function Trainings() {
           >{syncing ? '↻ Synkroniserer…' : '↻ Sync'}</button>
         )}
 
-        {canEdit && (
+        {canEdit && hasHoldsport && (
           <button
             onClick={handleHoldsportClick}
             title="Importer fra Holdsport"
@@ -476,7 +493,11 @@ export default function Trainings() {
         <EmptyState canEdit={canEdit} onNew={handleNew} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {trainings.map(t => (
+          {[...trainings].sort((a, b) => {
+            const da = a.date ?? '';
+            const db = b.date ?? '';
+            return sortAsc ? da.localeCompare(db) : db.localeCompare(da);
+          }).map(t => (
             <TrainingCard
               key={t.id}
               training={t}

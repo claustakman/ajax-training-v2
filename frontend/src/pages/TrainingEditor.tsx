@@ -210,6 +210,7 @@ export default function TrainingEditor() {
   const navigate = useNavigate();
   const { user, currentTeamId, currentTeamRole } = useAuth();
   const canEdit = hasRole(user, 'trainer', currentTeamRole);
+  const hasHoldsport = !!(user?.teams.find(t => t.id === currentTeamId)?.holdsport_worker_url);
 
   const [training, setTraining] = useState<Training | null>(null);
   const [loading, setLoading] = useState(true);
@@ -229,6 +230,8 @@ export default function TrainingEditor() {
     });
   }
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [showCopyPanel, setShowCopyPanel] = useState(false);
+  const [copyCustomDate, setCopyCustomDate] = useState('');
   const [showAISuggest, setShowAISuggest] = useState(false);
   const [aiSectionIndex, setAiSectionIndex] = useState<number | null>(null);
   const [miniToast, setMiniToast] = useState<string | null>(null);
@@ -434,6 +437,22 @@ export default function TrainingEditor() {
     }
   }
 
+  async function handleCopy(offsetDays: number | null, customDate?: string) {
+    if (!training) return;
+    let newDate: string | undefined;
+    if (customDate) {
+      newDate = customDate;
+    } else if (offsetDays !== null && training.date) {
+      const d = new Date(training.date);
+      d.setDate(d.getDate() + offsetDays);
+      newDate = d.toISOString().slice(0, 10);
+    }
+    const { id: _id, created_at: _ca, updated_at: _ua, archived: _ar, holdsport_id: _hs, ...rest } = training;
+    const copy = await api.createTraining({ ...rest, date: newDate, archived: false, holdsport_id: undefined });
+    setShowCopyPanel(false);
+    navigate(`/traininger/${copy.id}`);
+  }
+
   async function handleDelete() {
     if (!training?.id) { navigate('/'); return; }
     if (!confirm('Slet træning? Dette kan ikke fortrydes.')) return;
@@ -457,7 +476,7 @@ export default function TrainingEditor() {
     <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
       {/* ── Toolbar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: showCopyPanel ? 0 : 16, flexWrap: 'wrap' }}>
         <button
           onClick={() => navigate('/')}
           style={{
@@ -470,36 +489,98 @@ export default function TrainingEditor() {
         <div style={{ flex: 1 }} />
         <SaveIndicator state={saveState} />
 
-        {canEdit && (
+        {canEdit && !isNew && (
           <>
-            {!isNew && training.sections.length > 0 && (
+            <button
+              onClick={() => { setShowCopyPanel(o => !o); setCopyCustomDate(''); }}
+              title="Kopier træning"
+              style={{
+                background: showCopyPanel ? 'var(--accent-light)' : 'var(--bg-input)',
+                border: `1px solid ${showCopyPanel ? 'var(--accent)' : 'var(--border2)'}`,
+                borderRadius: 8, padding: '8px 12px', fontSize: 16, cursor: 'pointer',
+                color: showCopyPanel ? 'var(--accent)' : 'var(--text)',
+                minHeight: 44,
+              }}
+              aria-label="Kopier træning"
+            >⎘</button>
+
+            {training.sections.length > 0 && (
               <button
                 onClick={() => setShowSaveTemplate(true)}
+                title="Gem som skabelon"
                 style={{
                   background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                  borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+                  borderRadius: 8, padding: '8px 12px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
+                  minHeight: 44,
                 }}
-              >💾 Skabelon</button>
+                aria-label="Gem som skabelon"
+              >💾</button>
             )}
 
             <button
               onClick={handleArchive}
+              title={training.archived ? 'Gendan fra arkiv' : 'Arkivér træning'}
               style={{
                 background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+                borderRadius: 8, padding: '8px 12px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
+                minHeight: 44,
               }}
-            >{training.archived ? '↩ Gendan' : '📦 Arkivér'}</button>
+              aria-label={training.archived ? 'Gendan' : 'Arkivér'}
+            >{training.archived ? '↩' : '📦'}</button>
 
             <button
               onClick={handleDelete}
+              title="Slet træning"
               style={{
                 background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', color: 'var(--red)',
+                borderRadius: 8, padding: '8px 12px', fontSize: 16, cursor: 'pointer', color: 'var(--red)',
+                minHeight: 44,
               }}
-            >🗑 Slet</button>
+              aria-label="Slet træning"
+            >🗑</button>
           </>
         )}
       </div>
+
+      {/* ── Kopier-panel ── */}
+      {showCopyPanel && !isNew && (
+        <div style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border2)',
+          borderRadius: 10, padding: '12px 16px', marginBottom: 16,
+          display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--text2)', marginRight: 4 }}>Kopier til:</span>
+          {[
+            { label: '+1 uge', days: 7 },
+            { label: '+2 uger', days: 14 },
+            { label: '+3 uger', days: 21 },
+          ].map(({ label, days }) => (
+            <button key={days} onClick={() => handleCopy(days)}
+              style={{
+                background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+              }}
+            >{label}</button>
+          ))}
+          <input
+            type="date"
+            value={copyCustomDate}
+            onChange={e => setCopyCustomDate(e.target.value)}
+            style={{
+              borderRadius: 8, border: '1px solid var(--border2)', padding: '6px 10px',
+              fontSize: 13, background: 'var(--bg-input)', color: 'var(--text)', minHeight: 36,
+            }}
+          />
+          {copyCustomDate && (
+            <button onClick={() => handleCopy(null, copyCustomDate)}
+              style={{
+                background: 'var(--accent)', border: 'none',
+                borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer', color: '#fff',
+              }}
+            >Kopier</button>
+          )}
+        </div>
+      )}
 
       {/* ── Header-kort ── */}
       <div style={{
@@ -593,7 +674,7 @@ export default function TrainingEditor() {
                       min={0}
                       style={{ ...inputStyle, flex: 1 }}
                     />
-                    {training.holdsport_id && canEdit && (
+                    {training.holdsport_id && canEdit && hasHoldsport && (
                       <button
                         onClick={handleHoldsportUpdate}
                         disabled={hsUpdating}
