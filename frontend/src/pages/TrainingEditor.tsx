@@ -591,29 +591,30 @@ export default function TrainingEditor() {
           <button onClick={() => handleCopy(7)}
             style={{
               flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '8px 4px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
+              borderRadius: 8, padding: '8px 4px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
             }}
           >Næste uge</button>
           <button onClick={() => handleCopy(7, undefined, 3)}
             style={{
               flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '8px 4px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
+              borderRadius: 8, padding: '8px 4px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
             }}
           >Næste 3 uger</button>
-          <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: 40 }}>
             <input
               type="date"
               value={copyCustomDate}
               onChange={e => { if (e.target.value) handleCopy(null, e.target.value); }}
               style={{
-                width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border2)',
-                borderRadius: 8, padding: '8px 4px', fontSize: 16, color: 'transparent', minHeight: 40,
-                position: 'relative', zIndex: 1,
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, fontSize: 16, opacity: 0, cursor: 'pointer', zIndex: 1,
               }}
             />
             <span style={{
               position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, color: 'var(--text)', pointerEvents: 'none',
+              fontSize: 13, color: 'var(--text)', background: 'var(--bg-input)',
+              border: '1px solid var(--border2)', borderRadius: 8, pointerEvents: 'none',
             }}>Vælg dato</span>
           </div>
         </div>
