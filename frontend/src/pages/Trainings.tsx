@@ -449,7 +449,7 @@ export default function Trainings() {
             background: 'var(--bg-input)', border: '1px solid var(--border2)',
             borderRadius: 8, padding: '8px 12px', fontSize: 14, cursor: 'pointer', color: 'var(--text2)',
           }}
-        >{sortAsc ? '↑ Dato' : '↓ Dato'}</button>
+        >{sortAsc ? '↓ Dato' : '↑ Dato'}</button>
 
         {canEdit && hasHoldsport && (
           <button

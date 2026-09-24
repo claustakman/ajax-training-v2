@@ -31,9 +31,9 @@ authRoutes.post('/login', async (c) => {
   // Hent holdtildelinger — admin får alle hold med 'admin' som rolle
   const isAdmin = user.role === 'admin';
   const teams = isAdmin
-    ? await c.env.DB.prepare('SELECT id, name, age_group, season FROM teams ORDER BY name').all()
+    ? await c.env.DB.prepare('SELECT id, name, age_group, season, holdsport_worker_url FROM teams ORDER BY name').all()
     : await c.env.DB.prepare(
-        'SELECT t.id, t.name, t.age_group, t.season, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
+        'SELECT t.id, t.name, t.age_group, t.season, t.holdsport_worker_url, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
       ).bind(user.id as string).all();
 
   return c.json({
@@ -46,6 +46,7 @@ authRoutes.post('/login', async (c) => {
       teams: teams.results.map((t: Record<string, unknown>) => ({
         id: t.id, name: t.name, age_group: t.age_group, season: t.season,
         role: isAdmin ? 'admin' : t.team_role,
+        holdsport_worker_url: t.holdsport_worker_url || undefined,
       })),
     },
   });
@@ -62,9 +63,9 @@ authRoutes.get('/me', requireAuth(), async (c) => {
 
   const isAdmin = user.role === 'admin';
   const teams = isAdmin
-    ? await c.env.DB.prepare('SELECT id, name, age_group, season FROM teams ORDER BY name').all()
+    ? await c.env.DB.prepare('SELECT id, name, age_group, season, holdsport_worker_url FROM teams ORDER BY name').all()
     : await c.env.DB.prepare(
-        'SELECT t.id, t.name, t.age_group, t.season, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
+        'SELECT t.id, t.name, t.age_group, t.season, t.holdsport_worker_url, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
       ).bind(sub).all();
 
   return c.json({
@@ -72,6 +73,7 @@ authRoutes.get('/me', requireAuth(), async (c) => {
     teams: teams.results.map((t: Record<string, unknown>) => ({
       id: t.id, name: t.name, age_group: t.age_group, season: t.season,
       role: isAdmin ? 'admin' : t.team_role,
+      holdsport_worker_url: t.holdsport_worker_url || undefined,
     })),
   });
 });
@@ -138,7 +140,7 @@ authRoutes.post('/accept-invite', async (c) => {
   );
 
   const teams = await c.env.DB.prepare(
-    'SELECT t.id, t.name, t.age_group, t.season, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
+    'SELECT t.id, t.name, t.age_group, t.season, t.holdsport_worker_url, ut.role as team_role FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ?'
   ).bind(user.id as string).all();
 
   return c.json({
@@ -147,6 +149,7 @@ authRoutes.post('/accept-invite', async (c) => {
       id: user.id, name: user.name, email: user.email, role: user.role,
       teams: teams.results.map((t: Record<string, unknown>) => ({
         id: t.id, name: t.name, age_group: t.age_group, season: t.season, role: t.team_role,
+        holdsport_worker_url: t.holdsport_worker_url || undefined,
       })),
     },
   });

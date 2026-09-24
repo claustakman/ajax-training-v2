@@ -502,7 +502,7 @@ export default function TrainingEditor() {
                 minHeight: 44,
               }}
               aria-label="Kopier træning"
-            >⎘</button>
+            >🔁</button>
 
             {training.sections.length > 0 && (
               <button
@@ -526,7 +526,7 @@ export default function TrainingEditor() {
                 minHeight: 44,
               }}
               aria-label={training.archived ? 'Gendan' : 'Arkivér'}
-            >{training.archived ? '↩' : '📦'}</button>
+            >{training.archived ? '↩' : '🗄️'}</button>
 
             <button
               onClick={handleDelete}
