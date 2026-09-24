@@ -600,15 +600,22 @@ export default function TrainingEditor() {
               borderRadius: 8, padding: '8px 4px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
             }}
           >Næste 3 uger</button>
-          <input
-            type="date"
-            value={copyCustomDate}
-            onChange={e => { if (e.target.value) handleCopy(null, e.target.value); }}
-            style={{
-              flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '8px 4px', fontSize: 16, color: 'var(--text)', minHeight: 40,
-            }}
-          />
+          <div style={{ flex: 1, position: 'relative' }}>
+            <input
+              type="date"
+              value={copyCustomDate}
+              onChange={e => { if (e.target.value) handleCopy(null, e.target.value); }}
+              style={{
+                width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, padding: '8px 4px', fontSize: 16, color: 'transparent', minHeight: 40,
+                position: 'relative', zIndex: 1,
+              }}
+            />
+            <span style={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 16, color: 'var(--text)', pointerEvents: 'none',
+            }}>Vælg dato</span>
+          </div>
         </div>
       )}
 
