@@ -591,13 +591,13 @@ export default function TrainingEditor() {
           <button onClick={() => handleCopy(7)}
             style={{
               flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '8px 4px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+              borderRadius: 8, padding: '8px 4px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
             }}
           >Næste uge</button>
           <button onClick={() => handleCopy(7, undefined, 3)}
             style={{
               flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '8px 4px', fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+              borderRadius: 8, padding: '8px 4px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
             }}
           >Næste 3 uger</button>
           <input
@@ -606,8 +606,7 @@ export default function TrainingEditor() {
             onChange={e => { if (e.target.value) handleCopy(null, e.target.value); }}
             style={{
               flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '8px 4px', fontSize: 13, color: 'var(--text)', minHeight: 40,
-              textAlign: 'center',
+              borderRadius: 8, padding: '8px 4px', fontSize: 16, color: 'var(--text)', minHeight: 40,
             }}
           />
         </div>
