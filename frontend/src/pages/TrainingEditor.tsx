@@ -602,15 +602,25 @@ export default function TrainingEditor() {
               }}
             >Næste 3 uger</button>
           </div>
-          <input
-            type="date"
-            value={copyCustomDate}
-            onChange={e => { if (e.target.value) handleCopy(null, e.target.value); }}
-            style={{
-              width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              borderRadius: 8, padding: '8px', fontSize: 16, color: 'var(--text)', minHeight: 40,
-            }}
-          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="date"
+              value={copyCustomDate}
+              onChange={e => setCopyCustomDate(e.target.value)}
+              style={{
+                flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border2)',
+                borderRadius: 8, padding: '8px', fontSize: 16, color: 'var(--text)', minHeight: 40,
+              }}
+            />
+            <button
+              onClick={() => handleCopy(null, copyCustomDate)}
+              style={{
+                background: 'var(--accent)', border: 'none',
+                borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer',
+                color: '#fff', whiteSpace: 'nowrap',
+              }}
+            >Kopier</button>
+          </div>
         </div>
       )}
 
