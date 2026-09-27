@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import type { StationBlock, SectionExercise } from '../lib/types';
+import type { StationBlock } from '../lib/types';
 
 const inputSm: React.CSSProperties = {
   background: 'var(--bg-input)', border: '1px solid var(--border2)',
@@ -13,16 +13,12 @@ const inputSm: React.CSSProperties = {
 };
 
 export default function StationBlockModal({
-  blockId,
   block,
-  exercises,
   onSave,
   onDelete,
   onClose,
 }: {
-  blockId: string;
   block: StationBlock;
-  exercises: SectionExercise[];
   onSave: (patch: StationBlock) => void;
   onDelete: () => void;
   onClose: () => void;

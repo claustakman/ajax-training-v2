@@ -1311,9 +1311,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
       {/* StationBlockModal — rediger eksisterende blok */}
       {editBlockId && section.blocks?.[editBlockId] && (
         <StationBlockModal
-          blockId={editBlockId}
           block={section.blocks[editBlockId]}
-          exercises={exList}
           onSave={patch => {
             const newBlocks = { ...(section.blocks ?? {}), [editBlockId]: patch };
             onUpdate({ blocks: newBlocks });
@@ -1336,9 +1334,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
       {/* StationBlockModal — ny blok (pendingBlockId, ingen øvelser endnu) */}
       {pendingBlockId && pendingBlockConfig && !showPicker && (
         <StationBlockModal
-          blockId={pendingBlockId}
           block={pendingBlockConfig}
-          exercises={exList}
           onSave={patch => {
             // Gem blokken i section.blocks og åbn picker
             const newBlocks = { ...(section.blocks ?? {}), [pendingBlockId]: patch };
