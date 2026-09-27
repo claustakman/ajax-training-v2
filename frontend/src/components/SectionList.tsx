@@ -1033,14 +1033,14 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
         )}
 
         {/* Stationsblok-indikator i header — vises hvis der er blokke */}
-        {Object.keys(section.blocks ?? {}).length > 0 && (
-          <span style={{
-            fontSize: 11, fontWeight: 700, flexShrink: 0,
+        {Object.values(section.blocks ?? {}).map((blk, i) => (
+          <span key={i} style={{
+            fontSize: 12, flexShrink: 0,
             background: '#dbeafe', color: '#1d4ed8',
             border: '1px solid #93c5fd',
             borderRadius: 4, padding: '1px 6px',
-          }}>⊞ st</span>
-        )}
+          }}>{blk.rotate ? '🔁' : '🔀'}</span>
+        ))}
 
         {/* Collapsed: vis antal + tid */}
         {collapsed && (
