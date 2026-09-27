@@ -868,7 +868,7 @@ export default function TrainingEditor() {
           sectionTypes={sectionTypes}
           onAccept={exercises => {
             const sections = training.sections.map((sec, i) =>
-              i === aiSectionIndex ? { ...sec, exercises } : sec
+              i === aiSectionIndex ? { ...sec, exercises, blocks: undefined } : sec
             );
             const updated = { ...training, sections };
             setTraining(updated);

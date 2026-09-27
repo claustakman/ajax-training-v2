@@ -56,6 +56,20 @@ export function totalMins(sections: Array<{ mins: number; group?: string }>): nu
   return total;
 }
 
+/** Antal roterende stationer i en blok (øvelser med block=blockId og fixed !== true) */
+export function rotatingCount(
+  exercises: Array<{ block?: string; fixed?: boolean }>,
+  blockId: string,
+): number {
+  return exercises.filter(e => e.block === blockId && !e.fixed).length;
+}
+
+/** Formater rundetid: "2×5 min" (2 hold, 5 min/station) eller "5 min" */
+export function fmtRound(stationMins: number, holdCount: number): string {
+  if (holdCount <= 1) return `${stationMins} min`;
+  return `${holdCount}×${stationMins} min`;
+}
+
 /** Formatér ISO-dato til dansk langt format: "Onsdag 14. apr 2025" */
 export function fmtDateLong(dateStr: string): string {
   const d = parseDateLocal(dateStr);

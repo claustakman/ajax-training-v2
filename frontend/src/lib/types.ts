@@ -23,12 +23,18 @@ export interface Training {
   updated_at: string
 }
 
+export interface StationBlock {
+  rotate: boolean   // true = roterende, false = fast/parallel
+  mins?: number     // samlet rundetid (roterende) eller fast tid (fast)
+}
+
 export interface Section {
   id: string
   type: string
   mins: number
   group?: string
   exercises: SectionExercise[]
+  blocks?: Record<string, StationBlock>  // block-id → konfiguration
   note?: string
 }
 
@@ -37,6 +43,9 @@ export interface SectionExercise {
   customName?: string   // bruges ved fri øvelse
   mins: number
   done: boolean
+  block?: string        // block-id (fra Section.blocks) — undefined = ingen blok
+  who?: string          // "alle" | "hold1" | "hold2" | osv. (fri tekst)
+  fixed?: boolean       // true = fast station (ikke med i rotation)
 }
 
 export interface Template {

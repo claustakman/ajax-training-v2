@@ -5,10 +5,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../lib/api';
-import type { Section, SectionExercise, SectionType, Exercise, Training } from '../lib/types';
+import type { Section, SectionExercise, SectionType, StationBlock, Exercise, Training } from '../lib/types';
 import { ExerciseEditor } from '../pages/Catalog';
 import type { Exercise as CatalogExercise } from '../pages/Catalog';
 import TagInput from './ui/TagInput';
+import StationBlockModal from './StationBlockModal';
 
 // ─── Hjælpefunktioner ────────────────────────────────────────────────────────
 
@@ -33,18 +34,20 @@ function hexToRgb(hex: string): string {
   return `${r},${g},${b}`;
 }
 
-// ─── Gruppe-farver ───────────────────────────────────────────────────────────
 
-const GROUP_COLORS: Record<string, { bg: string; text: string }> = {
-  A: { bg: '#f59e0b', text: '#78350f' },
-  B: { bg: '#8b5cf6', text: '#2e1065' },
-  C: { bg: '#06b6d4', text: '#164e63' },
-  D: { bg: '#ec4899', text: '#500724' },
-  E: { bg: '#22c55e', text: '#14532d' },
-  F: { bg: '#f97316', text: '#431407' },
-};
-
-const GROUP_OPTIONS = ['A', 'B', 'C', 'D', 'E', 'F'];
+// ─── normalizeBlocks ─────────────────────────────────────────────────────────
+// Rydder op i blocks-recordet: fjerner block-ids der ikke længere bruges af
+// nogen øvelse, og sikrer at blocks altid er et objekt (aldrig undefined
+// efter en blok er tilføjet).
+function normalizeBlocks(section: Section): Section {
+  const blocks = section.blocks ?? {};
+  const usedIds = new Set(section.exercises.map(e => e.block).filter(Boolean));
+  const cleaned: Record<string, StationBlock> = {};
+  for (const [id, blk] of Object.entries(blocks)) {
+    if (usedIds.has(id)) cleaned[id] = blk;
+  }
+  return { ...section, blocks: Object.keys(cleaned).length > 0 ? cleaned : undefined };
+}
 
 // ─── Fælles styles ───────────────────────────────────────────────────────────
 
@@ -726,7 +729,7 @@ function DragHandle({ onDragStart, padding = '8px 10px', extraStyle }: {
 }
 
 function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
-  onDelete, onClickName, onUpdate, onNewExercise,
+  onDelete, onClickName, onUpdate, onNewExercise, blockId, onUnlinkBlock,
 }: {
   ex: SectionExercise;
   exerciseDef: Exercise | undefined;
@@ -737,6 +740,8 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
   onClickName: () => void;
   onUpdate: (patch: Partial<SectionExercise>) => void;
   onNewExercise: (ex: Exercise) => void;
+  blockId?: string;
+  onUnlinkBlock?: () => void;
 }) {
   const [showSaveToCatalog, setShowSaveToCatalog] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
@@ -831,6 +836,15 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
         >📚</button>
       )}
 
+      {/* Fjern fra blok */}
+      {canEdit && blockId && onUnlinkBlock && (
+        <button
+          onClick={onUnlinkBlock}
+          title="Fjern fra blok"
+          style={{ ...btnGhost, padding: '4px 8px', flexShrink: 0, fontSize: 11, color: '#3b82f6' }}
+        >⊠</button>
+      )}
+
       {/* Slet */}
       {canEdit && (
         <button
@@ -880,6 +894,8 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [showLoadSection, setShowLoadSection] = useState(false);
+  const [editBlockId, setEditBlockId] = useState<string | null>(null);
+  const [pendingBlockId, setPendingBlockId] = useState<string | null>(null);
 
   // Drag-and-drop state for exercises
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -891,9 +907,6 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
   const label = sectionType?.label ?? section.type;
   const exList = section.exercises ?? [];
   const total = exList.length;
-
-  // Gruppe-badge farver
-  const groupStyle = section.group ? (GROUP_COLORS[section.group] ?? { bg: '#888', text: '#fff' }) : null;
 
   function updateExercise(idx: number, patch: Partial<SectionExercise>) {
     const exs = [...exList];
@@ -1024,24 +1037,14 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
           </span>
         )}
 
-        {/* Gruppe-badge — altid synlig, viser '–' hvis ingen gruppe */}
-        {canEdit && (
+        {/* Stationsblok-indikator i header — vises hvis der er blokke */}
+        {Object.keys(section.blocks ?? {}).length > 0 && (
           <span style={{
             fontSize: 11, fontWeight: 700, flexShrink: 0,
-            background: groupStyle ? groupStyle.bg : 'var(--bg-input)',
-            color: groupStyle ? groupStyle.text : 'var(--text3)',
-            border: groupStyle ? 'none' : '1px solid var(--border2)',
+            background: '#dbeafe', color: '#1d4ed8',
+            border: '1px solid #93c5fd',
             borderRadius: 4, padding: '1px 6px',
-          }}>
-            {section.group ?? '–'}
-          </span>
-        )}
-        {!canEdit && section.group && groupStyle && (
-          <span style={{
-            fontSize: 11, fontWeight: 700, flexShrink: 0,
-            background: groupStyle.bg, color: groupStyle.text,
-            borderRadius: 4, padding: '1px 6px',
-          }}>Gr. {section.group}</span>
+          }}>⊞ st</span>
         )}
 
         {/* Collapsed: vis antal + tid */}
@@ -1092,26 +1095,28 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
             <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>{section.note}</p>
           )}
 
-          {/* Gruppe + AI + Øvelse + skabelon — samme række */}
+          {/* AI + Stationer + Øvelse + skabelon — samme række */}
           {canEdit && (
             <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-              <select
-                value={section.group ?? ''}
-                onChange={e => onUpdate({ group: e.target.value || undefined })}
-                title="Gruppe"
-                style={{ ...inputSm, width: 'auto', padding: '5px 8px', minHeight: 'auto', flexShrink: 0 }}
-              >
-                <option value="">–</option>
-                {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
               <button
                 title="AI-forslag til denne sektion"
-                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', padding: '8px 16px', fontSize: 13, flex: 1 }}
+                style={{ ...btnGhost, border: '1px solid #7c3aed', color: '#7c3aed', padding: '8px 12px', fontSize: 13 }}
                 onClick={e => { e.stopPropagation(); onAISuggest?.(); }}
               >✨</button>
               <button
+                title="Tilføj stationsblok"
+                style={{ ...btnGhost, border: '1px solid #2563eb', color: '#2563eb', padding: '8px 12px', fontSize: 13 }}
+                onClick={() => {
+                  const blockId = uid();
+                  const newBlocks = { ...(section.blocks ?? {}), [blockId]: { rotate: true, mins: 5 } };
+                  const updatedSection = normalizeBlocks({ ...section, blocks: newBlocks });
+                  onUpdate({ blocks: updatedSection.blocks });
+                  setPendingBlockId(blockId);
+                }}
+              >⊞ Stationer</button>
+              <button
                 onClick={() => setShowPicker(true)}
-                style={{ ...btnGhost, borderColor: color, color, padding: '8px 16px', fontSize: 13, fontWeight: 600, flex: 2 }}
+                style={{ ...btnGhost, borderColor: color, color, padding: '8px 16px', fontSize: 13, fontWeight: 600, flex: 1 }}
               >+ Øvelse</button>
               <button
                 onClick={() => setShowLoadSection(true)}
@@ -1131,23 +1136,144 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                 const [removed] = displayList.splice(dragIdx, 1);
                 displayList.splice(dropIdx, 0, removed);
               }
-              return displayList.map(({ ex, origIdx }) => {
-                const exDef = exercises.find(e => e.id === ex.id);
-                const isDragging = origIdx === dragIdx;
-                return (
-                  <ExerciseRow
-                    key={origIdx}
-                    ex={ex}
-                    exerciseDef={exDef}
 
-                    canEdit={canEdit}
-                    isDragging={isDragging}
-                    onDragStart={startY => handleDragStart(origIdx, startY)}
-                    onDelete={() => removeExercise(origIdx)}
-                    onClickName={() => exDef && setDetailEx(exDef)}
-                    onUpdate={patch => updateExercise(origIdx, patch)}
-                    onNewExercise={onNewExercise}
-                  />
+              // Grupper øvelser: saml blok-sekvenser og fritliggende øvelser
+              // En blok-gruppe er alle på hinanden følgende øvelser med samme block-id
+              type DisplayItem =
+                | { type: 'solo'; entry: typeof displayList[0] }
+                | { type: 'block'; blockId: string; entries: typeof displayList };
+
+              const grouped: DisplayItem[] = [];
+              for (let i = 0; i < displayList.length; i++) {
+                const entry = displayList[i];
+                const bid = entry.ex.block;
+                if (bid && section.blocks?.[bid]) {
+                  // Saml alle øvelser med samme blockId (ikke nødvendigvis i rækkefølge — vis dem samlet)
+                  // Find allerede eksisterende block-gruppe
+                  const existing = grouped.find(g => g.type === 'block' && g.blockId === bid) as Extract<DisplayItem, { type: 'block' }> | undefined;
+                  if (existing) {
+                    existing.entries.push(entry);
+                  } else {
+                    grouped.push({ type: 'block', blockId: bid, entries: [entry] });
+                  }
+                } else {
+                  grouped.push({ type: 'solo', entry });
+                }
+              }
+
+              return grouped.map((item, gIdx) => {
+                if (item.type === 'solo') {
+                  const { ex, origIdx } = item.entry;
+                  const exDef = exercises.find(e => e.id === ex.id);
+                  const isD = origIdx === dragIdx;
+                  return (
+                    <ExerciseRow
+                      key={`solo-${origIdx}`}
+                      ex={ex}
+                      exerciseDef={exDef}
+                      canEdit={canEdit}
+                      isDragging={isD}
+                      onDragStart={startY => handleDragStart(origIdx, startY)}
+                      onDelete={() => removeExercise(origIdx)}
+                      onClickName={() => exDef && setDetailEx(exDef)}
+                      onUpdate={patch => updateExercise(origIdx, patch)}
+                      onNewExercise={onNewExercise}
+                    />
+                  );
+                }
+
+                // Blok-container
+                const { blockId, entries } = item;
+                const blk = section.blocks![blockId];
+                const rotCount = entries.filter(e => !e.ex.fixed).length;
+                const blkMins = blk.mins ?? 5;
+                const totalBlkMins = blk.rotate ? rotCount * blkMins : blkMins;
+
+                return (
+                  <div key={`block-${blockId}-${gIdx}`} style={{
+                    border: '2px solid #2563eb',
+                    borderRadius: 8,
+                    marginBottom: 8,
+                    overflow: 'hidden',
+                  }}>
+                    {/* Blok-header */}
+                    <div
+                      style={{
+                        background: '#eff6ff',
+                        borderBottom: '1px solid #bfdbfe',
+                        padding: '6px 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        cursor: canEdit ? 'pointer' : 'default',
+                      }}
+                      onClick={canEdit ? () => setEditBlockId(blockId) : undefined}
+                    >
+                      <span style={{ fontSize: 13, color: '#1d4ed8', fontWeight: 700 }}>
+                        {blk.rotate ? '🔄 Roterende' : '📌 Fast'}
+                      </span>
+                      <span style={{ fontSize: 12, color: '#3b82f6' }}>
+                        {blk.rotate
+                          ? `${rotCount} st. × ${blkMins} min = ${totalBlkMins} min`
+                          : `${blkMins} min`}
+                      </span>
+                      {canEdit && (
+                        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#60a5fa' }}>✏️ Rediger</span>
+                      )}
+                    </div>
+
+                    {/* Øvelser i blokken */}
+                    <div style={{ padding: '4px 6px 4px' }}>
+                      {entries.map(({ ex, origIdx }, eIdx) => {
+                        const exDef = exercises.find(e => e.id === ex.id);
+                        const isD = origIdx === dragIdx;
+                        return (
+                          <div key={`blk-ex-${origIdx}`}>
+                            {eIdx > 0 && (
+                              <div style={{
+                                textAlign: 'center', fontSize: 11, color: '#60a5fa',
+                                margin: '1px 0', userSelect: 'none',
+                              }}>
+                                {blk.rotate ? '↕' : '↔'}
+                              </div>
+                            )}
+                            <ExerciseRow
+                              ex={ex}
+                              exerciseDef={exDef}
+                              canEdit={canEdit}
+                              isDragging={isD}
+                              onDragStart={startY => handleDragStart(origIdx, startY)}
+                              onDelete={() => {
+                                const newExs = exList.filter((_, i) => i !== origIdx);
+                                const updated = normalizeBlocks({ ...section, exercises: newExs });
+                                onUpdate({ exercises: updated.exercises, blocks: updated.blocks });
+                              }}
+                              onClickName={() => exDef && setDetailEx(exDef)}
+                              onUpdate={patch => updateExercise(origIdx, patch)}
+                              onNewExercise={onNewExercise}
+                              blockId={blockId}
+                              onUnlinkBlock={() => updateExercise(origIdx, { block: undefined, fixed: undefined, who: undefined })}
+                            />
+                          </div>
+                        );
+                      })}
+                      {/* Tilføj til blok-knap */}
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            setPendingBlockId(blockId);
+                            setShowPicker(true);
+                          }}
+                          style={{
+                            width: '100%', marginTop: 4,
+                            background: 'none', border: '1px dashed #93c5fd',
+                            borderRadius: 6, padding: '4px 0', fontSize: 12,
+                            color: '#3b82f6', cursor: 'pointer',
+                          }}
+                        >+ øvelse til blok</button>
+                      )}
+                    </div>
+                  </div>
                 );
               });
             })()}
@@ -1162,10 +1288,75 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
           exercises={exercises}
           alreadyAdded={alreadyAddedIds}
           onPick={ex => {
-            addExercise(ex);
+            if (pendingBlockId) {
+              // Tilføj øvelse direkte til blokken
+              const usedMins = exList.reduce((s, e) => s + (e.mins || 0), 0);
+              const remaining = section.mins - usedMins;
+              const isFree = !ex.id;
+              const newEx: SectionExercise = {
+                id: isFree ? undefined : ex.id,
+                customName: isFree ? ex.name : undefined,
+                mins: ex.default_mins ?? Math.max(1, Math.min(remaining, 10)),
+                done: false,
+                block: pendingBlockId,
+              };
+              onUpdate({ exercises: [...exList, newEx] });
+              setPendingBlockId(null);
+            } else {
+              addExercise(ex);
+            }
             setShowPicker(false);
           }}
-          onClose={() => setShowPicker(false)}
+          onClose={() => { setShowPicker(false); setPendingBlockId(null); }}
+        />
+      )}
+
+      {/* StationBlockModal — rediger eksisterende blok */}
+      {editBlockId && section.blocks?.[editBlockId] && (
+        <StationBlockModal
+          blockId={editBlockId}
+          block={section.blocks[editBlockId]}
+          exercises={exList}
+          onSave={patch => {
+            const newBlocks = { ...(section.blocks ?? {}), [editBlockId]: patch };
+            onUpdate({ blocks: newBlocks });
+            setEditBlockId(null);
+          }}
+          onDelete={() => {
+            // Fjern blok-reference fra alle øvelser, ryd op i blocks-record
+            const newExs = exList.map(e => e.block === editBlockId
+              ? { ...e, block: undefined, fixed: undefined, who: undefined }
+              : e
+            );
+            const updated = normalizeBlocks({ ...section, exercises: newExs, blocks: { ...(section.blocks ?? {}) } });
+            onUpdate({ exercises: updated.exercises, blocks: updated.blocks });
+            setEditBlockId(null);
+          }}
+          onClose={() => setEditBlockId(null)}
+        />
+      )}
+
+      {/* StationBlockModal — ny blok (pendingBlockId, ingen øvelser endnu) */}
+      {pendingBlockId && !showPicker && section.blocks?.[pendingBlockId] && (
+        <StationBlockModal
+          blockId={pendingBlockId}
+          block={section.blocks[pendingBlockId]}
+          exercises={exList}
+          onSave={patch => {
+            const newBlocks = { ...(section.blocks ?? {}), [pendingBlockId]: patch };
+            onUpdate({ blocks: newBlocks });
+            // Åbn picker til at tilføje første øvelse
+            setShowPicker(true);
+          }}
+          onDelete={() => {
+            const { [pendingBlockId]: _, ...rest } = section.blocks ?? {};
+            onUpdate({ blocks: Object.keys(rest).length > 0 ? rest : undefined });
+            setPendingBlockId(null);
+          }}
+          onClose={() => {
+            // Bevar blokken — åbn picker til at tilføje øvelse
+            setShowPicker(true);
+          }}
         />
       )}
 
