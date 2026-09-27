@@ -7,54 +7,81 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–18)
+## Hvad er bygget (Sessions 1–19)
+
+### Session 19 — Stationsblok UI-polish + gruppe-oprydning
+
+#### `frontend/src/components/StationBlockModal.tsx` — ændringer
+- **Type-knapper** omdøbt: `🔄 Roterende` → `🔁 Rotation`, `📌 Fast` → `🔀 Opdelt`
+- **Beskrivelser** opdateret:
+  - Rotation: `'Holdene roterer rundt til alle stationer'`
+  - Opdelt: `'Holdene roterer ikke, men grupper laver forskellige øvelser parallelt, fx. efter niveau'`
+- **Tid-felt** simplificeret: altid label "Samlet tid" — ingen per-station beregning
+- **Ubrugte props fjernet**: `blockId` og `exercises` ikke længere i komponentens interface (var kun brugt til den fjernede preview-beregning)
+- `SectionExercise`-import fjernet (ikke længere brugt)
+
+#### `frontend/src/components/SectionList.tsx` — ændringer
+- **Blok-header** type-label opdateret: `🔁 Rotation` / `🔀 Opdelt`
+- **Blok-header tid**: viser nu bare `X min` — ikke `N st. × X min = Y min`
+- **Separator** mellem øvelser i blok: `↕`/`↔` → `🔁`/`🔀`
+- **Sektions-header badge**: `⊞ st` → dynamisk badge per blok der viser `🔁` eller `🔀`
+- **Minuttal skjult** for øvelser i en blok — `{!blockId && (...)}` wrapper om minutter-div i `ExerciseRow`; tid er defineret på blok-niveau
+- **"+ øvelse til blok"-knap**: font 12 → 14px, padding `'4px 0'` → `'10px 0'`
+- **`pendingBlockConfig`** (ny state i `SectionBlock`): løser bug hvor `normalizeBlocks` strippede ny blok straks ved oprettelse fordi ingen øvelse refererede til den endnu
+  - Ny blok gemmes i lokal `pendingBlockConfig`-state — skrives ikke til `section.blocks` før bruger bekræfter (Gem eller luk modal)
+  - `StationBlockModal` renderes fra `pendingBlockConfig` i stedet for `section.blocks?.[pendingBlockId]`
+- **Gruppe-kode fjernet** fra DurationBar-beregning: `section.group`-logik erstattet med simpel `reduce`
+- **`rotCount` og `totalBlkMins`** variable fjernet (ikke længere brugt)
+
+#### Gruppe-kode fjernet (oprydning)
+- **`frontend/src/lib/types.ts`**: `group?: string` fjernet fra `Section`-interface
+- **`frontend/src/lib/dateUtils.ts`**: `totalMins()` simplificeret til `reduce` uden gruppe-logik. `rotatingCount()` og `fmtRound()` slettet (ubrugte hjælpefunktioner)
+- **`frontend/src/components/SaveTemplateModal.tsx`**: `· Gruppe ${sec.group}` fjernet fra sektion-preview
+- **`frontend/src/components/SectionList.tsx`**: DurationBar-beregning bruger nu simpel `reduce` — ingen `seen`-Set til gruppe-dedup
+
+#### Gotchas
+- `pendingBlockConfig` vs `section.blocks`: ny blok eksisterer kun i `pendingBlockConfig` indtil bruger vælger en øvelse — `normalizeBlocks` ville ellers slette den straks
+- `⊠`-knap (blå): fjerner øvelse fra blok men beholder den i sektionen. `×`-knap (rød): sletter øvelsen helt fra sektionen
+- Det er ikke muligt at trække en fri øvelse ind i en eksisterende blok via drag-and-drop — slet og tilføj via "+ øvelse til blok" i stedet
 
 ### Session 18 — Stationsblokke i sektioner
 
 #### Datamodel — `frontend/src/lib/types.ts`
 - **`StationBlock`** (ny interface): `{ rotate: boolean; mins?: number }`
-  - `rotate: true` = holdene roterer rundt til alle stationer; `false` = stationer kører parallelt
-  - `mins` = tid per station (roterende) eller samlet tid (fast/parallel)
+  - `rotate: true` = holdene roterer rundt til alle stationer; `false` = opdelt/parallel
+  - `mins` = samlet tid for blokken
 - **`Section.blocks?`** (nyt felt): `Record<string, StationBlock>` — block-id → konfiguration
 - **`SectionExercise`** — tre nye valgfrie felter:
   - `block?: string` — block-id der refererer til en nøgle i `Section.blocks`
   - `who?: string` — fri tekst (fx "hold1", "alle") til at markere hvem der er på stationen
   - `fixed?: boolean` — `true` = fast station der ikke tælles med i rotationsrunden
 
-#### Hjælpefunktioner — `frontend/src/lib/dateUtils.ts`
-- **`rotatingCount(exercises, blockId)`** — antal øvelser med `block === blockId` og `fixed !== true`
-- **`fmtRound(stationMins, holdCount)`** — formaterer "2×5 min" eller "5 min"
-
 #### `frontend/src/components/StationBlockModal.tsx` (ny komponent)
-- Konfigurér en stationsblok: type (Roterende/Fast), tid per station
+- Konfigurér en stationsblok: type (Rotation/Opdelt), samlet tid
 - To knapper: **Fjern blok** (sletter blok-reference fra alle øvelser) og **Gem**
-- Preview-tekst: "N stationer × M min = total min" ved roterende blok
 - Bruger `.modal-overlay` / `.modal-sheet` bottom-sheet mønster
 
 #### `frontend/src/components/SectionList.tsx` — UI-ændringer
 - **`normalizeBlocks(section)`** — rydder orphaned block-ids op fra `Section.blocks`
-- **Gruppe-badge fjernet** fra sektionshoved og knap-rækken — gruppe-feltet bevares i datamodellen for backward compat men vises ikke
-- **Stationsblok-indikator** i sektionshoved: blåt "⊞ st"-badge hvis sektionen har blokke
-- **Knap-rækken** (canEdit): gruppe-select erstattet med "⊞ Stationer"-knap (blå outline)
-- **"⊞ Stationer"-knap**: opretter en ny blok (`uid()`) i `section.blocks`, sætter `pendingBlockId`, åbner `StationBlockModal` til konfiguration
+- **Stationsblok-indikator** i sektionshoved: dynamisk badge med 🔁/🔀 per blok
+- **Knap-rækken** (canEdit): "⊞ Stationer"-knap (blå outline)
+- **"⊞ Stationer"-knap**: sætter `pendingBlockId` + `pendingBlockConfig`, åbner `StationBlockModal`
 - **Blok-container**: blå (#2563eb) ramme om grupperede øvelser
-  - Blok-header: type-label (🔄/📌), tidsinfo, ✏️ Rediger (klikbar for canEdit)
-  - Øvelser med linkpil (↕ roterende / ↔ fast) imellem
-  - "+ øvelse til blok"-knap (stiplet kant) i bunden af containeren
-- **`ExerciseRow`**: nye props `blockId?` og `onUnlinkBlock?` — viser ⊠-knap til at fjerne øvelse fra blok
+  - Blok-header: type-label (🔁/🔀), samlet tid, ✏️ Rediger (klikbar for canEdit)
+  - Øvelser med 🔁/🔀 separator imellem
+  - "+ øvelse til blok"-knap (stiplet kant, 14px) i bunden
+- **`ExerciseRow`**: props `blockId?` og `onUnlinkBlock?` — viser ⊠-knap, skjuler minuttal
 - **Flow: ny blok**:
   1. "⊞ Stationer" → `StationBlockModal` åbner (konfigurer type + tid)
   2. Gem → picker åbner med `pendingBlockId` sat
   3. Vælg øvelse → øvelse tilføjes med `block: pendingBlockId`
   4. Gentag fra "+" i blok-container for flere øvelser
 - **Flow: redigér blok**: klik på blok-header → `StationBlockModal` med `editBlockId`
-- **AI-accept**: `AISectionModal.onAccept` rydder `blocks: undefined` på sektionen — AI-øvelser har ikke blok-referencer
+- **AI-accept**: `AISectionModal.onAccept` rydder `blocks: undefined` på sektionen
 
 #### Gotchas
 - `section.blocks` er `undefined` når ingen blokke eksisterer — tjek altid med `?? {}`
 - `normalizeBlocks` skal kaldes når øvelser slettes — ellers lever tomme block-entries i `blocks`-recordet
-- `onDelete` i blok-container kalder `normalizeBlocks({ ...section, exercises: newExs })` — sikrer blocks ryddes op automatisk
-- `pendingBlockId` forbliver sat indtil bruger vælger en øvelse — picker-`onClose` rydder den via `setPendingBlockId(null)`
 
 ### Session 17 — Kopier-panel i TrainingEditor
 
@@ -1380,12 +1407,12 @@ interface Training {
 }
 
 interface StationBlock {
-  rotate: boolean;   // true = roterende, false = fast/parallel
-  mins?: number;     // tid per station (roterende) eller samlet tid (fast)
+  rotate: boolean;   // true = 🔁 Rotation, false = 🔀 Opdelt
+  mins?: number;     // samlet tid for blokken
 }
 
 interface Section {
-  id: string; type: string; mins: number; group?: string;
+  id: string; type: string; mins: number;
   exercises: SectionExercise[];
   blocks?: Record<string, StationBlock>;  // block-id → konfiguration
   note?: string;
