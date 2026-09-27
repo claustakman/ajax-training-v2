@@ -5,7 +5,6 @@
 
 import { useState } from 'react';
 import type { StationBlock, SectionExercise } from '../lib/types';
-import { rotatingCount } from '../lib/dateUtils';
 
 const inputSm: React.CSSProperties = {
   background: 'var(--bg-input)', border: '1px solid var(--border2)',
@@ -31,8 +30,6 @@ export default function StationBlockModal({
   const [rotate, setRotate] = useState(block.rotate);
   const [mins, setMins] = useState(block.mins ?? 5);
 
-  const stationCount = rotatingCount(exercises, blockId);
-  const totalMins = rotate ? stationCount * mins : mins;
 
   function handleSave() {
     onSave({ rotate, mins });
@@ -77,7 +74,7 @@ export default function StationBlockModal({
                 border: `1px solid ${rotate ? '#2563eb' : 'var(--border2)'}`,
                 cursor: 'pointer',
               }}
-            >🔄 Roterende</button>
+            >🔁 Rotation</button>
             <button
               onClick={() => setRotate(false)}
               style={{
@@ -87,19 +84,19 @@ export default function StationBlockModal({
                 border: `1px solid ${!rotate ? '#2563eb' : 'var(--border2)'}`,
                 cursor: 'pointer',
               }}
-            >📌 Fast</button>
+            >🔀 Opdelt</button>
           </div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
             {rotate
               ? 'Holdene roterer rundt til alle stationer'
-              : 'Stationerne kører parallelt — holdene vælger selv'}
+              : 'Holdene roterer ikke, men grupper laver forskellige øvelser parallelt, fx. efter niveau'}
           </div>
         </div>
 
         {/* Tid */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
-            {rotate ? 'Tid per station' : 'Samlet tid'}
+            Samlet tid
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input
@@ -111,11 +108,6 @@ export default function StationBlockModal({
             />
             <span style={{ fontSize: 14, color: 'var(--text2)' }}>min</span>
           </div>
-          {rotate && stationCount > 0 && (
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
-              {stationCount} station{stationCount !== 1 ? 'er' : ''} × {mins} min = <strong>{totalMins} min total</strong>
-            </div>
-          )}
         </div>
 
         {/* Handlinger */}

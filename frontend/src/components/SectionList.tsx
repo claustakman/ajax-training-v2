@@ -1185,9 +1185,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                 // Blok-container
                 const { blockId, entries } = item;
                 const blk = section.blocks![blockId];
-                const rotCount = entries.filter(e => !e.ex.fixed).length;
                 const blkMins = blk.mins ?? 5;
-                const totalBlkMins = blk.rotate ? rotCount * blkMins : blkMins;
 
                 return (
                   <div key={`block-${blockId}-${gIdx}`} style={{
@@ -1210,12 +1208,10 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                       onClick={canEdit ? () => setEditBlockId(blockId) : undefined}
                     >
                       <span style={{ fontSize: 13, color: '#1d4ed8', fontWeight: 700 }}>
-                        {blk.rotate ? '🔄 Roterende' : '📌 Fast'}
+                        {blk.rotate ? '🔁 Rotation' : '🔀 Opdelt'}
                       </span>
                       <span style={{ fontSize: 12, color: '#3b82f6' }}>
-                        {blk.rotate
-                          ? `${rotCount} st. × ${blkMins} min = ${totalBlkMins} min`
-                          : `${blkMins} min`}
+                        {blkMins} min
                       </span>
                       {canEdit && (
                         <span style={{ marginLeft: 'auto', fontSize: 11, color: '#60a5fa' }}>✏️ Rediger</span>
@@ -1267,7 +1263,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                           style={{
                             width: '100%', marginTop: 4,
                             background: 'none', border: '1px dashed #93c5fd',
-                            borderRadius: 6, padding: '4px 0', fontSize: 12,
+                            borderRadius: 6, padding: '10px 0', fontSize: 12,
                             color: '#3b82f6', cursor: 'pointer',
                           }}
                         >+ øvelse til blok</button>
