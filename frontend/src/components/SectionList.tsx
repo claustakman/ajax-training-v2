@@ -1224,7 +1224,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                                 textAlign: 'center', fontSize: 11, color: '#60a5fa',
                                 margin: '1px 0', userSelect: 'none',
                               }}>
-                                {blk.rotate ? '↕' : '↔'}
+                                {blk.rotate ? '🔁' : '🔀'}
                               </div>
                             )}
                             <ExerciseRow
