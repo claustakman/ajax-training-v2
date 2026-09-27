@@ -896,6 +896,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
   const [showLoadSection, setShowLoadSection] = useState(false);
   const [editBlockId, setEditBlockId] = useState<string | null>(null);
   const [pendingBlockId, setPendingBlockId] = useState<string | null>(null);
+  const [pendingBlockConfig, setPendingBlockConfig] = useState<StationBlock | null>(null);
 
   // Drag-and-drop state for exercises
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -1108,10 +1109,9 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                 style={{ ...btnGhost, border: '1px solid #2563eb', color: '#2563eb', padding: '8px 12px', fontSize: 13 }}
                 onClick={() => {
                   const blockId = uid();
-                  const newBlocks = { ...(section.blocks ?? {}), [blockId]: { rotate: true, mins: 5 } };
-                  const updatedSection = normalizeBlocks({ ...section, blocks: newBlocks });
-                  onUpdate({ blocks: updatedSection.blocks });
+                  const config: StationBlock = { rotate: true, mins: 5 };
                   setPendingBlockId(blockId);
+                  setPendingBlockConfig(config);
                 }}
               >⊞ Stationer</button>
               <button
@@ -1302,12 +1302,13 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
               };
               onUpdate({ exercises: [...exList, newEx] });
               setPendingBlockId(null);
+              setPendingBlockConfig(null);
             } else {
               addExercise(ex);
             }
             setShowPicker(false);
           }}
-          onClose={() => { setShowPicker(false); setPendingBlockId(null); }}
+          onClose={() => { setShowPicker(false); setPendingBlockId(null); setPendingBlockConfig(null); }}
         />
       )}
 
@@ -1337,24 +1338,26 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
       )}
 
       {/* StationBlockModal — ny blok (pendingBlockId, ingen øvelser endnu) */}
-      {pendingBlockId && !showPicker && section.blocks?.[pendingBlockId] && (
+      {pendingBlockId && pendingBlockConfig && !showPicker && (
         <StationBlockModal
           blockId={pendingBlockId}
-          block={section.blocks[pendingBlockId]}
+          block={pendingBlockConfig}
           exercises={exList}
           onSave={patch => {
+            // Gem blokken i section.blocks og åbn picker
             const newBlocks = { ...(section.blocks ?? {}), [pendingBlockId]: patch };
             onUpdate({ blocks: newBlocks });
-            // Åbn picker til at tilføje første øvelse
+            setPendingBlockConfig(patch);
             setShowPicker(true);
           }}
           onDelete={() => {
-            const { [pendingBlockId]: _, ...rest } = section.blocks ?? {};
-            onUpdate({ blocks: Object.keys(rest).length > 0 ? rest : undefined });
             setPendingBlockId(null);
+            setPendingBlockConfig(null);
           }}
           onClose={() => {
-            // Bevar blokken — åbn picker til at tilføje øvelse
+            // Gem blokken med nuværende config og åbn picker
+            const newBlocks = { ...(section.blocks ?? {}), [pendingBlockId]: pendingBlockConfig };
+            onUpdate({ blocks: newBlocks });
             setShowPicker(true);
           }}
         />
