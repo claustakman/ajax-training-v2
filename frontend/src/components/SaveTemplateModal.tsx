@@ -267,7 +267,6 @@ export default function SaveTemplateModal({ training, teamId, sectionTypes, onSa
                           <div style={{ fontWeight: 600, fontSize: 14, color: isSelected ? color : 'var(--text)' }}>{label}</div>
                           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
                             {sec.exercises.length} øvelse{sec.exercises.length !== 1 ? 'r' : ''} · {sec.mins} min
-                            {sec.group ? ` · Gruppe ${sec.group}` : ''}
                           </div>
                         </div>
                         {isSelected && (

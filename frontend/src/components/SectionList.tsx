@@ -75,15 +75,7 @@ function DurationBar({ sections, training }: {
   const totalAvail = (eh * 60 + em) - (sh * 60 + sm);
   if (totalAvail <= 0) return null;
 
-  const seen = new Set<string>();
-  let planned = 0;
-  for (const s of sections) {
-    if (s.group) {
-      if (!seen.has(s.group)) { seen.add(s.group); planned += s.mins; }
-    } else {
-      planned += s.mins;
-    }
-  }
+  const planned = sections.reduce((sum, s) => sum + s.mins, 0);
   const over = planned > totalAvail;
   const nearFull = planned / totalAvail > 0.9;
   const planColor = over ? 'var(--red)' : nearFull ? 'var(--yellow)' : 'var(--green)';
@@ -811,21 +803,23 @@ function ExerciseRow({ ex, exerciseDef, canEdit, isDragging, onDragStart,
         )}
       </div>
 
-      {/* Minutter */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-        {canEdit ? (
-          <input
-            type="number"
-            value={ex.mins || ''}
-            onChange={e => onUpdate({ mins: Number(e.target.value) || 0 })}
-            min={1}
-            style={{ ...inputSm, width: 50, textAlign: 'center', padding: '3px 5px' }}
-          />
-        ) : (
-          <span style={{ fontSize: 13, color: 'var(--text2)' }}>{ex.mins}</span>
-        )}
-        <span style={{ fontSize: 12, color: 'var(--text3)' }}>min</span>
-      </div>
+      {/* Minutter — skjules for øvelser i en blok (tid er defineret på blok-niveau) */}
+      {!blockId && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+          {canEdit ? (
+            <input
+              type="number"
+              value={ex.mins || ''}
+              onChange={e => onUpdate({ mins: Number(e.target.value) || 0 })}
+              min={1}
+              style={{ ...inputSm, width: 50, textAlign: 'center', padding: '3px 5px' }}
+            />
+          ) : (
+            <span style={{ fontSize: 13, color: 'var(--text2)' }}>{ex.mins}</span>
+          )}
+          <span style={{ fontSize: 12, color: 'var(--text3)' }}>min</span>
+        </div>
+      )}
 
       {/* Gem til katalog (kun fri øvelse med navn) */}
       {canEdit && isFree && ex.customName?.trim() && (
@@ -1263,7 +1257,7 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                           style={{
                             width: '100%', marginTop: 4,
                             background: 'none', border: '1px dashed #93c5fd',
-                            borderRadius: 6, padding: '10px 0', fontSize: 12,
+                            borderRadius: 6, padding: '10px 0', fontSize: 14,
                             color: '#3b82f6', cursor: 'pointer',
                           }}
                         >+ øvelse til blok</button>

@@ -32,7 +32,6 @@ export interface Section {
   id: string
   type: string
   mins: number
-  group?: string
   exercises: SectionExercise[]
   blocks?: Record<string, StationBlock>  // block-id → konfiguration
   note?: string

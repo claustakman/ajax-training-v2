@@ -39,36 +39,11 @@ export function durMin(start?: string, end?: string): number | null {
   return diff > 0 ? diff : null;
 }
 
-/** Samlet minutter for en sektion-liste, inkl. parallelle grupper (tæl kun én af hver group) */
-export function totalMins(sections: Array<{ mins: number; group?: string }>): number {
-  const seen = new Set<string>();
-  let total = 0;
-  for (const s of sections) {
-    if (s.group) {
-      if (!seen.has(s.group)) {
-        seen.add(s.group);
-        total += s.mins;
-      }
-    } else {
-      total += s.mins;
-    }
-  }
-  return total;
+/** Samlet minutter for en sektion-liste */
+export function totalMins(sections: Array<{ mins: number }>): number {
+  return sections.reduce((sum, s) => sum + s.mins, 0);
 }
 
-/** Antal roterende stationer i en blok (øvelser med block=blockId og fixed !== true) */
-export function rotatingCount(
-  exercises: Array<{ block?: string; fixed?: boolean }>,
-  blockId: string,
-): number {
-  return exercises.filter(e => e.block === blockId && !e.fixed).length;
-}
-
-/** Formater rundetid: "2×5 min" (2 hold, 5 min/station) eller "5 min" */
-export function fmtRound(stationMins: number, holdCount: number): string {
-  if (holdCount <= 1) return `${stationMins} min`;
-  return `${holdCount}×${stationMins} min`;
-}
 
 /** Formatér ISO-dato til dansk langt format: "Onsdag 14. apr 2025" */
 export function fmtDateLong(dateStr: string): string {
