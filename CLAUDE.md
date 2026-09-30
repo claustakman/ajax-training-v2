@@ -33,6 +33,10 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **Statistik:** "Gennemsnitlig antal trænere per ugedag" og counteren "Trænere pr. træning (gns.)" tæller begge `trainers` + `keeper_trainers` + `youth_trainers`. "Ansvarlig træner" tæller `lead_trainer` uanset rolle
 - Keeper-/ungtrænere kan vælges som **ansvarlig træner** (dropdown viser alle holdmedlemmer)
 
+#### Gotchas
+- Migration 0014 blev **ikke** kørt af deploy-workflowet (D1 auth-fejl skjult af `|| true`) — kørt manuelt med `wrangler d1 execute --remote`. Tjek altid at nye kolonner findes i prod efter deploy
+- Lokal Homebrew-`node` er brudt (manglende `simdutf`-dylib) — brug `export PATH=/opt/homebrew/opt/node@22/bin:$PATH` indtil `brew upgrade node` er kørt
+
 ### Session 19 — Stationsblok UI-polish + gruppe-oprydning
 
 #### `frontend/src/components/StationBlockModal.tsx` — ændringer
@@ -867,6 +871,8 @@ Undtagelse: `admin` er global og slår altid igennem uanset aktivt hold.
 |----------------|----------------------------------------------------------------------------------|
 | `guest`        | View-only: kan se træninger og katalog for tildelte hold                         |
 | `trainer`      | CRUD træninger og katalog. Holdsport-import. Årshjul (view). Opslagstavle.       |
+| `youth_trainer` | **Ungtræner** — samme rettigheder som `trainer`. Egen liste (`youth_trainers`) på træninger |
+| `keeper_trainer` | **Keepertræner** — samme rettigheder som `trainer`. Egen liste (`keeper_trainers`) på træninger |
 | `team_manager` | Alt trainer + redigere årshjul + styre brugere for eget hold + holdindstillinger |
 | `admin`        | Global rolle. CRUD hold. Se alle hold. Tildele alle roller via Admin-siden.      |
 
@@ -886,7 +892,7 @@ Undtagelse: `admin` er global og slår altid igennem uanset aktivt hold.
 | Admin (`/admin`)        | —    | —      | —           | ✓     |
 
 ### Hold-roller og auth-kontekst
-- `user_teams.role`: `guest | trainer | team_manager` — hold-specifik
+- `user_teams.role`: `guest | trainer | youth_trainer | keeper_trainer | team_manager` — hold-specifik (`TeamRole`-type i `auth.tsx`)
 - `users.role`: kun til global `admin`-status (gemmes i JWT)
 - `currentTeamRole` udledes i `useAuth()` fra aktivt holds `user_teams.role` (eller `'admin'` hvis global admin)
 - `hasRole(user, minRole, currentTeamRole)` — tjekker ROLE_LEVEL hierarki
@@ -955,6 +961,8 @@ CREATE TABLE trainings (
   location     TEXT,
   lead_trainer TEXT,
   trainers     TEXT,          -- JSON array af navne (strings)
+  keeper_trainers TEXT NOT NULL DEFAULT '[]',  -- JSON array — migration 0014
+  youth_trainers  TEXT NOT NULL DEFAULT '[]',  -- JSON array — migration 0014
   themes       TEXT,          -- JSON array af temastrenge
   focus_points TEXT,
   notes        TEXT,
@@ -1196,7 +1204,7 @@ CREATE TABLE templates (
   - Linje 2: starttid–sluttid · varighed (durMin)
   - Linje 3: sted · ansvarlig-fornavn (begge vises kun hvis sat, adskilt med ·)
   - Linje 4: tema-pills (vises kun hvis temaer sat)
-  - Højre side: grå cirkel = antal spillere (tooltip "X spillere"), rød (accent) cirkel = antal trænere (tooltip med trænernes navne), HS-badge med kant
+  - Højre side: grå cirkel = antal spillere (tooltip "X spillere"), rød (accent) cirkel = antal trænere (tooltip med trænernes navne), lyseblå cirkel = keepertrænere, lyselilla cirkel = ungtrænere (alle kun hvis > 0), HS-badge med kant
 - **FAB (+)-knap** (trainer+): `position: fixed`, `bottom: calc(var(--bottomnav-h) + 16px + env(safe-area-inset-bottom))`, `right: 20`, rød cirkel 52×52 → POST → navigate til editor
 - **↻ Synkronisér-knap** i header (venstre for Holdsport ↓): opdaterer `participant_count` + `trainers` for alle HS-tilknyttede træninger via detail-endpoint
 - `HoldsportImportModal` til at importere træninger fra Holdsport
@@ -1208,7 +1216,8 @@ CREATE TABLE templates (
 - Collapsible header-kort med ▾/▴ toggle:
   - Dato, start/slut-tid, sted, antal spillere (+↺ Opdater-knap ved holdsport_id)
   - Under "Antal spillere": grå hjælpetekst med statistisk gennemsnit for ugedagen — fx `Gns. på onsdag: 18.4 spillere (12 træninger)`. Beregnes fra afholdte træninger med deltagerdata på samme ugedag. Vises ikke hvis ingen data.
-  - Ansvarlig (`UserSelect` — dropdown), Trænere (`UserMultiSelect` — chips + dropdown)
+  - Ansvarlig (`UserSelect` — dropdown, alle holdmedlemmer), Trænere (`UserMultiSelect` — chips + dropdown, ekskl. keeper-/ungtrænere)
+  - Keepertrænere / Ungtrænere (`UserMultiSelect`) — vises kun hvis holdet har brugere med rollen
   - Temaer (fra årshjulet — dropdown + Chip-komponenter)
   - Fokuspunkter, noter (textarea), stjerne-vurdering (1–5 klik)
 - Toolbar: ← Tilbage · `SaveIndicator` · 💾 Skabelon · 📦 Arkivér · 🗑 Slet
@@ -1274,7 +1283,7 @@ CREATE TABLE templates (
 - Tilgængelig for alle roller — menupunkt i hamburger under Arkiv
 - Henter aktive + arkiverede træninger og øvelseskatalog via React Query
 - **Kun afholdte træninger** — `isPast(date)` filter; subtitle "Kun afholdte træninger" under overskriften
-- **Counters** (3 StatCard — 2 rækker): Træninger i alt (fuld bredde) · Spillere pr. træning gns. · Trænere pr. træning gns.
+- **Counters** (3 StatCard — 2 rækker): Træninger i alt (fuld bredde) · Spillere pr. træning gns. · Trænere pr. træning gns. (inkl. keeper- og ungtrænere)
   - `avgPlayers` viser `–` hvis ingen træninger har `participant_count > 0`
 - **Histogrammer og grafer** (sektionsrækkefølge):
   1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun dage med deltagerdata
@@ -1425,6 +1434,7 @@ interface Training {
   id: string; team_id: string; title?: string; date?: string;
   start_time?: string; end_time?: string; location?: string;
   lead_trainer?: string; trainers: string[]; themes: string[];
+  keeper_trainers?: string[]; youth_trainers?: string[];
   focus_points?: string; notes?: string; participant_count?: number;
   sections: Section[]; stars: number; archived: boolean;
   holdsport_id?: string; created_by?: string; created_at: string; updated_at: string;
@@ -1506,13 +1516,13 @@ interface HoldsportActivity {
 ```typescript
 interface Team {
   id: string; name: string; age_group: string; season: string;
-  role: 'guest' | 'trainer' | 'team_manager';  // hold-specifik rolle
+  role: TeamRole;  // 'guest' | 'trainer' | 'youth_trainer' | 'keeper_trainer' | 'team_manager'
   holdsport_worker_url?: string; holdsport_token?: string;
 }
 
 interface AuthUser {
   id: string; name: string; email: string;
-  role: 'guest' | 'trainer' | 'team_manager' | 'admin';  // global (kun 'admin' er meningsfuld)
+  role: TeamRole | 'admin';  // global (kun 'admin' er meningsfuld)
   teams: Team[]; last_seen?: string | null;
 }
 ```
@@ -1608,7 +1618,7 @@ fysisk       → tags: [styrke, plyometrik]    → farve: #f59e0b   required: tr
 - `api.ts` hjælpere: `fetchHoldsportConfig`, `fetchHoldsportTeams`, `fetchHoldsportActivitiesForTeam`, `fetchHoldsportActivity`
 - `HoldsportImportModal.tsx` håndterer import-flow
 - `fetchHoldsportActivity` finder specifik aktivitet ved at filtrere med dato og matche på `id`
-- Ved import: `participant_count` tæller kun `status_code === 1` (mødte op); `trainers[]` matches mod app-brugere med trainer/team_manager-rolle via navn-match (case-insensitive)
+- Ved import: `participant_count` tæller kun `status_code === 1` (mødte op); tilmeldte fordeles via `extractAttendance()` (`lib/holdsportAttendance.ts`) på `trainers` (trainer/team_manager), `keeper_trainers` og `youth_trainers` ud fra hold-rolle via navn-match — resten er spillere
 - `GET /api/users/team-members` returnerer `team_role` — bruges til at filtrere ud kun trainer/team_manager
 
 ### Holdsport-worker — per hold, per bruger
@@ -1737,6 +1747,6 @@ cd frontend && npm run build
 
 ### Løbende
 Push til `main` → GitHub Actions:
-1. Kør nye migrations-filer mod D1
+1. Kør nye migrations-filer mod D1 — **OBS:** fejler pt. med `Authentication error [code: 10000]` (CLOUDFLARE_API_TOKEN mangler D1-rettighed), skjult af `|| true`. Kør nye migrationer manuelt: `cd worker && npx wrangler d1 execute ajax-traening --remote --file=../database/migrations/XXXX.sql`
 2. `npm run build` i `frontend/`
 3. Deploy til Cloudflare Pages + Worker
