@@ -30,7 +30,7 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **Træningskort:** egne counters — lyseblå cirkel (keepertrænere), lyselilla cirkel (ungtrænere), med navne i tooltip. Vises kun når > 0
 - **TrainingEditor header:** felterne "Keepertrænere" og "Ungtrænere" (`UserMultiSelect`) vises kun hvis holdet har mindst én bruger med rollen. Keeper-/ungtrænere er fjernet fra "Øvrige trænere"-dropdown
 - **HoldsportImportModal:** viser 🧤 keepertrænere og 🌱 ungtrænere per aktivitet
-- **Statistik:** "Gennemsnitlig antal trænere per ugedag" tæller `trainers` + `keeper_trainers` + `youth_trainers`. Counteren "Trænere pr. træning (gns.)" tæller kun `trainers`. "Ansvarlig træner" tæller `lead_trainer` uanset rolle
+- **Statistik:** "Gennemsnitlig antal trænere per ugedag" og counteren "Trænere pr. træning (gns.)" tæller begge `trainers` + `keeper_trainers` + `youth_trainers`. "Ansvarlig træner" tæller `lead_trainer` uanset rolle
 - Keeper-/ungtrænere kan vælges som **ansvarlig træner** (dropdown viser alle holdmedlemmer)
 
 ### Session 19 — Stationsblok UI-polish + gruppe-oprydning

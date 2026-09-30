@@ -68,7 +68,9 @@ export default function Statistik() {
 
   const avgTrainers = useMemo(() => {
     if (totalCount === 0) return 0;
-    const sum = allTrainings.reduce((acc, t) => acc + (t.trainers?.length ?? 0), 0);
+    // Inkl. keeper- og ungtrænere
+    const sum = allTrainings.reduce((acc, t) =>
+      acc + (t.trainers?.length ?? 0) + (t.keeper_trainers?.length ?? 0) + (t.youth_trainers?.length ?? 0), 0);
     return sum / totalCount;
   }, [allTrainings, totalCount]);
 
