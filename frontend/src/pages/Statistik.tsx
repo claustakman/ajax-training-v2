@@ -109,7 +109,9 @@ export default function Statistik() {
     for (const t of allTrainings) {
       if (!t.date) continue;
       const day = getWeekday(t.date);
-      sums[day] = (sums[day] ?? 0) + (t.trainers?.length ?? 0);
+      // Inkl. keeper- og ungtrænere
+      const n = (t.trainers?.length ?? 0) + (t.keeper_trainers?.length ?? 0) + (t.youth_trainers?.length ?? 0);
+      sums[day] = (sums[day] ?? 0) + n;
       counts[day] = (counts[day] ?? 0) + 1;
     }
     return WEEKDAY_ORDER
