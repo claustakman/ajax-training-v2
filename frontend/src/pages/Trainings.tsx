@@ -164,17 +164,17 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
           {(training.keeper_trainers?.length ?? 0) > 0 && (
             <span title={`Keepertrænere: ${training.keeper_trainers!.join(', ')}`} style={{
               width: 26, height: 26, borderRadius: '50%',
-              background: 'rgba(236,72,153,0.1)', border: '1px solid rgba(236,72,153,0.3)',
+              background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 600, color: '#db2777',
+              fontSize: 12, fontWeight: 600, color: 'var(--blue)',
             }}>{training.keeper_trainers!.length}</span>
           )}
           {(training.youth_trainers?.length ?? 0) > 0 && (
             <span title={`Ungtrænere: ${training.youth_trainers!.join(', ')}`} style={{
               width: 26, height: 26, borderRadius: '50%',
-              background: 'rgba(29,158,117,0.1)', border: '1px solid rgba(29,158,117,0.3)',
+              background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 600, color: 'var(--green)',
+              fontSize: 12, fontWeight: 600, color: 'var(--purple)',
             }}>{training.youth_trainers!.length}</span>
           )}
           {training.holdsport_id && (
