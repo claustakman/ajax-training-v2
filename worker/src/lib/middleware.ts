@@ -12,6 +12,8 @@ export type AuthContext = {
 export const ROLE_LEVEL: Record<string, number> = {
   guest: 1,
   trainer: 2,
+  youth_trainer: 2,   // Ungtræner — samme rettigheder som trainer
+  keeper_trainer: 2,  // Keepertræner — samme rettigheder som trainer
   team_manager: 3,
   admin: 4,
 };

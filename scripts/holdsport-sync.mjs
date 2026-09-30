@@ -16,6 +16,14 @@ if (!API_URL || !EMAIL || !PASSWORD) {
   process.exit(1);
 }
 
+// Hold-rolle → felt på træningen. Samme logik som frontend/src/lib/holdsportAttendance.ts
+const ROLE_FIELD = {
+  trainer: 'trainers',
+  team_manager: 'trainers',
+  keeper_trainer: 'keeper_trainers',
+  youth_trainer: 'youth_trainers',
+};
+
 async function apiFetch(path, options = {}, token = null) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers ?? {}) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -56,18 +64,15 @@ async function main() {
 
     // Hent team-members med holdsport_sync flag
     const members = await apiFetch(`/api/users/team-members?team_id=${team.id}`, {}, token);
-    const trainerNames = new Set(
-      members
-        .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
-        .map(m => m.name)
-    );
-    const nonSyncNames = new Set(
-      members
-        .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync === 0)
-        .map(m => m.name)
-    );
-    console.log(`  Trænere med sync: ${[...trainerNames].join(', ') || '(ingen)'}`);
-    console.log(`  Trænere uden sync (bevares): ${[...nonSyncNames].join(', ') || '(ingen)'}`);
+    const syncField = new Map();   // navn → felt (trainers | keeper_trainers | youth_trainers)
+    const nonSyncField = new Map();
+    for (const m of members) {
+      const field = ROLE_FIELD[m.team_role];
+      if (!field) continue;
+      (m.holdsport_sync === 0 ? nonSyncField : syncField).set(m.name, field);
+    }
+    console.log(`  Trænere med sync: ${[...syncField.keys()].join(', ') || '(ingen)'}`);
+    console.log(`  Trænere uden sync (bevares): ${[...nonSyncField.keys()].join(', ') || '(ingen)'}`);
 
     // Hent fremtidige Holdsport-træninger fra appen
     const trainings = await apiFetch(`/api/trainings?team_id=${team.id}&archived=0`, {}, token);
@@ -125,12 +130,13 @@ async function main() {
 
       const users = found.activities_users;
       let playerCount = 0;
-      const trainerList = [];
+      const lists = { trainers: [], keeper_trainers: [], youth_trainers: [] };
 
       if (Array.isArray(users)) {
         for (const u of users) {
           if (u.status_code !== 1) continue;
-          if (trainerNames.has(u.name)) trainerList.push(u.name);
+          const field = syncField.get(u.name);
+          if (field) lists[field].push(u.name);
           else playerCount++;
         }
       } else {
@@ -138,20 +144,22 @@ async function main() {
       }
 
       // Bevar non-sync trænere fra den eksisterende træning
-      for (const name of (t.trainers ?? [])) {
-        if (nonSyncNames.has(name)) trainerList.push(name);
+      for (const field of Object.keys(lists)) {
+        for (const name of (t[field] ?? [])) {
+          if (nonSyncField.get(name) === field) lists[field].push(name);
+        }
       }
 
       const patch = {
         participant_count: playerCount > 0 ? playerCount : null,
-        trainers: trainerList,
+        ...lists,
       };
       await apiFetch(`/api/trainings/${t.id}`, {
         method: 'PATCH',
         body: JSON.stringify(patch),
       }, token);
 
-      console.log(`  ${t.date} ✓ — ${playerCount} spillere, trænere: ${trainerList.join(', ') || '(ingen)'}`);
+      console.log(`  ${t.date} ✓ — ${playerCount} spillere, trænere: ${lists.trainers.join(', ') || '(ingen)'}, keeper: ${lists.keeper_trainers.join(', ') || '(ingen)'}, ung: ${lists.youth_trainers.join(', ') || '(ingen)'}`);
       updated++;
     }
     console.log(`  → ${updated} træning(er) opdateret`);

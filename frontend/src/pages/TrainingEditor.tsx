@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
+import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 
@@ -105,11 +106,13 @@ function UserMultiSelect({
   onChange,
   members,
   disabled,
+  addLabel = '+ Tilføj træner…',
 }: {
   selected: string[];
   onChange: (names: string[]) => void;
   members: { id: string; name: string }[];
   disabled?: boolean;
+  addLabel?: string;
 }) {
   const available = members.filter(m => !selected.includes(m.name));
   return (
@@ -131,7 +134,7 @@ function UserMultiSelect({
           }}
           style={{ ...inputStyle, color: selected.length > 0 ? 'var(--text2)' : 'var(--text)' }}
         >
-          <option value="">+ Tilføj træner…</option>
+          <option value="">{addLabel}</option>
           {available.map(m => (
             <option key={m.id} value={m.name}>{m.name}</option>
           ))}
@@ -244,7 +247,9 @@ export default function TrainingEditor() {
   const [aiSectionIndex, setAiSectionIndex] = useState<number | null>(null);
   const [miniToast, setMiniToast] = useState<string | null>(null);
   // Data fra API
-  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const keeperTrainerMembers = teamMembers.filter(m => m.team_role === 'keeper_trainer');
+  const youthTrainerMembers = teamMembers.filter(m => m.team_role === 'youth_trainer');
   const [allThemes, setAllThemes] = useState<string[]>([]);
 
   const { data: sectionTypes = [] } = useQuery({
@@ -316,6 +321,8 @@ export default function TrainingEditor() {
         location: '',
         lead_trainer: user?.name ?? '',
         trainers: [],
+        keeper_trainers: [],
+        youth_trainers: [],
         themes: [],
         focus_points: '',
         notes: '',
@@ -394,20 +401,10 @@ export default function TrainingEditor() {
     try {
       const [config, members] = await Promise.all([
         api.fetchHoldsportConfig(currentTeamId),
-        api.get<Array<{ id: string; name: string; team_role: string; holdsport_sync: number }>>(
+        api.get<TeamMember[]>(
           `/api/users/team-members?team_id=${currentTeamId}`
         ),
       ]);
-      const trainerNames = new Set(
-        members
-          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
-          .map(m => m.name)
-      );
-      const nonSyncNames = new Set(
-        members
-          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync === 0)
-          .map(m => m.name)
-      );
       const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
       let found = null;
       for (const team of teams) {
@@ -418,28 +415,7 @@ export default function TrainingEditor() {
       }
       if (!found) { setHsUpdating(false); return; }
 
-      const rec = found as unknown as Record<string, unknown>;
-      const users = rec.activities_users;
-      let playerCount = 0;
-      const trainerList: string[] = [];
-      if (Array.isArray(users)) {
-        // Detaljeret deltager-liste tilgængelig — præcis optælling
-        for (const u of users) {
-          const ur = u as Record<string, unknown>;
-          if (ur.status_code !== 1) continue;
-          const name = ur.name as string;
-          if (trainerNames.has(name)) trainerList.push(name);
-          else playerCount++;
-        }
-      } else {
-        // activities_users ikke tilgængeligt — brug attendance_count som-er
-        playerCount = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
-      }
-      // Bevar non-sync trænere der allerede er på træningen
-      for (const name of (training.trainers ?? [])) {
-        if (nonSyncNames.has(name)) trainerList.push(name);
-      }
-      update({ participant_count: playerCount > 0 ? playerCount : undefined, trainers: trainerList });
+      update(extractAttendance(found, members, training));
     } catch { /* fejl ignoreres stille */ } finally {
       setHsUpdating(false);
     }
@@ -764,10 +740,36 @@ export default function TrainingEditor() {
                 <UserMultiSelect
                   selected={training.trainers ?? []}
                   onChange={names => update({ trainers: names })}
-                  members={teamMembers}
+                  members={teamMembers.filter(m => m.team_role !== 'keeper_trainer' && m.team_role !== 'youth_trainer')}
                   disabled={!canEdit}
                 />
               </Field>
+
+              {/* Keepertrænere — vises kun hvis holdet har keepertrænere */}
+              {keeperTrainerMembers.length > 0 && (
+                <Field label="Keepertrænere">
+                  <UserMultiSelect
+                    selected={training.keeper_trainers ?? []}
+                    onChange={names => update({ keeper_trainers: names })}
+                    members={keeperTrainerMembers}
+                    disabled={!canEdit}
+                    addLabel="+ Tilføj keepertræner…"
+                  />
+                </Field>
+              )}
+
+              {/* Ungtrænere — vises kun hvis holdet har ungtrænere */}
+              {youthTrainerMembers.length > 0 && (
+                <Field label="Ungtrænere">
+                  <UserMultiSelect
+                    selected={training.youth_trainers ?? []}
+                    onChange={names => update({ youth_trainers: names })}
+                    members={youthTrainerMembers}
+                    disabled={!canEdit}
+                    addLabel="+ Tilføj ungtræner…"
+                  />
+                </Field>
+              )}
 
               {/* Divider */}
               <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />

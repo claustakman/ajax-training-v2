@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { hasRole } from '../lib/auth';
 import { api, ApiError } from '../lib/api';
 import type { BoardPost, BoardComment, BoardAttachment } from '../lib/types';
-import type { AuthUser } from '../lib/auth';
+import type { AuthUser, TeamRole } from '../lib/auth';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -489,7 +489,7 @@ export interface BoardPostCardProps {
   post: BoardPost;
   currentUser: AuthUser;
   teamId: string;
-  currentTeamRole: 'guest' | 'trainer' | 'team_manager' | 'admin' | null;
+  currentTeamRole: TeamRole | 'admin' | null;
   onUpdate: () => void;
 }
 

@@ -19,7 +19,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 export interface JWTPayload {
   sub: string;    // user id
   name: string;
-  role: string;   // guest | trainer | team_manager | admin | reset
+  role: string;   // guest | trainer | youth_trainer | keeper_trainer | team_manager | admin | reset
   exp: number;
 }
 

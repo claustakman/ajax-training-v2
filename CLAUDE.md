@@ -7,7 +7,30 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–19)
+## Hvad er bygget (Sessions 1–20)
+
+### Session 20 — Roller: Ungtræner + Keepertræner
+
+#### Nye hold-roller
+- `youth_trainer` (**Ungtræner**) og `keeper_trainer` (**Keepertræner**) — samme rettigheder som `trainer` (ROLE_LEVEL 2) i `worker/src/lib/middleware.ts`, `worker/src/routes/users.ts` og `frontend/src/lib/auth.tsx`
+- `TeamRole`-type + `TRAINER_ROLES`-konstant eksporteres fra `auth.tsx`
+- Kan vælges i `Brugere.tsx` (invite + rolleskift) og `Admin.tsx`. Holdsport-sync-checkbox vises for alle `TRAINER_ROLES`
+
+#### Datamodel
+- **Migration** `0014_youth_keeper_trainers.sql`: `trainings.keeper_trainers` + `trainings.youth_trainers` (JSON-arrays, default `'[]'`)
+- `Training.keeper_trainers?` / `Training.youth_trainers?` i `types.ts`; worker parser/serialiserer dem i `trainings.ts` (POST + PATCH)
+
+#### Holdsport-sync — fælles hjælper
+- **`frontend/src/lib/holdsportAttendance.ts`** — `extractAttendance(activity, members, existing?)` fordeler tilmeldte (status_code=1) på `trainers` / `keeper_trainers` / `youth_trainers` ud fra hold-rolle; resten = spillere. Non-sync brugere (`holdsport_sync=0`) bevares i deres egen liste fra den eksisterende træning
+- Bruges af `Trainings.tsx`, `TrainingEditor.tsx`, `Archive.tsx`, `HoldsportImportModal.tsx` (erstatter 4 kopier af samme logik)
+- `scripts/holdsport-sync.mjs` har samme logik (`ROLE_FIELD`-map) — hold dem i sync
+- Keeper-/ungtrænere tælles **hverken** i `participant_count` eller i trænerantal
+
+#### UI
+- **Træningskort:** egne counters — pink cirkel (keepertrænere), grøn cirkel (ungtrænere), med navne i tooltip. Vises kun når > 0
+- **TrainingEditor header:** felterne "Keepertrænere" og "Ungtrænere" (`UserMultiSelect`) vises kun hvis holdet har mindst én bruger med rollen. Keeper-/ungtrænere er fjernet fra "Øvrige trænere"-dropdown
+- **HoldsportImportModal:** viser 🧤 keepertrænere og 🌱 ungtrænere per aktivitet
+- Statistik tæller fortsat kun `trainers` i trænergennemsnit
 
 ### Session 19 — Stationsblok UI-polish + gruppe-oprydning
 
@@ -914,7 +937,7 @@ CREATE TABLE users (
 CREATE TABLE user_teams (
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   team_id    TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-  role       TEXT NOT NULL DEFAULT 'trainer',   -- guest | trainer | team_manager
+  role       TEXT NOT NULL DEFAULT 'trainer',   -- guest | trainer | youth_trainer | keeper_trainer | team_manager
   PRIMARY KEY (user_id, team_id)
 );
 ```

@@ -168,7 +168,7 @@ userRoutes.patch('/:id/teams/:tid', requireAuth('team_manager'), async (c) => {
     }
     if (body.role !== undefined) {
       // team_manager kan maks tildele trainer-niveau
-      const ROLE_LEVEL: Record<string, number> = { guest: 1, trainer: 2, team_manager: 3, admin: 4 };
+      const ROLE_LEVEL: Record<string, number> = { guest: 1, trainer: 2, youth_trainer: 2, keeper_trainer: 2, team_manager: 3, admin: 4 };
       if ((ROLE_LEVEL[body.role] ?? 0) > ROLE_LEVEL['team_manager']) {
         return c.json({ error: 'Du kan ikke tildele admin-rolle' }, 403);
       }

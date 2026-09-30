@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth, hasRole, ROLE_LABELS, type Team } from '../lib/auth';
+import { useAuth, hasRole, ROLE_LABELS, TRAINER_ROLES, type Team, type TeamRole } from '../lib/auth';
 import { api, ApiError } from '../lib/api';
 
 interface TeamEntry extends Team {
@@ -11,14 +11,14 @@ interface TeamUser {
   id: string;
   name: string;
   email: string;
-  role: 'guest' | 'trainer' | 'team_manager' | 'admin';
+  role: TeamRole | 'admin';
   last_seen: string | null;
   created_at: string;
   teams: TeamEntry[];
 }
 
 // Roller der kan inviteres/tildeles af en team_manager (maks trainer)
-const TEAM_ROLES = ['guest', 'trainer', 'team_manager'] as const;
+const TEAM_ROLES = ['guest', 'trainer', 'youth_trainer', 'keeper_trainer', 'team_manager'] as const;
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—';
@@ -261,8 +261,8 @@ function UserRow({ user, currentTeamId, onTeamRoleChange, onRemove, onResetPassw
             <div style={{ marginTop: 14, fontSize: 13, color: 'var(--text3)' }}>Admin — global rolle, kan ikke ændres her</div>
           )}
 
-          {/* Holdsport-sync toggle — kun for trainer og team_manager */}
-          {(displayRole === 'trainer' || displayRole === 'team_manager') && (
+          {/* Holdsport-sync toggle — kun for trænerroller */}
+          {TRAINER_ROLES.includes(displayRole) && (
             <div>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
                 <input

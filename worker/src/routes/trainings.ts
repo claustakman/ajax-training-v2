@@ -7,7 +7,7 @@ type HonoEnv = { Bindings: Env } & AuthContext;
 
 export const trainingRoutes = new Hono<HonoEnv>();
 
-const JSON_FIELDS = ['trainers', 'themes', 'sections'] as const;
+const JSON_FIELDS = ['trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'sections'] as const;
 
 function parseTraining(row: Record<string, unknown>) {
   for (const f of JSON_FIELDS) {
@@ -62,14 +62,16 @@ trainingRoutes.post('/', requireAuth('trainer'), async (c) => {
   await c.env.DB.prepare(`
     INSERT INTO trainings
       (id, team_id, title, date, start_time, end_time, location, lead_trainer,
-       trainers, themes, focus_points, notes, participant_count,
+       trainers, keeper_trainers, youth_trainers, themes, focus_points, notes, participant_count,
        sections, stars, archived, holdsport_id, created_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id, body.team_id, body.title ?? null, body.date ?? null,
     body.start_time ?? null, body.end_time ?? null,
     body.location ?? null, body.lead_trainer ?? null,
     JSON.stringify(body.trainers ?? []),
+    JSON.stringify(body.keeper_trainers ?? []),
+    JSON.stringify(body.youth_trainers ?? []),
     JSON.stringify(body.themes ?? []),
     body.focus_points ?? null,
     body.notes ?? null,
@@ -88,10 +90,10 @@ trainingRoutes.post('/', requireAuth('trainer'), async (c) => {
 trainingRoutes.patch('/:id', requireAuth('trainer'), async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json<Record<string, unknown>>();
-  const JSON_COLS = ['trainers', 'themes', 'sections'];
+  const JSON_COLS = ['trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'sections'];
   const allowed = [
     'title', 'date', 'start_time', 'end_time', 'location', 'lead_trainer',
-    'trainers', 'themes', 'focus_points', 'notes', 'participant_count',
+    'trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'focus_points', 'notes', 'participant_count',
     'sections', 'stars', 'archived',
   ];
   const updates: string[] = [];

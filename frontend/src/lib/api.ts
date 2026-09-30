@@ -1,5 +1,6 @@
 // API-klient — BASE_URL skifter prod/dev
 import type { Training, Template, BoardPost, BoardComment, BoardAttachment } from './types';
+import type { TeamMember } from './holdsportAttendance';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787';
 
@@ -74,7 +75,7 @@ export const api = {
 
   // ── Hold-medlemmer (til ansvarlig/træner-valg) ────────────────────────────
   fetchTeamMembers: (teamId: string) =>
-    request<{ id: string; name: string }[]>(`/api/users/team-members?team_id=${teamId}`),
+    request<TeamMember[]>(`/api/users/team-members?team_id=${teamId}`),
 
   // ── Kvartaler (til tema-valg) ──────────────────────────────────────────────
   fetchQuarters: (teamId: string) =>

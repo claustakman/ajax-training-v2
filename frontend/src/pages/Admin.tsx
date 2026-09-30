@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth, hasRole, ROLE_LABELS, type Team } from '../lib/auth';
+import { useAuth, hasRole, ROLE_LABELS, type Team, type TeamRole } from '../lib/auth';
 import { api, ApiError } from '../lib/api';
 
 interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: 'guest' | 'trainer' | 'team_manager' | 'admin';
+  role: TeamRole | 'admin';
   last_seen: string | null;
   created_at: string;
   teams: (Team & { role: string })[];
@@ -19,7 +19,7 @@ function formatDate(iso: string | null | undefined) {
 }
 
 const AGE_GROUPS = ['U9', 'U11', 'U13', 'U15', 'U17', 'U19', 'Senior'];
-const TEAM_ROLES = ['guest', 'trainer', 'team_manager'] as const;
+const TEAM_ROLES = ['guest', 'trainer', 'youth_trainer', 'keeper_trainer', 'team_manager'] as const;
 
 const inputStyle: React.CSSProperties = {
   padding: '9px 16px', background: 'var(--bg-input)',

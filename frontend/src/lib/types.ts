@@ -10,6 +10,8 @@ export interface Training {
   location?: string
   lead_trainer?: string
   trainers: string[]
+  keeper_trainers?: string[]   // Keepertrænere — tælles ikke med i spillere eller trænere
+  youth_trainers?: string[]    // Ungtrænere — tælles ikke med i spillere eller trænere
   themes: string[]
   focus_points?: string
   notes?: string

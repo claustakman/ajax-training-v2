@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
+import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
 import type { HoldsportActivity, Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday } from '../lib/dateUtils';
 
@@ -48,47 +49,18 @@ function isTraining(activity: HoldsportActivity): boolean {
   return name.includes('træning') || name.includes('training');
 }
 
-type TeamMember = { id: string; name: string; team_role: string; holdsport_sync: number };
-
-// Udtræk spillerantal og trænere fra en Holdsport-aktivitet.
-// Tilmeldte (status_code=1) hvis navn matcher en app-træner → trainer, ellers spiller.
-function extractFromActivity(
-  activity: HoldsportActivity,
-  appTrainerNames: Set<string>
-): { playerCount: number; trainerNames: string[] } {
-  const users = (activity as unknown as Record<string, unknown>).activities_users;
-  if (!Array.isArray(users)) {
-    // activities_users ikke tilgængeligt — brug attendance_count som-er
-    return { playerCount: activity.attendance_count ?? activity.signups_count ?? 0, trainerNames: [] };
-  }
-  const attending = users.filter((u: unknown) => (u as Record<string, unknown>).status_code === 1);
-  const trainerNames: string[] = [];
-  let playerCount = 0;
-  for (const u of attending) {
-    const name = (u as Record<string, unknown>).name as string;
-    if (appTrainerNames.has(name)) {
-      trainerNames.push(name);
-    } else {
-      playerCount++;
-    }
-  }
-  return { playerCount, trainerNames };
-}
-
 function mapActivity(
   activity: HoldsportActivity,
   teamId: string,
-  appTrainerNames: Set<string>
+  members: TeamMember[]
 ): Partial<Training> {
-  const { playerCount, trainerNames } = extractFromActivity(activity, appTrainerNames);
   return {
     team_id: teamId,
     date: activity.starttime?.split('T')[0],
     start_time: activity.starttime?.split('T')[1]?.slice(0, 5),
     end_time: activity.endtime?.split('T')[1]?.slice(0, 5),
     location: activity.place || activity.location || undefined,
-    participant_count: playerCount > 0 ? playerCount : undefined,
-    trainers: trainerNames,
+    ...extractAttendance(activity, members),
     holdsport_id: String(activity.id),
     sections: [],
     themes: [],
@@ -132,7 +104,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   const [step, setStep] = useState<'dates' | 'activities'>('dates');
 
   const [activities, setActivities] = useState<HoldsportActivity[]>([]);
-  const [appTrainerNames, setAppTrainerNames] = useState<Set<string>>(new Set());
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loadingAct, setLoadingAct] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [hsConfig, setHsConfig] = useState<{ workerUrl: string; token: string } | null>(null);
@@ -161,13 +133,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
           api.get<TeamMember[]>(`/api/users/team-members?team_id=${teamId}`),
         ]);
 
-        // Trænere = trainer eller team_manager i appen med Holdsport-sync aktiveret
-        const trainerNames = new Set(
-          members
-            .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
-            .map(m => m.name)
-        );
-        setAppTrainerNames(trainerNames);
+        setTeamMembers(members);
         setHsConfig(config);
 
         // 2. Hent hold fra Holdsport-workeren direkte (browser → worker)
@@ -245,7 +211,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
           if (det) detailed = { ...det, _teamId: a._teamId, _teamName: a._teamName };
         } catch { /* brug liste-data som fallback */ }
       }
-      result.push(mapActivity(detailed, teamId, appTrainerNames));
+      result.push(mapActivity(detailed, teamId, teamMembers));
     }
     onImport(result);
     setImporting(false);
@@ -389,8 +355,11 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                       const timeRange = fmtTimeRange(activity.starttime, activity.endtime);
                       const dateStr = fmtActivityDate(activity.starttime);
                       const place = activity.place || activity.location;
-                      const { playerCount, trainerNames: actTrainers } = extractFromActivity(activity, appTrainerNames);
-                      const participants = playerCount > 0 ? playerCount : undefined;
+                      const att = extractAttendance(activity, teamMembers);
+                      const participants = att.participant_count;
+                      const actTrainers = att.trainers ?? [];
+                      const actKeepers = att.keeper_trainers ?? [];
+                      const actYouth = att.youth_trainers ?? [];
 
                       return (
                         <div
@@ -432,11 +401,13 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>
                               {dateStr}{timeRange ? ` · ${timeRange}` : ''}
                             </div>
-                            {(place || participants !== undefined || actTrainers.length > 0) && (
+                            {(place || participants !== undefined || actTrainers.length > 0 || actKeepers.length > 0 || actYouth.length > 0) && (
                               <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                                 {place && <span>📍 {place}</span>}
                                 {participants !== undefined && <span>👥 {participants} spillere</span>}
                                 {actTrainers.length > 0 && <span>🏅 {actTrainers.join(', ')}</span>}
+                                {actKeepers.length > 0 && <span>🧤 {actKeepers.join(', ')}</span>}
+                                {actYouth.length > 0 && <span>🌱 {actYouth.join(', ')}</span>}
                               </div>
                             )}
                           </div>

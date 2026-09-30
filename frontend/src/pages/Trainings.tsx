@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
+import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin, totalMins } from '../lib/dateUtils';
 import HoldsportImportModal from '../components/HoldsportImportModal';
@@ -160,6 +161,22 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
               fontSize: 12, fontWeight: 600, color: 'var(--accent)',
             }}>{training.trainers.length}</span>
           )}
+          {(training.keeper_trainers?.length ?? 0) > 0 && (
+            <span title={`Keepertrænere: ${training.keeper_trainers!.join(', ')}`} style={{
+              width: 26, height: 26, borderRadius: '50%',
+              background: 'rgba(236,72,153,0.1)', border: '1px solid rgba(236,72,153,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 600, color: '#db2777',
+            }}>{training.keeper_trainers!.length}</span>
+          )}
+          {(training.youth_trainers?.length ?? 0) > 0 && (
+            <span title={`Ungtrænere: ${training.youth_trainers!.join(', ')}`} style={{
+              width: 26, height: 26, borderRadius: '50%',
+              background: 'rgba(29,158,117,0.1)', border: '1px solid rgba(29,158,117,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 600, color: 'var(--green)',
+            }}>{training.youth_trainers!.length}</span>
+          )}
           {training.holdsport_id && (
             <span title="Importeret fra Holdsport" style={{
               fontSize: 10, fontWeight: 700, color: 'var(--text3)',
@@ -273,20 +290,10 @@ export default function Trainings() {
     try {
       const [config, members] = await Promise.all([
         api.fetchHoldsportConfig(currentTeamId),
-        api.get<Array<{ id: string; name: string; team_role: string; holdsport_sync: number }>>(
+        api.get<TeamMember[]>(
           `/api/users/team-members?team_id=${currentTeamId}`
         ),
       ]);
-      const trainerNames = new Set(
-        members
-          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
-          .map(m => m.name)
-      );
-      const nonSyncNames = new Set(
-        members
-          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync === 0)
-          .map(m => m.name)
-      );
       const teams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
 
       let updated = 0;
@@ -300,29 +307,7 @@ export default function Trainings() {
         }
         if (!found) continue;
 
-        const rec = found as unknown as Record<string, unknown>;
-        const users = rec.activities_users;
-        let playerCount = 0;
-        const trainerList: string[] = [];
-        if (Array.isArray(users)) {
-          for (const u of users) {
-            const ur = u as Record<string, unknown>;
-            if (ur.status_code !== 1) continue;
-            const name = ur.name as string;
-            if (trainerNames.has(name)) trainerList.push(name);
-            else playerCount++;
-          }
-        } else {
-          playerCount = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
-        }
-        for (const name of (t.trainers ?? [])) {
-          if (nonSyncNames.has(name)) trainerList.push(name);
-        }
-
-        const patch: Partial<Training> = {
-          participant_count: playerCount > 0 ? playerCount : undefined,
-          trainers: trainerList,
-        };
+        const patch: Partial<Training> = extractAttendance(found, members, t);
         await api.patch(`/api/trainings/${t.id}`, patch);
         queryClient.setQueryData<Training[]>(['trainings', currentTeamId, 'active'], prev =>
           (prev ?? []).map(x => x.id === t.id ? { ...x, ...patch } : x)

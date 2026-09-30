@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
+import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin } from '../lib/dateUtils';
 
@@ -296,20 +297,10 @@ export default function Archive() {
     try {
       const [config, members] = await Promise.all([
         api.fetchHoldsportConfig(currentTeamId),
-        api.get<Array<{ id: string; name: string; team_role: string; holdsport_sync: number }>>(
+        api.get<TeamMember[]>(
           `/api/users/team-members?team_id=${currentTeamId}`
         ),
       ]);
-      const trainerNames = new Set(
-        members
-          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync !== 0)
-          .map(m => m.name)
-      );
-      const nonSyncNames = new Set(
-        members
-          .filter(m => (m.team_role === 'trainer' || m.team_role === 'team_manager') && m.holdsport_sync === 0)
-          .map(m => m.name)
-      );
       const hsTeams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
 
       let updated = 0;
@@ -323,29 +314,7 @@ export default function Archive() {
         }
         if (!found) continue;
 
-        const rec = found as unknown as Record<string, unknown>;
-        const users = rec.activities_users;
-        let playerCount = 0;
-        const trainerList: string[] = [];
-        if (Array.isArray(users)) {
-          for (const u of users) {
-            const ur = u as Record<string, unknown>;
-            if (ur.status_code !== 1) continue;
-            const name = ur.name as string;
-            if (trainerNames.has(name)) trainerList.push(name);
-            else playerCount++;
-          }
-        } else {
-          playerCount = (rec.attendance_count ?? rec.signups_count ?? 0) as number;
-        }
-        for (const name of (t.trainers ?? [])) {
-          if (nonSyncNames.has(name)) trainerList.push(name);
-        }
-
-        const patch: Partial<Training> = {
-          participant_count: playerCount > 0 ? playerCount : undefined,
-          trainers: trainerList,
-        };
+        const patch: Partial<Training> = extractAttendance(found, members, t);
         await api.patch(`/api/trainings/${t.id}`, patch);
         setTrainings(prev => prev.map(x => x.id === t.id ? { ...x, ...patch } : x));
         updated++;

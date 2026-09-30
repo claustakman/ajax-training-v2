@@ -1,12 +1,17 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { api, SESSION_EXPIRED_EVENT } from './api';
 
+export type TeamRole = 'guest' | 'trainer' | 'youth_trainer' | 'keeper_trainer' | 'team_manager';
+
+/** Roller der tæller som trænere (samme rettigheder som 'trainer') */
+export const TRAINER_ROLES: readonly string[] = ['trainer', 'youth_trainer', 'keeper_trainer', 'team_manager'];
+
 export interface Team {
   id: string;
   name: string;
   age_group: string;
   season: string;
-  role: 'guest' | 'trainer' | 'team_manager';  // hold-specifik rolle
+  role: TeamRole;  // hold-specifik rolle
   holdsport_worker_url?: string;
   holdsport_token?: string;
 }
@@ -15,7 +20,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: 'guest' | 'trainer' | 'team_manager' | 'admin';  // global rolle (kun 'admin' er meningsfuld)
+  role: TeamRole | 'admin';  // global rolle (kun 'admin' er meningsfuld)
   teams: Team[];
   last_seen?: string | null;
 }
@@ -35,7 +40,7 @@ interface AuthContextValue extends AuthState {
   refreshUser: () => Promise<void>;
   dismissSessionExpired: () => void;
   /** Rollen for det aktive hold. Admin returnerer 'admin'. */
-  currentTeamRole: 'guest' | 'trainer' | 'team_manager' | 'admin' | null;
+  currentTeamRole: TeamRole | 'admin' | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -136,7 +141,7 @@ export function useAuth(): AuthContextValue {
 }
 
 const ROLE_LEVEL: Record<string, number> = {
-  guest: 1, trainer: 2, team_manager: 3, admin: 4,
+  guest: 1, trainer: 2, youth_trainer: 2, keeper_trainer: 2, team_manager: 3, admin: 4,
 };
 
 /**
@@ -154,6 +159,8 @@ export function hasRole(user: AuthUser | null, minRole: string, effectiveRole?: 
 export const ROLE_LABELS: Record<string, string> = {
   guest: 'Gæst',
   trainer: 'Træner',
+  youth_trainer: 'Ungtræner',
+  keeper_trainer: 'Keepertræner',
   team_manager: 'Årgangsansvarlig',
   admin: 'Admin',
 };
