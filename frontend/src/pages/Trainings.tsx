@@ -8,7 +8,7 @@ import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin, totalMins } from '../lib/dateUtils';
 import HoldsportImportModal from '../components/HoldsportImportModal';
 import EventSheet from '../components/EventSheet';
-import { isTrainingKind, eventTitle, KIND_STYLE } from '../lib/events';
+import { isTrainingKind, eventTitle, eventDays, KIND_STYLE } from '../lib/events';
 
 // ─── Skeleton-kort ────────────────────────────────────────────────────────────
 function SkeletonCard() {
@@ -86,6 +86,27 @@ function AttendanceBadges({ training }: { training: Training }) {
           fontSize: 12, fontWeight: 600, color: 'var(--purple)',
         }}>{training.youth_trainers!.length}</span>
       )}
+    </div>
+  );
+}
+
+// ─── Dato-boks for flerdagsstævne: "OKT / 8–10 / Tor–Lør" ──────────────────────
+function DateRangeBox({ from, to, color, light }: { from: string; to: string; color: string; light: string }) {
+  const sameMonth = fmtMon(from) === fmtMon(to);
+  return (
+    <div style={{
+      minWidth: 52, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: light, borderRadius: 10, padding: '6px 4px',
+    }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+        {sameMonth ? fmtMon(from) : `${fmtMon(from)}–${fmtMon(to)}`}
+      </span>
+      <span style={{ fontSize: 18, fontWeight: 800, color, lineHeight: 1.2, fontFamily: 'var(--font-heading)', whiteSpace: 'nowrap' }}>
+        {fmtDay(from)}–{fmtDay(to)}
+      </span>
+      <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+        {fmtWday(from)}–{fmtWday(to)}
+      </span>
     </div>
   );
 }
@@ -196,11 +217,18 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
 
 // ─── Kamp-/stævnekort ─────────────────────────────────────────────────────────
 function EventCard({ event, onClick }: { event: Training; onClick: () => void }) {
-  const style = KIND_STYLE[event.kind === 'tournament' ? 'tournament' : 'match'];
-  const dur = durMin(event.start_time, event.end_time);
+  const isTournament = event.kind === 'tournament';
+  const style = KIND_STYLE[isTournament ? 'tournament' : 'match'];
+  const days = eventDays(event);
   const timeParts: string[] = [];
-  if (event.start_time) timeParts.push(event.start_time + (event.end_time ? `–${event.end_time}` : ''));
-  if (dur) timeParts.push(`${dur} min`);
+  if (isTournament) {
+    // Stævner har ingen tider — kun hele dage
+    timeParts.push(days > 1 ? `${days} dage` : 'Hele dagen');
+  } else {
+    const dur = durMin(event.start_time, event.end_time);
+    if (event.start_time) timeParts.push(event.start_time + (event.end_time ? `–${event.end_time}` : ''));
+    if (dur) timeParts.push(`${dur} min`);
+  }
 
   return (
     <div
@@ -215,7 +243,9 @@ function EventCard({ event, onClick }: { event: Training; onClick: () => void })
       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)')}
       onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
     >
-      {event.date && <DateBox dateStr={event.date} color={style.color} light="var(--bg-card)" />}
+      {event.date && (days > 1 && event.end_date
+        ? <DateRangeBox from={event.date} to={event.end_date} color={style.color} light="var(--bg-card)" />
+        : <DateBox dateStr={event.date} color={style.color} light="var(--bg-card)" />)}
 
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* Linje 1: fuld titel (ombrydes hellere end at trunkeres) */}

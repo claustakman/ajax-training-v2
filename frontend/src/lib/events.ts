@@ -40,6 +40,13 @@ export function parseMatchTeams(name: string): { home: string; away: string } {
   return { home: s.slice(0, idx).trim(), away: s.slice(idx + 3).trim() };
 }
 
+/** Antal dage et stævne varer (1 hvis ingen/samme slutdato) */
+export function eventDays(t: Pick<Training, 'date' | 'end_date'>): number {
+  if (!t.date || !t.end_date || t.end_date <= t.date) return 1;
+  const ms = new Date(t.end_date + 'T00:00:00').getTime() - new Date(t.date + 'T00:00:00').getTime();
+  return Math.round(ms / 86_400_000) + 1;
+}
+
 export function eventTitle(t: Pick<Training, 'kind' | 'home_team' | 'away_team' | 'title'>): string {
   if (t.kind === 'match') {
     const parts = [t.home_team, t.away_team].filter(Boolean);

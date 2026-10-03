@@ -8,6 +8,7 @@ export interface Training {
   kind?: TrainingKind          // 'match'/'tournament' = kamp/stævne — kun header, ingen sektioner, ikke i statistik
   home_team?: string           // kun kampe
   away_team?: string           // kun kampe
+  end_date?: string            // kun stævner — slutdato ved flerdagsstævne (date = startdato)
   title?: string
   date?: string
   start_time?: string

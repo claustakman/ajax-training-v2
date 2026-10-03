@@ -68,14 +68,18 @@ export default function EventSheet({ teamId, event, initialKind, members, onSave
 
   async function handleSave() {
     if (!draft.date) { setError('Dato skal udfyldes'); return; }
+    if (kind === 'tournament' && draft.end_date && draft.end_date < draft.date) {
+      setError('Slutdato skal være samme dag eller efter startdato'); return;
+    }
     setSaving(true);
     setError('');
     // Tomme strenge/null (ikke undefined) så ryddede felter også ryddes ved PATCH
     const payload = {
       kind,
       date: draft.date,
-      start_time: draft.start_time ?? '',
-      end_time: draft.end_time ?? '',
+      start_time: kind === 'match' ? draft.start_time ?? '' : '',
+      end_time: kind === 'match' ? draft.end_time ?? '' : '',
+      end_date: kind === 'tournament' && draft.end_date && draft.end_date > draft.date ? draft.end_date : '',
       location: draft.location?.trim() ?? '',
       home_team: kind === 'match' ? draft.home_team?.trim() ?? '' : '',
       away_team: kind === 'match' ? draft.away_team?.trim() ?? '' : '',
@@ -215,17 +219,36 @@ export default function EventSheet({ teamId, event, initialKind, members, onSave
             </Field>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 8 }}>
-            <Field label="Dato">
-              <input type="date" value={draft.date ?? ''} onChange={e => set({ date: e.target.value })} style={inputStyle} />
-            </Field>
-            <Field label="Start">
-              <input type="time" value={draft.start_time ?? ''} onChange={e => set({ start_time: e.target.value })} style={inputStyle} />
-            </Field>
-            <Field label="Slut">
-              <input type="time" value={draft.end_time ?? ''} onChange={e => set({ end_time: e.target.value })} style={inputStyle} />
-            </Field>
-          </div>
+          {kind === 'tournament' ? (
+            // Stævner: hele dage — kun start- og slutdato
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <Field label="Startdato">
+                <input type="date" value={draft.date ?? ''} style={inputStyle} onChange={e => {
+                  const date = e.target.value;
+                  // Ryk slutdato med hvis den ellers ville ligge før startdato
+                  set({ date, end_date: draft.end_date && draft.end_date < date ? date : draft.end_date });
+                }} />
+              </Field>
+              <Field label="Slutdato">
+                <input type="date" value={draft.end_date || draft.date || ''} min={draft.date}
+                  onChange={e => set({ end_date: e.target.value })} style={inputStyle} />
+              </Field>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <Field label="Dato">
+                <input type="date" value={draft.date ?? ''} onChange={e => set({ date: e.target.value })} style={inputStyle} />
+              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, minWidth: 0 }}>
+                <Field label="Start">
+                  <input type="time" value={draft.start_time ?? ''} onChange={e => set({ start_time: e.target.value })} style={inputStyle} />
+                </Field>
+                <Field label="Slut">
+                  <input type="time" value={draft.end_time ?? ''} onChange={e => set({ end_time: e.target.value })} style={inputStyle} />
+                </Field>
+              </div>
+            </div>
+          )}
 
           <Field label="Sted">
             <input value={draft.location ?? ''} onChange={e => set({ location: e.target.value })} style={inputStyle} />

@@ -27,10 +27,16 @@ trainingRoutes.get('/', requireAuth(), async (c) => {
   if (!teamId) return c.json({ error: 'team_id påkrævet' }, 400);
 
   // Kampe og stævner slettes automatisk 2 døgn efter de er afsluttet
+  // Stævner: slutdato (end_date, ellers date) kl. 23:59. Kampe: date + sluttid/starttid
   await c.env.DB.prepare(`
     DELETE FROM trainings
     WHERE team_id = ? AND kind != 'training' AND date IS NOT NULL
-      AND datetime(date || ' ' || COALESCE(NULLIF(end_time, ''), NULLIF(start_time, ''), '23:59')) < datetime('now', '-2 days')
+      AND datetime(
+        CASE WHEN kind = 'tournament'
+          THEN COALESCE(NULLIF(end_date, ''), date) || ' 23:59'
+          ELSE date || ' ' || COALESCE(NULLIF(end_time, ''), NULLIF(start_time, ''), '23:59')
+        END
+      ) < datetime('now', '-2 days')
   `).bind(teamId).run();
 
   let query: string;
@@ -68,14 +74,14 @@ trainingRoutes.post('/', requireAuth('trainer'), async (c) => {
   const now = new Date().toISOString();
   await c.env.DB.prepare(`
     INSERT INTO trainings
-      (id, team_id, kind, home_team, away_team, title, date, start_time, end_time, location, lead_trainer,
+      (id, team_id, kind, home_team, away_team, end_date, title, date, start_time, end_time, location, lead_trainer,
        trainers, keeper_trainers, youth_trainers, themes, focus_points, notes, participant_count,
        sections, stars, archived, holdsport_id, created_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id, body.team_id,
     ['match', 'tournament'].includes(body.kind as string) ? body.kind : 'training',
-    body.home_team ?? null, body.away_team ?? null,
+    body.home_team ?? null, body.away_team ?? null, body.end_date ?? null,
     body.title ?? null, body.date ?? null,
     body.start_time ?? null, body.end_time ?? null,
     body.location ?? null, body.lead_trainer ?? null,
@@ -102,7 +108,7 @@ trainingRoutes.patch('/:id', requireAuth('trainer'), async (c) => {
   const body = await c.req.json<Record<string, unknown>>();
   const JSON_COLS = ['trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'sections'];
   const allowed = [
-    'home_team', 'away_team', 'title', 'date', 'start_time', 'end_time', 'location', 'lead_trainer',
+    'home_team', 'away_team', 'end_date', 'title', 'date', 'start_time', 'end_time', 'location', 'lead_trainer',
     'trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'focus_points', 'notes', 'participant_count',
     'sections', 'stars', 'archived',
   ];

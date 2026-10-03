@@ -66,14 +66,20 @@ function mapActivity(
   const name = activity.name || activity.title || '';
   const eventFields: Partial<Training> =
     kind === 'match' ? (() => { const { home, away } = parseMatchTeams(name); return { kind, home_team: home, away_team: away }; })()
-    : kind === 'tournament' ? { kind, title: name }
+    : kind === 'tournament' ? (() => {
+        // Stævner: kun start-/slutdato, ingen tider
+        const start = activity.starttime?.split('T')[0];
+        const end = activity.endtime?.split('T')[0];
+        return { kind, title: name, end_date: end && start && end > start ? end : undefined };
+      })()
     : {};
+  const withTimes = kind !== 'tournament';
   return {
     team_id: teamId,
     ...eventFields,
     date: activity.starttime?.split('T')[0],
-    start_time: activity.starttime?.split('T')[1]?.slice(0, 5),
-    end_time: activity.endtime?.split('T')[1]?.slice(0, 5),
+    start_time: withTimes ? activity.starttime?.split('T')[1]?.slice(0, 5) : undefined,
+    end_time: withTimes ? activity.endtime?.split('T')[1]?.slice(0, 5) : undefined,
     location: activity.place || activity.location || undefined,
     ...extractAttendance(activity, members),
     holdsport_id: String(activity.id),

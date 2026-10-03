@@ -32,6 +32,13 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 - **`HoldsportImportModal.tsx`** — "Kun træninger/Vis alle" erstattet af type-chips **Træninger / Kampe / Stævner / Andet** (til/fra, med antal). Slå en type til → dens ikke-importerede aktiviteter forvælges; fra → fravælges. Kun synlige valgte importeres. Kampe/stævner får KAMP/STÆVNE-badge i listen
 - **Ekskluderet fra statistik:** `Statistik.tsx`, ugedags-gennemsnittet i `TrainingEditor.tsx` og `Archive.tsx` filtrerer med `isTrainingKind`
 
+#### Flerdagsstævner
+- **Migration** `0016_tournament_end_date.sql`: `trainings.end_date` (kun stævner; `date` = startdato, `NULL` = én dag)
+- Stævner har **ingen tider** — EventSheet viser Startdato/Slutdato i stedet for Dato/Start/Slut (slutdato rykkes med hvis startdato flyttes forbi). Kampe har ingen `end_date`
+- Ét kort pr. stævne: `DateRangeBox` ("OKT / 8–10 / Tor–Lør", "OKT–NOV" ved månedsskift) + linje 2 "N dage" / "Hele dagen". `eventDays()` i `lib/events.ts`
+- Holdsport-import: stævner får `end_date` fra `endtime`s dato hvis efter startdato; tider droppes
+- Auto-sletning: stævner 2 døgn efter `COALESCE(end_date, date) 23:59`
+
 #### UI — HS-badge + feltjustering i TrainingEditor
 - HS-badge fjernet fra **alle** kort (træninger + kampe) — vises i stedet efter titlen i headeren i `TrainingEditor` og `EventSheet`
 - TrainingEditor header: Dato | (Start | Slut) og Sted | (Antal | ↺ Opdater) bruger samme `1fr 1fr`-grid (gap 10, indre gap 8), så felterne flugter i fuld bredde. `dateTimeInputStyle` (`display: block` + `appearance: none`) — ellers ignorerer iOS `width: 100%` på date/time-inputs. `Field` har `minWidth: 0` så grid-celler kan krympe
