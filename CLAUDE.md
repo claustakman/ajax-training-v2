@@ -26,21 +26,21 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 
 #### Frontend
 - **`lib/events.ts`** — `isTrainingKind()`, `KIND_STYLE` (Kamp = grøn `#1D9E75`, Stævne = amber `#d97706`), `activityKind()` (Holdsport `event_type_id` 1=Kamp, 2=Træning, 4=Stævne; fallback på navn), `parseMatchTeams()` (stripper `"Kamp:"`-prefix og trailing `(...)`, splitter på `" - "`), `eventTitle()`
-- **`components/EventSheet.tsx`** — opret/redigér kamp eller stævne (bottom sheet). Kamp/Stævne-toggle, hjemme/ude med ⇄-byt, ↺ Opdater fra Holdsport ved `holdsport_id`, 🗑 Slet (samme ikon som i TrainingEditor). Keeper-/ungtræner-felter kun hvis holdet har brugere med rollen. Gemmer eksplicit (ingen auto-gem); sender `''`/`null` så ryddede felter faktisk ryddes ved PATCH
-- **`components/ui/UserMultiSelect.tsx`** — `Chip` + `UserMultiSelect` flyttet ud af `TrainingEditor.tsx` (delt med EventSheet)
-- **`Trainings.tsx`** — `EventCard` (farvet baggrund + venstrekant; linje 1: fuld titel (ombrydes); linje 2: KAMP/STÆVNE-tag + tid; linje 3: sted; counters via `AttendanceBadges` med `showHs={false}` — HS-badge vises i stedet i `EventSheet`-headeren efter titlen). Klik åbner `EventSheet`. FAB (+) åbner mini-menu: Ny træning / Ny kamp / Nyt stævne
+- **`pages/EventEditor.tsx`** — kamp/stævne som **hel side** (samme mønster som TrainingEditor). Routes: `/kampe/:id` og `/kampe/ny?type=match|tournament`. Toolbar: ← Tilbage · SaveIndicator · 🗑 Slet. Header-kort med farvet top-kant, titel + HS-badge, KAMP/STÆVNE-tag + dato/tid/sted. Felter: Kamp/Stævne-toggle, hjemme/ude med ⇄-byt (stævne: navn), dato-felter, Sted | Antal + ↺ Opdater (samme 1fr/1fr-grid som TrainingEditor), Trænere/Keeper-/Ungtrænere. **Auto-gem** (debounce 1200ms; ny oprettes ved første ændring, URL erstattes). `toPayload()` sender `''`/`null` så ryddede felter faktisk ryddes ved PATCH. Gæster ser read-only
+- **`components/ui/UserMultiSelect.tsx`** — `Chip` + `UserMultiSelect` flyttet ud af `TrainingEditor.tsx` (delt med EventEditor)
+- **`Trainings.tsx`** — `EventCard` (farvet baggrund + venstrekant; linje 1: fuld titel (ombrydes); linje 2: KAMP/STÆVNE-tag + tid; linje 3: sted; counters via `AttendanceBadges`). Klik navigerer til `/kampe/:id`. FAB (+) åbner mini-menu: Ny træning / Ny kamp / Nyt stævne
 - **`HoldsportImportModal.tsx`** — "Kun træninger/Vis alle" erstattet af type-chips **Træninger / Kampe / Stævner / Andet** (til/fra, med antal). Slå en type til → dens ikke-importerede aktiviteter forvælges; fra → fravælges. Kun synlige valgte importeres. Kampe/stævner får KAMP/STÆVNE-badge i listen
 - **Ekskluderet fra statistik:** `Statistik.tsx`, ugedags-gennemsnittet i `TrainingEditor.tsx` og `Archive.tsx` filtrerer med `isTrainingKind`
 
 #### Flerdagsstævner
 - **Migration** `0016_tournament_end_date.sql`: `trainings.end_date` (kun stævner; `date` = startdato, `NULL` = én dag)
-- Stævner har **ingen tider** — EventSheet viser Startdato/Slutdato i stedet for Dato/Start/Slut (slutdato rykkes med hvis startdato flyttes forbi). Kampe har ingen `end_date`
+- Stævner har **ingen tider** — EventEditor viser Startdato/Slutdato i stedet for Dato/Start/Slut (slutdato rykkes med hvis startdato flyttes forbi). Kampe har ingen `end_date`
 - Ét kort pr. stævne: `DateRangeBox` ("OKT / 8–10 / Tor–Lør", "OKT–NOV" ved månedsskift) + linje 2 "N dage" / "Hele dagen". `eventDays()` i `lib/events.ts`
 - Holdsport-import: stævner får `end_date` fra `endtime`s dato hvis efter startdato; tider droppes
 - Auto-sletning: stævner 2 døgn efter `COALESCE(end_date, date) 23:59`
 
 #### UI — HS-badge + feltjustering i TrainingEditor
-- HS-badge fjernet fra **alle** kort (træninger + kampe) — vises i stedet efter titlen i headeren i `TrainingEditor` og `EventSheet`
+- HS-badge fjernet fra **alle** kort (træninger + kampe) — vises i stedet efter titlen i headeren i `TrainingEditor` og `EventEditor`
 - TrainingEditor header: Dato | (Start | Slut) og Sted | (Antal | ↺ Opdater) bruger samme `1fr 1fr`-grid (gap 10, indre gap 8), så felterne flugter i fuld bredde. `dateTimeInputStyle` (`display: block` + `appearance: none`) — ellers ignorerer iOS `width: 100%` på date/time-inputs. `Field` har `minWidth: 0` så grid-celler kan krympe
 
 #### Holdsport — kamp-trænere + default-fravalg

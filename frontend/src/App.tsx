@@ -13,6 +13,7 @@ import Admin from './pages/Admin';
 import Brugere from './pages/Brugere';
 import TeamSettings from './pages/TeamSettings';
 import TrainingEditor from './pages/TrainingEditor';
+import EventEditor from './pages/EventEditor';
 import Archive from './pages/Archive';
 import Statistik from './pages/Statistik';
 
@@ -40,6 +41,7 @@ export default function App() {
                   <Route path="/" element={<Trainings />} />
                   <Route path="/traininger" element={<Trainings />} />
                   <Route path="/traininger/:id" element={<TrainingEditor />} />
+                  <Route path="/kampe/:id" element={<EventEditor />} />
                   <Route path="/arkiv" element={<Archive />} />
                   <Route path="/statistik" element={<Statistik />} />
                   <Route path="/aarshjul" element={<Aarshjul />} />

@@ -7,7 +7,6 @@ import { extractAttendance, trainerList, type TeamMember } from '../lib/holdspor
 import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin, totalMins } from '../lib/dateUtils';
 import HoldsportImportModal from '../components/HoldsportImportModal';
-import EventSheet from '../components/EventSheet';
 import { isTrainingKind, eventTitle, eventDays, KIND_STYLE } from '../lib/events';
 
 // ─── Skeleton-kort ────────────────────────────────────────────────────────────
@@ -356,30 +355,6 @@ export default function Trainings() {
   });
   const syncingRef = useRef(false);
   const [fabOpen, setFabOpen] = useState(false);
-  const [eventSheet, setEventSheet] = useState<{ event: Training | null; kind: 'match' | 'tournament' } | null>(null);
-
-  const { data: teamMembers = [] } = useQuery<TeamMember[]>({
-    queryKey: ['team-members', currentTeamId],
-    queryFn: () => api.fetchTeamMembers(currentTeamId!),
-    enabled: !!currentTeamId && canEdit,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  function handleEventSaved(saved: Training) {
-    queryClient.setQueryData<Training[]>(['trainings', currentTeamId, 'active'], prev => {
-      const list = prev ?? [];
-      return list.some(x => x.id === saved.id) ? list.map(x => x.id === saved.id ? saved : x) : [...list, saved];
-    });
-    setEventSheet(null);
-    setToast({ message: `${KIND_STYLE[saved.kind === 'tournament' ? 'tournament' : 'match'].label} gemt ✓`, type: 'success' });
-  }
-
-  function handleEventDeleted(id: string) {
-    queryClient.setQueryData<Training[]>(['trainings', currentTeamId, 'active'], prev =>
-      (prev ?? []).filter(x => x.id !== id)
-    );
-    setEventSheet(null);
-  }
 
   function load() {
     refetch();
@@ -618,7 +593,7 @@ export default function Trainings() {
             <EventCard
               key={t.id}
               event={t}
-              onClick={() => canEdit && setEventSheet({ event: t, kind: t.kind === 'tournament' ? 'tournament' : 'match' })}
+              onClick={() => navigate(`/kampe/${t.id}`)}
             />
           ))}
         </div>
@@ -631,19 +606,6 @@ export default function Trainings() {
           existingTrainings={trainings}
           onImport={handleHoldsportImport}
           onClose={() => setShowHoldsportModal(false)}
-        />
-      )}
-
-      {/* ── Kamp-/stævne-formular ── */}
-      {eventSheet && currentTeamId && (
-        <EventSheet
-          teamId={currentTeamId}
-          event={eventSheet.event}
-          initialKind={eventSheet.kind}
-          members={teamMembers}
-          onSaved={handleEventSaved}
-          onDeleted={handleEventDeleted}
-          onClose={() => setEventSheet(null)}
         />
       )}
 
@@ -660,8 +622,8 @@ export default function Trainings() {
           }}>
             {[
               { label: 'Ny træning', color: 'var(--accent)', onClick: handleNew },
-              { label: 'Ny kamp', color: KIND_STYLE.match.color, onClick: () => setEventSheet({ event: null, kind: 'match' }) },
-              { label: 'Nyt stævne', color: KIND_STYLE.tournament.color, onClick: () => setEventSheet({ event: null, kind: 'tournament' }) },
+              { label: 'Ny kamp', color: KIND_STYLE.match.color, onClick: () => navigate('/kampe/ny?type=match') },
+              { label: 'Nyt stævne', color: KIND_STYLE.tournament.color, onClick: () => navigate('/kampe/ny?type=tournament') },
             ].map(item => (
               <button key={item.label} onClick={() => { setFabOpen(false); item.onClick(); }} style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%',
