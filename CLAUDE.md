@@ -20,8 +20,8 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 - Kun header-felter bruges: dato, start, slut, sted, `participant_count`, `trainers`, `keeper_trainers`, `youth_trainers`. Ingen sektioner/temaer/noter/vurdering
 
 #### Worker
-- `POST /api/trainings` accepterer `kind`, `home_team`, `away_team`; `PATCH` accepterer `home_team`, `away_team` og `kind` (valideret)
-- **Auto-sletning:** `GET /api/trainings` sletter først holdets kampe/stævner hvor `date + (end_time || start_time || 23:59)` er mere end 2 døgn siden (sammenlignes mod UTC — et par timers slør er OK)
+- `POST /api/trainings` accepterer `kind`, `home_team`, `away_team`, `end_date`; `PATCH` accepterer `home_team`, `away_team`, `end_date` og `kind` (valideret mod `training|match|tournament`)
+- **Auto-sletning:** `GET /api/trainings` sletter først holdets kampe/stævner der sluttede for mere end 2 døgn siden — kampe: `date + (end_time || start_time || 23:59)`, stævner: `COALESCE(end_date, date) 23:59`. Sammenlignes mod UTC (et par timers slør er OK)
 - `ai.ts`: seneste-øvelser og reference-træninger filtrerer på `kind = 'training'`
 
 #### Frontend
@@ -55,8 +55,10 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 - Archive: blå trænerbadges filtrerer ansvarlig fra (vises allerede rødt)
 
 #### Gotchas
-- Migration 0015 **skal** køres på prod før worker-deploy — `GET /api/trainings` refererer til `kind`-kolonnen og fejler ellers (hele træningslisten)
+- Migration 0015 + 0016 **skal** køres på prod før worker-deploy — `GET /api/trainings` refererer til `kind`/`end_date` og fejler ellers (hele træningslisten). Kørt via Cloudflare Dashboard → D1 → `ajax-traening` → Console
 - Matcher en Holdsport-worker ikke `event_type_id` igennem, klassificeres på navn ("kamp", "stævne", "cup", "turnering", "træning")
+- Nye konsumenter af `GET /api/trainings` skal selv filtrere med `isTrainingKind()` hvis kampe/stævner ikke må tælle med (statistik, arkiv, gennemsnit, AI)
+- Ikke bygget endnu: link til Gameday (`gameday-b2x.pages.dev/games/:id`) fra kampdetaljer — kræver evt. ny route `/games/hs/:holdsportId` i Gameday, da vi kun kender `holdsport_id`. Links åbner i Safari, ikke i en installeret PWA (iOS-begrænsning)
 
 ### Session 20 — Roller: Ungtræner + Keepertræner
 
@@ -775,12 +777,14 @@ ajax-traening-v2/
 │   │   │   ├── api.ts          # API-klient — BASE_URL fra VITE_API_URL, alle fetch-helpers
 │   │   │   ├── auth.tsx        # AuthContext, useAuth(), hasRole(), ROLE_LABELS
 │   │   │   ├── types.ts        # Delte TypeScript-typer: Training, Section, SectionExercise, Template, Exercise, SectionType, BoardPost, BoardComment, BoardAttachment, HoldsportActivity
-│   │   │   └── dateUtils.ts    # fmtDay, fmtMon, fmtWday, fmtWdayFull, fmtDateLong, durMin, totalMins
+│   │   │   ├── dateUtils.ts    # fmtDay, fmtMon, fmtWday, fmtWdayFull, fmtDateLong, durMin, totalMins
+│   │   │   ├── holdsportAttendance.ts # extractAttendance, trainerList, withLeadInRoster — delt Holdsport-tilmeldingslogik
+│   │   │   └── events.ts       # Kampe/stævner: isTrainingKind, KIND_STYLE, activityKind, parseMatchTeams, eventTitle, eventDays
 │   │   ├── components/
 │   │   │   ├── Layout.tsx           # Nav shell: topbar + bundnav + hamburger-menu + hold-switcher
 │   │   │   ├── SectionList.tsx      # Sektioner + øvelser: ExercisePicker, ExerciseRow, DurationBar, modaler
 │   │   │   ├── SaveTemplateModal.tsx # Gem skabelon (fuld træning eller sektion)
-│   │   │   ├── HoldsportImportModal.tsx # Import fra Holdsport: vælg hold → aktivitet → importer
+│   │   │   ├── HoldsportImportModal.tsx # Import fra Holdsport: periode → aktiviteter (træning/kamp/stævne) → importer
 │   │   │   ├── AISuggestModal.tsx   # AI-forslag til hele træningen (configure/loading/result/error)
 │   │   │   ├── AISectionModal.tsx   # AI-forslag til enkelt sektion (loading/result/error)
 │   │   │   ├── ExerciseResultRow.tsx # Delt komponent: viser øvelses-navn + minutter i AI-modaler
@@ -788,11 +792,12 @@ ajax-traening-v2/
 │   │   │   ├── NewPostModal.tsx     # Nyt opslag: @-autocomplete, filvedhæftning, visualViewport-fix
 │   │   │   └── ui/
 │   │   │       ├── Skeleton.tsx     # Genbrugelig shimmer-skeleton komponent
-│   │   │       └── TagInput.tsx    # Pill-baseret tag-input med autocomplete fra API
+│   │   │       ├── TagInput.tsx    # Pill-baseret tag-input med autocomplete fra API
+│   │   │       └── UserMultiSelect.tsx # Chip + UserMultiSelect (delt af TrainingEditor og EventEditor)
 │   │   └── pages/
 │   │       ├── Login.tsx            # Login-formular
 │   │       ├── AcceptInvite.tsx     # /invite/:token — sæt password og log ind
-│   │       ├── Trainings.tsx        # Træningsliste (/) med SkeletonCard + HoldsportImportModal
+│   │       ├── Trainings.tsx        # Oversigt (/) — træninger + kampe/stævner, FAB-menu, HoldsportImportModal
 │   │       ├── TrainingEditor.tsx   # Trænings-editor (/traininger/:id) med auto-gem
 │   │       ├── Archive.tsx          # Arkiv (/arkiv) — desktop tabel + mobil kortliste
 │   │       ├── Statistik.tsx        # Statistik (/statistik) — counters + histogrammer
@@ -1003,13 +1008,17 @@ CREATE TABLE user_teams (
 CREATE TABLE trainings (
   id           TEXT PRIMARY KEY,
   team_id      TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-  title        TEXT,
-  date         TEXT,
+  kind         TEXT NOT NULL DEFAULT 'training',  -- 'training' | 'match' | 'tournament' — migration 0015
+  home_team    TEXT,          -- kun kampe — migration 0015
+  away_team    TEXT,          -- kun kampe — migration 0015
+  title        TEXT,          -- stævne-navn (træninger: ubrugt)
+  date         TEXT,          -- stævner: startdato
+  end_date     TEXT,          -- kun stævner: slutdato ved flere dage (NULL = én dag) — migration 0016
   start_time   TEXT,
   end_time     TEXT,
   location     TEXT,
   lead_trainer TEXT,
-  trainers     TEXT,          -- JSON array af navne (strings)
+  trainers     TEXT,          -- JSON array af navne (strings) — inkl. ansvarlig træner
   keeper_trainers TEXT NOT NULL DEFAULT '[]',  -- JSON array — migration 0014
   youth_trainers  TEXT NOT NULL DEFAULT '[]',  -- JSON array — migration 0014
   themes       TEXT,          -- JSON array af temastrenge
@@ -1025,6 +1034,7 @@ CREATE TABLE trainings (
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
+Kampe og stævner (`kind != 'training'`) bruger kun header-felterne (dato/tid, sted, `participant_count`, træner-listerne, `holdsport_id`) — aldrig sektioner, temaer, noter eller vurdering, og de arkiveres ikke men slettes automatisk 2 døgn efter afslutning.
 
 ### `exercises`
 ```sql
@@ -1244,7 +1254,7 @@ CREATE TABLE templates (
 - `POST /api/auth/accept-invite` → `loginWithToken()` → navigate til `/`
 
 ### `Trainings.tsx` (`/`)
-- Liste over kommende (ikke-arkiverede) træninger for `currentTeamId`
+- Liste over kommende (ikke-arkiverede) træninger, kampe og stævner for `currentTeamId` — kampe/stævne vises som `EventCard` (se Session 21)
 - **React Query** med `staleTime: 0` — genindlæses automatisk ved mount (navigation tilbage fra editor) og hvert 5. min
 - `SkeletonCard` med shimmer loading (3 kort) mens data hentes
 - Dato-boks (`DateBox`): dag/måned/ugedag med rød accent
@@ -1253,19 +1263,19 @@ CREATE TABLE templates (
   - Linje 2: starttid–sluttid · varighed (durMin)
   - Linje 3: sted · ansvarlig-fornavn (begge vises kun hvis sat, adskilt med ·)
   - Linje 4: tema-pills (vises kun hvis temaer sat)
-  - Højre side: grå cirkel = antal spillere (tooltip "X spillere"), rød (accent) cirkel = antal trænere (tooltip med trænernes navne), lyseblå cirkel = keepertrænere, lyselilla cirkel = ungtrænere (alle kun hvis > 0), HS-badge med kant
-- **FAB (+)-knap** (trainer+): `position: fixed`, `bottom: calc(var(--bottomnav-h) + 16px + env(safe-area-inset-bottom))`, `right: 20`, rød cirkel 52×52 → POST → navigate til editor
-- **↻ Synkronisér-knap** i header (venstre for Holdsport ↓): opdaterer `participant_count` + `trainers` for alle HS-tilknyttede træninger via detail-endpoint
-- `HoldsportImportModal` til at importere træninger fra Holdsport
+  - Højre side (`AttendanceBadges`, delt med `EventCard`): grå cirkel = antal spillere (tooltip "X spillere"), rød (accent) cirkel = antal trænere inkl. ansvarlig (`trainerList()`, tooltip med navne), lyseblå cirkel = keepertrænere, lyselilla cirkel = ungtrænere (alle kun hvis > 0). Intet HS-badge på kort — det vises i detaljevisningen
+- **FAB (+)-knap** (trainer+): `position: fixed`, `bottom: calc(var(--bottomnav-h) + 16px + env(safe-area-inset-bottom))`, `right: 20`, rød cirkel 52×52 → åbner mini-menu: **Ny træning** (`/traininger/ny`) · **Ny kamp** (`/kampe/ny?type=match`) · **Nyt stævne** (`/kampe/ny?type=tournament`). Knappen viser × mens menuen er åben
+- **↻ Synkronisér-knap** i header (venstre for Holdsport ↓): opdaterer `participant_count` + træner-lister for alle HS-tilknyttede træninger, kampe og stævner via detail-endpoint
+- `HoldsportImportModal` til at importere træninger, kampe og stævner fra Holdsport
 - Tom state: opfordring til at oprette første træning
 - Toast ved fejl (rød, 3s)
 
 ### `TrainingEditor.tsx` (`/traininger/:id`)
 - Auto-gem med debounce 1200ms — `SaveIndicator` viser Gemmer…/✓ Gemt/✗ Fejl
-- Collapsible header-kort med ▾/▴ toggle:
-  - Dato, start/slut-tid, sted, antal spillere (+↺ Opdater-knap ved holdsport_id)
+- Collapsible header-kort med ▾/▴ toggle. Titel (fx "Fredag 9. okt 2026") + HS-badge hvis `holdsport_id`:
+  - Dato | (Start | Slut) og Sted | (Antal spillere | ↺ Opdater) i samme `1fr 1fr`-grid så felterne flugter
   - Under "Antal spillere": grå hjælpetekst med statistisk gennemsnit for ugedagen — fx `Gns. på onsdag: 18.4 spillere (12 træninger)`. Beregnes fra afholdte træninger med deltagerdata på samme ugedag. Vises ikke hvis ingen data.
-  - Ansvarlig (`UserSelect` — dropdown, alle holdmedlemmer), Trænere (`UserMultiSelect` — chips + dropdown, ekskl. keeper-/ungtrænere)
+  - Ansvarlig (`UserSelect` — dropdown, alle holdmedlemmer), **Trænere** (`UserMultiSelect` — chips + dropdown, ekskl. keeper-/ungtrænere). Ansvarlig tilføjes automatisk til Trænere (eller keeper-/ungtrænerlisten efter rolle) via `withLeadInRoster()`
   - Keepertrænere / Ungtrænere (`UserMultiSelect`) — vises kun hvis holdet har brugere med rollen
   - Temaer (fra årshjulet — dropdown + Chip-komponenter)
   - Fokuspunkter, noter (textarea), stjerne-vurdering (1–5 klik)
@@ -1273,12 +1283,21 @@ CREATE TABLE templates (
   - "💾 Skabelon" åbner `SaveTemplateModal` — kun på gemte træninger med sektioner
   - Mini-toast: "Skabelon gemt ✓" / "Træning opdateret med AI-forslag ✓" / "Øvelser opdateret med AI-forslag ✓" — grøn, 2.8s, fixed bottom 90px
 - Holdsport-knap (kun trainer+): åbner `HoldsportImportModal`
-- ↺ Opdater ved `holdsport_id`: henter ny `participant_count` + `trainers` fra Holdsport
+- ↺ Opdater ved `holdsport_id`: henter ny `participant_count` + træner-lister fra Holdsport
 - `SectionList`-komponent for sektioner og øvelser
 - `AISuggestModal` (hele træningen) — åbnes ved "✨ Hele træning"-knap
 - `AISectionModal` (per sektion) — åbnes ved ✨-knap på enkelt sektion
 - `sectionTypes` hentes ét sted: `useQuery(['section-types', currentTeamId])` — sendes som prop til `SectionList`, `AISuggestModal`, `AISectionModal`
 - Navigerer til `/traininger/ny` → opretter tom træning → redirect til `/traininger/:id`
+
+### `EventEditor.tsx` (`/kampe/:id`, `/kampe/ny?type=match|tournament`)
+- Kamp eller stævne som hel side — samme mønster som TrainingEditor (auto-gem 1200ms, `SaveIndicator`)
+- Toolbar: ← Tilbage · `SaveIndicator` · 🗑 Slet (ingen Gentag/Arkiv/Skabelon)
+- Header-kort (ikke collapsible) med farvet top-kant (grøn kamp / amber stævne): titel (`eventTitle()`) + HS-badge, undertitel med KAMP/STÆVNE-tag + dato(er) · tid/varighed (stævne: "N dage"/"Hele dagen") · sted
+- Felter: Kamp/Stævne-toggle · Hjemmehold ⇄ Udehold (stævne: Navn) · Dato | (Start | Slut) (stævne: Startdato | Slutdato) · Sted | (Antal | ↺ Opdater) · Trænere · Keepertrænere/Ungtrænere (kun hvis holdet har rollen)
+- Ingen ansvarlig træner, temaer, fokuspunkter, noter, vurdering eller sektioner
+- Ny kamp/stævne oprettes først ved første ændring (som ny træning); URL erstattes med `/kampe/:id`
+- Gæster: read-only (alle felter disabled)
 
 ### `SaveTemplateModal.tsx` (komponent)
 - Åbnes fra TrainingEditor toolbar
@@ -1313,16 +1332,20 @@ CREATE TABLE templates (
 ### `HoldsportImportModal.tsx` (komponent)
 - Åbnes fra Trainings.tsx og TrainingEditor.tsx
 - Henter `workerUrl + token` via `api.fetchHoldsportConfig(teamId)`
-- Trin 1: vælg Holdsport-hold fra dropdown
-- Trin 2: vælg aktivitet (filtreret på dato-interval) fra liste
-- Trin 3: bekræft import → populerer træning med dato, tid, sted, deltagere (kun `status_code === 1`), trænere (navn-match mod app-brugere med trainer/team_manager-rolle)
-- Bruger `.modal-overlay` / `.modal-sheet` mønster
+- Trin 1: vælg datoperiode (Fra/Til + genveje: 2 uger, 1 måned, 3 måneder, resten af sæsonen)
+- Trin 2: aktivitetsliste på tværs af alle Holdsport-hold (filtreret på dato-interval i frontend)
+  - Type-chips **Træninger / Kampe / Stævner / Andet** (til/fra, med antal) — klassificeret via `activityKind()` (`event_type_id`, fallback på navn)
+  - Forvalgt: alle synlige, ikke-importerede aktiviteter — undtagen `deselectByDefault()` (titel med "aflyst", "1. Division" eller ordet "HC")
+  - Per række: KAMP/STÆVNE-badge, navn, dato/tid, 📍 sted, 👥 spillere, 🏅 trænere, 🧤 keepertrænere, 🌱 ungtrænere
+- Import henter detaljer per aktivitet (`activities_users` + `activities_coaches`) og fordeler via `extractAttendance()`. Kampe: `home_team`/`away_team` via `parseMatchTeams()`. Stævner: `title` = navn, `end_date` fra `endtime`, ingen tider
+- Dobbeltklik-beskyttelse via `importing`-state
 
 ### `Archive.tsx` (`/arkiv`)
+- Kun træninger (`isTrainingKind`) — kampe/stævner arkiveres ikke
 - Shimmer skeleton mens data hentes (5 rækker)
 - Filtre: Vurdering (stjerner, ≥N) · Sted (dropdown) · Træner (dropdown)
 - **Desktop** (≥640px): tabel — Dato | Træning | Sted | Varighed | Trænere | Vurdering | Handlinger
-  - Trænere-badges: rød (lead_trainer) / blå (øvrige)
+  - Trænere-badges: rød (lead_trainer) / blå (øvrige — ansvarlig filtreres fra så den ikke vises to gange)
 - **Mobil**: kortliste med "📦 Arkiveret"-badge øverst
 - Handlinger: ⎘ Kopi (duplikér som ny aktiv → navigate til editor), ↩ Genskab (archived=0), ✕ Permanent slet
 - Kopi stripper: id, created_at, updated_at, archived, holdsport_id
@@ -1331,8 +1354,8 @@ CREATE TABLE templates (
 ### `Statistik.tsx` (`/statistik`)
 - Tilgængelig for alle roller — menupunkt i hamburger under Arkiv
 - Henter aktive + arkiverede træninger og øvelseskatalog via React Query
-- **Kun afholdte træninger** — `isPast(date)` filter; subtitle "Kun afholdte træninger" under overskriften
-- **Counters** (3 StatCard — 2 rækker): Træninger i alt (fuld bredde) · Spillere pr. træning gns. · Trænere pr. træning gns. (inkl. keeper- og ungtrænere)
+- **Kun afholdte træninger** — `isPast(date)` + `isTrainingKind()` filter (kampe/stævner tæller aldrig med); subtitle "Kun afholdte træninger" under overskriften
+- **Counters** (3 StatCard — 2 rækker): Træninger i alt (fuld bredde) · Spillere pr. træning gns. · Trænere pr. træning gns. (`trainerList()` inkl. ansvarlig + keeper- og ungtrænere)
   - `avgPlayers` viser `–` hvis ingen træninger har `participant_count > 0`
 - **Histogrammer og grafer** (sektionsrækkefølge):
   1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun dage med deltagerdata
@@ -1479,8 +1502,13 @@ Kun `admin`. To tabs:
 ## TypeScript-typer (frontend/src/lib/types.ts)
 
 ```typescript
+type TrainingKind = 'training' | 'match' | 'tournament';
+
 interface Training {
   id: string; team_id: string; title?: string; date?: string;
+  kind?: TrainingKind;            // undefined/'training' = træning
+  home_team?: string; away_team?: string;  // kun kampe
+  end_date?: string;              // kun stævner (flere dage)
   start_time?: string; end_time?: string; location?: string;
   lead_trainer?: string; trainers: string[]; themes: string[];
   keeper_trainers?: string[]; youth_trainers?: string[];
@@ -1668,6 +1696,9 @@ fysisk       → tags: [styrke, plyometrik]    → farve: #f59e0b   required: tr
 - `HoldsportImportModal.tsx` håndterer import-flow
 - `fetchHoldsportActivity` finder specifik aktivitet ved at filtrere med dato og matche på `id`
 - Ved import: `participant_count` tæller kun `status_code === 1` (mødte op); tilmeldte fordeles via `extractAttendance()` (`lib/holdsportAttendance.ts`) på `trainers` (trainer/team_manager), `keeper_trainers` og `youth_trainers` ud fra hold-rolle via navn-match — resten er spillere
+- Trænere kan stå i både `activities_users` og `activities_coaches` (kampe bruger `activities_coaches`). Begge læses; coaches uden app-bruger lægges i `trainers`. Detalje-endpoint kan returnere et array med ét objekt
+- Aktivitetstype: `event_type_id` 1=Kamp, 2=Træning, 4=Stævne (samme som Gameday). Kampnavne: `"Kamp: Ajax København 2 - Holte 2"` eller `"FHH90 - Ajax 2 (Træningskamp i Fløng)"` → `parseMatchTeams()`
+- Samme logik findes i `scripts/holdsport-sync.mjs` (natlig sync) — hold dem i sync
 - `GET /api/users/team-members` returnerer `team_role` — bruges til at filtrere ud kun trainer/team_manager
 
 ### Holdsport-worker — per hold, per bruger
@@ -1796,6 +1827,6 @@ cd frontend && npm run build
 
 ### Løbende
 Push til `main` → GitHub Actions:
-1. Kør nye migrations-filer mod D1 — **OBS:** fejler pt. med `Authentication error [code: 10000]` (CLOUDFLARE_API_TOKEN mangler D1-rettighed), skjult af `|| true`. Kør nye migrationer manuelt: `cd worker && npx wrangler d1 execute ajax-traening --remote --file=../database/migrations/XXXX.sql`
+1. Kør nye migrations-filer mod D1 — **OBS:** fejler pt. med `Authentication error [code: 10000]` (CLOUDFLARE_API_TOKEN mangler D1-rettighed), skjult af `|| true`. Kør nye migrationer manuelt **før push**: enten Cloudflare Dashboard → D1 → `ajax-traening` → Console (indsæt SQL'en — sådan er 0015 og 0016 kørt), eller `cd worker && npx wrangler d1 execute ajax-traening --remote --file=../database/migrations/XXXX.sql`. Tjek med `PRAGMA table_info(trainings);`
 2. `npm run build` i `frontend/`
 3. Deploy til Cloudflare Pages + Worker
