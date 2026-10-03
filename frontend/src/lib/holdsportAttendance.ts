@@ -68,3 +68,27 @@ export function extractAttendance(
     ...out,
   };
 }
+
+/**
+ * Trænerliste inkl. ansvarlig træner — ansvarlig tæller altid som træner.
+ * Ældre træninger kan have lead_trainer uden at personen står i trainers; tilføjes her
+ * (medmindre personen står som keeper-/ungtræner).
+ */
+export function trainerList(t: Pick<Training, 'lead_trainer' | 'trainers' | 'keeper_trainers' | 'youth_trainers'>): string[] {
+  const list = [...(t.trainers ?? [])];
+  const lead = t.lead_trainer;
+  if (lead && !list.includes(lead) && !t.keeper_trainers?.includes(lead) && !t.youth_trainers?.includes(lead)) {
+    list.unshift(lead);
+  }
+  return list;
+}
+
+/** Placér ansvarlig træner i den liste der matcher hold-rollen (trænere/keeper/ung), hvis ikke allerede på en liste. */
+export function withLeadInRoster<T extends Partial<Training>>(t: T, members: TeamMember[]): T {
+  const lead = t.lead_trainer;
+  if (!lead) return t;
+  if (t.trainers?.includes(lead) || t.keeper_trainers?.includes(lead) || t.youth_trainers?.includes(lead)) return t;
+  const role = members.find(m => m.name === lead)?.team_role ?? '';
+  const field: RosterField = ROLE_FIELD[role] ?? 'trainers';
+  return { ...t, [field]: [...(t[field] ?? []), lead] };
+}

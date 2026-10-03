@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
+import { extractAttendance, withLeadInRoster, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 
@@ -280,6 +280,12 @@ export default function TrainingEditor() {
         .finally(() => setLoading(false));
     }
   }, [id, isNew, currentTeamId, user?.name, navigate]);
+
+  // ── Ansvarlig træner vises altid også under Trænere (ældre træninger mangler det) ──
+  useEffect(() => {
+    if (teamMembers.length === 0) return;
+    setTraining(prev => prev ? withLeadInRoster(prev, teamMembers) : prev);
+  }, [teamMembers, training?.id]);
 
   // ── Auto-gem (debounce 1200ms) ─────────────────────────────────────────────
   const scheduleSave = useCallback(() => {
@@ -663,7 +669,7 @@ export default function TrainingEditor() {
                 {canEdit ? (
                   <UserSelect
                     value={training.lead_trainer ?? ''}
-                    onChange={name => update({ lead_trainer: name })}
+                    onChange={name => update(withLeadInRoster({ ...training, lead_trainer: name }, teamMembers))}
                     members={teamMembers}
                     placeholder="Vælg ansvarlig…"
                   />
@@ -674,8 +680,8 @@ export default function TrainingEditor() {
                 )}
               </Field>
 
-              {/* Øvrige trænere */}
-              <Field label="Øvrige trænere">
+              {/* Trænere — inkl. ansvarlig */}
+              <Field label="Trænere">
                 <UserMultiSelect
                   selected={training.trainers ?? []}
                   onChange={names => update({ trainers: names })}

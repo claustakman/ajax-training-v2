@@ -198,7 +198,7 @@ function TableRow({
               {training.lead_trainer}
             </span>
           )}
-          {(training.trainers ?? []).map(name => (
+          {(training.trainers ?? []).filter(name => name !== training.lead_trainer).map(name => (
             <span key={name} style={{ fontSize: 11, background: 'rgba(37,99,235,0.1)', color: 'var(--blue)', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap' }}>
               {name}
             </span>

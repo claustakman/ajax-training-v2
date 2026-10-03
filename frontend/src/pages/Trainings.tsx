@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
+import { extractAttendance, trainerList, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin, totalMins } from '../lib/dateUtils';
 import HoldsportImportModal from '../components/HoldsportImportModal';
@@ -51,6 +51,7 @@ function DateBox({ dateStr, color = 'var(--accent)', light = 'var(--accent-light
 
 // ─── Tilmeldte-badges: spillere, trænere, keeper-/ungtrænere, HS ────────────────
 function AttendanceBadges({ training }: { training: Training }) {
+  const trainers = trainerList(training);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       {training.participant_count != null && training.participant_count > 0 && (
@@ -61,13 +62,13 @@ function AttendanceBadges({ training }: { training: Training }) {
           fontSize: 12, fontWeight: 600, color: 'var(--text2)',
         }}>{training.participant_count}</span>
       )}
-      {training.trainers && training.trainers.length > 0 && (
-        <span title={training.trainers.join(', ')} style={{
+      {trainers.length > 0 && (
+        <span title={trainers.join(', ')} style={{
           width: 26, height: 26, borderRadius: '50%',
           background: 'var(--accent-light)', border: '1px solid rgba(200,16,46,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 12, fontWeight: 600, color: 'var(--accent)',
-        }}>{training.trainers.length}</span>
+        }}>{trainers.length}</span>
       )}
       {(training.keeper_trainers?.length ?? 0) > 0 && (
         <span title={`Keepertrænere: ${training.keeper_trainers!.join(', ')}`} style={{

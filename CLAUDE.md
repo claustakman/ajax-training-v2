@@ -32,6 +32,12 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 - **`HoldsportImportModal.tsx`** — "Kun træninger/Vis alle" erstattet af type-chips **Træninger / Kampe / Stævner / Andet** (til/fra, med antal). Slå en type til → dens ikke-importerede aktiviteter forvælges; fra → fravælges. Kun synlige valgte importeres. Kampe/stævner får KAMP/STÆVNE-badge i listen
 - **Ekskluderet fra statistik:** `Statistik.tsx`, ugedags-gennemsnittet i `TrainingEditor.tsx` og `Archive.tsx` filtrerer med `isTrainingKind`
 
+#### Ansvarlig træner tæller som træner
+- "Øvrige trænere" omdøbt til **Trænere** — ansvarlig træner står nu også i `trainers` (eller keeper-/ungtrænerlisten efter hold-rolle)
+- `withLeadInRoster(t, members)` (`lib/holdsportAttendance.ts`) — kaldes når ansvarlig vælges i TrainingEditor + ved indlæsning (normaliserer ældre træninger i UI; gemmes ved næste redigering)
+- `trainerList(t)` — `trainers` ∪ `lead_trainer` (hvis ikke på keeper-/ungliste). Bruges til trænertæller på kort + Statistik, så ældre data tælles korrekt
+- Archive: blå trænerbadges filtrerer ansvarlig fra (vises allerede rødt)
+
 #### Gotchas
 - Migration 0015 **skal** køres på prod før worker-deploy — `GET /api/trainings` refererer til `kind`-kolonnen og fejler ellers (hele træningslisten)
 - Matcher en Holdsport-worker ikke `event_type_id` igennem, klassificeres på navn ("kamp", "stævne", "cup", "turnering", "træning")

@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training, Exercise } from '../lib/types';
 import { isTrainingKind } from '../lib/events';
+import { trainerList } from '../lib/holdsportAttendance';
 
 const WEEKDAY_ORDER = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
 
@@ -69,9 +70,9 @@ export default function Statistik() {
 
   const avgTrainers = useMemo(() => {
     if (totalCount === 0) return 0;
-    // Inkl. keeper- og ungtrænere
+    // Inkl. ansvarlig, keeper- og ungtrænere
     const sum = allTrainings.reduce((acc, t) =>
-      acc + (t.trainers?.length ?? 0) + (t.keeper_trainers?.length ?? 0) + (t.youth_trainers?.length ?? 0), 0);
+      acc + trainerList(t).length + (t.keeper_trainers?.length ?? 0) + (t.youth_trainers?.length ?? 0), 0);
     return sum / totalCount;
   }, [allTrainings, totalCount]);
 
@@ -113,7 +114,7 @@ export default function Statistik() {
       if (!t.date) continue;
       const day = getWeekday(t.date);
       // Inkl. keeper- og ungtrænere
-      const n = (t.trainers?.length ?? 0) + (t.keeper_trainers?.length ?? 0) + (t.youth_trainers?.length ?? 0);
+      const n = trainerList(t).length + (t.keeper_trainers?.length ?? 0) + (t.youth_trainers?.length ?? 0);
       sums[day] = (sums[day] ?? 0) + n;
       counts[day] = (counts[day] ?? 0) + 1;
     }
