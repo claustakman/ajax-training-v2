@@ -225,21 +225,20 @@ function EventCard({ event, onClick }: { event: Training; onClick: () => void })
       {event.date && <DateBox dateStr={event.date} color={style.color} light="var(--bg-card)" />}
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+        {/* Linje 1: fuld titel (ombrydes hellere end at trunkeres) */}
+        <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', overflowWrap: 'anywhere' }}>
+          {eventTitle(event)}
+        </div>
+        {/* Linje 2: KAMP/STÆVNE-tag + tid */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, whiteSpace: 'nowrap' }}>
           <span style={{
             fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
             color: '#fff', background: style.color, borderRadius: 4, padding: '1px 6px', flexShrink: 0,
           }}>{style.label}</span>
-          <span style={{
-            fontWeight: 600, fontSize: 15, color: 'var(--text)',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>{eventTitle(event)}</span>
+          {timeParts.length > 0 && (
+            <span style={{ fontSize: 13, color: 'var(--text2)' }}>{timeParts.join(' · ')}</span>
+          )}
         </div>
-        {timeParts.length > 0 && (
-          <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2, whiteSpace: 'nowrap' }}>
-            {timeParts.join(' · ')}
-          </div>
-        )}
         {event.location && (
           <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {event.location}
