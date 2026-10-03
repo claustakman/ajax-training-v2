@@ -17,6 +17,7 @@ const inputStyle: React.CSSProperties = {
   background: 'var(--bg-input)', border: '1px solid var(--border2)',
   borderRadius: 8, padding: '9px 12px', fontSize: 16, color: 'var(--text)',
   minHeight: 44, width: '100%', boxSizing: 'border-box',
+  display: 'block', minWidth: 0, WebkitAppearance: 'none',
 };
 
 const labelStyle: React.CSSProperties = {

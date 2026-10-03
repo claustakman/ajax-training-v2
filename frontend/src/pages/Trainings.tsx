@@ -49,8 +49,8 @@ function DateBox({ dateStr, color = 'var(--accent)', light = 'var(--accent-light
   );
 }
 
-// ─── Tilmeldte-badges: spillere, trænere, keeper-/ungtrænere, HS ────────────────
-function AttendanceBadges({ training, showHs = true }: { training: Training; showHs?: boolean }) {
+// ─── Tilmeldte-badges: spillere, trænere, keeper-/ungtrænere (HS vises i detaljer) ────────────────
+function AttendanceBadges({ training }: { training: Training }) {
   const trainers = trainerList(training);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -85,13 +85,6 @@ function AttendanceBadges({ training, showHs = true }: { training: Training; sho
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 12, fontWeight: 600, color: 'var(--purple)',
         }}>{training.youth_trainers!.length}</span>
-      )}
-      {showHs && training.holdsport_id && (
-        <span title="Importeret fra Holdsport" style={{
-          fontSize: 10, fontWeight: 700, color: 'var(--text3)',
-          background: 'var(--bg-input)', border: '1px solid var(--border)',
-          borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px',
-        }}>HS</span>
       )}
     </div>
   );
@@ -247,8 +240,7 @@ function EventCard({ event, onClick }: { event: Training; onClick: () => void })
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-        {/* HS-badge vises i EventSheet-headeren i stedet — giver plads til titlen */}
-        <AttendanceBadges training={event} showHs={false} />
+        <AttendanceBadges training={event} />
         <span style={{ color: 'var(--text3)', fontSize: 16 }}>›</span>
       </div>
     </div>

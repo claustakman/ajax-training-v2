@@ -33,7 +33,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
 // ─── Label-felt wrapper ───────────────────────────────────────────────────────
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
       <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
         {label}
       </label>
@@ -46,6 +46,13 @@ const inputStyle: React.CSSProperties = {
   background: 'var(--bg-input)', border: '1px solid var(--border2)',
   borderRadius: 8, padding: '9px 16px', fontSize: 15, color: 'var(--text)',
   minHeight: 40, width: '100%', boxSizing: 'border-box',
+};
+
+// iOS: date/time-inputs ignorerer width:100% uden display:block + appearance:none
+const dateTimeInputStyle: React.CSSProperties = {
+  ...inputStyle,
+  display: 'block', minWidth: 0, WebkitAppearance: 'none', appearance: 'none',
+  padding: '9px 10px', minHeight: 44, textAlign: 'left',
 };
 
 const textareaStyle: React.CSSProperties = {
@@ -557,9 +564,18 @@ export default function TrainingEditor() {
           onClick={toggleHeader}
         >
           <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
-              {training.date ? fmtDateLong(training.date) : 'Ny træning'}
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
+                {training.date ? fmtDateLong(training.date) : 'Ny træning'}
+              </h1>
+              {training.holdsport_id && (
+                <span title="Importeret fra Holdsport" style={{
+                  fontSize: 10, fontWeight: 700, color: 'var(--text3)',
+                  background: 'var(--bg-input)', border: '1px solid var(--border)',
+                  borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px', flexShrink: 0,
+                }}>HS</span>
+              )}
+            </div>
             {(training.start_time || dur || training.location) && (
               <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
                 {[
@@ -580,39 +596,41 @@ export default function TrainingEditor() {
             {/* Dato + tid — stacked på mobil */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
 
-              {/* Dato · Start · Slut — smal automatisk bredde, ikke fuld linje */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {/* Dato · Start · Slut — samme 2-kolonne grid som Sted · Antal/Opdater, så felterne flugter */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <Field label="Dato">
                   <input
                     type="date"
                     value={training.date ?? ''}
                     onChange={e => update({ date: e.target.value })}
                     disabled={!canEdit}
-                    style={{ ...inputStyle, fontSize: 14, padding: '8px 8px', width: 'auto', minWidth: 130 }}
+                    style={dateTimeInputStyle}
                   />
                 </Field>
-                <Field label="Start">
-                  <input
-                    type="time"
-                    value={training.start_time ?? ''}
-                    onChange={e => update({ start_time: e.target.value })}
-                    disabled={!canEdit}
-                    style={{ ...inputStyle, fontSize: 14, padding: '8px 8px', width: 'auto', minWidth: 90 }}
-                  />
-                </Field>
-                <Field label="Slut">
-                  <input
-                    type="time"
-                    value={training.end_time ?? ''}
-                    onChange={e => update({ end_time: e.target.value })}
-                    disabled={!canEdit}
-                    style={{ ...inputStyle, fontSize: 14, padding: '8px 8px', width: 'auto', minWidth: 90 }}
-                  />
-                </Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, minWidth: 0 }}>
+                  <Field label="Start">
+                    <input
+                      type="time"
+                      value={training.start_time ?? ''}
+                      onChange={e => update({ start_time: e.target.value })}
+                      disabled={!canEdit}
+                      style={dateTimeInputStyle}
+                    />
+                  </Field>
+                  <Field label="Slut">
+                    <input
+                      type="time"
+                      value={training.end_time ?? ''}
+                      onChange={e => update({ end_time: e.target.value })}
+                      disabled={!canEdit}
+                      style={dateTimeInputStyle}
+                    />
+                  </Field>
+                </div>
               </div>
 
-              {/* Sted + antal side om side på bredere skærme */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+              {/* Sted · Antal spillere + Opdater */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <Field label="Sted">
                   <input
                     value={training.location ?? ''}
@@ -623,7 +641,8 @@ export default function TrainingEditor() {
                   />
                 </Field>
                 <Field label="Antal spillere">
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {/* Input + Opdater i 1fr/1fr så de flugter med Start/Slut ovenfor */}
+                  <div style={{ display: 'grid', gridTemplateColumns: training.holdsport_id && canEdit && hasHoldsport ? '1fr 1fr' : '1fr', gap: 8 }}>
                     <input
                       type="number"
                       value={training.participant_count ?? ''}
@@ -631,7 +650,7 @@ export default function TrainingEditor() {
                       disabled={!canEdit}
                       placeholder="0"
                       min={0}
-                      style={{ ...inputStyle, flex: 1 }}
+                      style={{ ...inputStyle, minWidth: 0 }}
                     />
                     {training.holdsport_id && canEdit && hasHoldsport && (
                       <button
@@ -639,7 +658,7 @@ export default function TrainingEditor() {
                         disabled={hsUpdating}
                         title="Opdater fra Holdsport"
                         style={{
-                          flexShrink: 0, padding: '0 14px', minHeight: 44, borderRadius: 8,
+                          padding: '0 8px', minHeight: 44, borderRadius: 8, minWidth: 0, whiteSpace: 'nowrap',
                           background: 'var(--bg-input)', border: '1px solid var(--border2)',
                           fontSize: 13, color: 'var(--text2)', cursor: hsUpdating ? 'wait' : 'pointer',
                         }}

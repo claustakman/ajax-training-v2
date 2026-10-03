@@ -32,6 +32,10 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 - **`HoldsportImportModal.tsx`** — "Kun træninger/Vis alle" erstattet af type-chips **Træninger / Kampe / Stævner / Andet** (til/fra, med antal). Slå en type til → dens ikke-importerede aktiviteter forvælges; fra → fravælges. Kun synlige valgte importeres. Kampe/stævner får KAMP/STÆVNE-badge i listen
 - **Ekskluderet fra statistik:** `Statistik.tsx`, ugedags-gennemsnittet i `TrainingEditor.tsx` og `Archive.tsx` filtrerer med `isTrainingKind`
 
+#### UI — HS-badge + feltjustering i TrainingEditor
+- HS-badge fjernet fra **alle** kort (træninger + kampe) — vises i stedet efter titlen i headeren i `TrainingEditor` og `EventSheet`
+- TrainingEditor header: Dato | (Start | Slut) og Sted | (Antal | ↺ Opdater) bruger samme `1fr 1fr`-grid (gap 10, indre gap 8), så felterne flugter i fuld bredde. `dateTimeInputStyle` (`display: block` + `appearance: none`) — ellers ignorerer iOS `width: 100%` på date/time-inputs. `Field` har `minWidth: 0` så grid-celler kan krympe
+
 #### Holdsport — kamp-trænere + default-fravalg
 - `extractAttendance` og `holdsport-sync.mjs` læser nu også `activities_coaches` (kampe har trænere dér, ikke i `activities_users`). Coaches matches på navn → rollens liste; coaches uden app-bruger → `trainers`. Dedup på navn; non-sync brugere springes over (bevares fra eksisterende)
 - Detalje-endpoint kan returnere array med ét objekt — `fetchHoldsportActivity` + sync-script tager `[0]`
