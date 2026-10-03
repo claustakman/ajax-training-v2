@@ -133,9 +133,18 @@ export default function EventSheet({ teamId, event, initialKind, members, onSave
           padding: '16px 20px 12px', borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
         }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 700, flex: 1 }}>
-            {event?.id ? `Redigér ${style.label.toLowerCase()}` : `Ny ${style.label.toLowerCase()}`}
-          </h2>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 700 }}>
+              {event?.id ? `Redigér ${style.label.toLowerCase()}` : `Ny ${style.label.toLowerCase()}`}
+            </h2>
+            {draft.holdsport_id && (
+              <span title="Importeret fra Holdsport" style={{
+                fontSize: 10, fontWeight: 700, color: 'var(--text3)',
+                background: 'var(--bg-input)', border: '1px solid var(--border)',
+                borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px', flexShrink: 0,
+              }}>HS</span>
+            )}
+          </div>
           {event?.id && (
             <button
               onClick={handleDelete}
