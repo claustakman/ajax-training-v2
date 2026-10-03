@@ -1,7 +1,7 @@
 /**
  * HoldsportImportModal — to-trins import af aktiviteter fra Holdsport.
  * Trin 1: Vælg datoperiode.
- * Trin 2: Vælg aktiviteter fra listen og importer.
+ * Trin 2: Vælg aktiviteter (træninger, kampe, stævner) fra listen og importer.
  */
 
 import { useState, useEffect } from 'react';
@@ -9,6 +9,7 @@ import { api } from '../lib/api';
 import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
 import type { HoldsportActivity, Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday } from '../lib/dateUtils';
+import { activityKind, parseMatchTeams, KIND_STYLE, type ActivityKind } from '../lib/events';
 
 // ─── Hjælpefunktioner ─────────────────────────────────────────────────────────
 
@@ -43,19 +44,27 @@ function fmtTimeRange(starttime?: string, endtime?: string): string {
   return '';
 }
 
-// Simpel hsIsTraining-filter: aktiviteter der ligner træning
-function isTraining(activity: HoldsportActivity): boolean {
-  const name = (activity.name || activity.title || '').toLowerCase();
-  return name.includes('træning') || name.includes('training');
-}
+const KIND_FILTERS: { kind: ActivityKind; label: string }[] = [
+  { kind: 'training', label: 'Træninger' },
+  { kind: 'match', label: 'Kampe' },
+  { kind: 'tournament', label: 'Stævner' },
+  { kind: 'other', label: 'Andet' },
+];
 
 function mapActivity(
   activity: HoldsportActivity,
   teamId: string,
   members: TeamMember[]
 ): Partial<Training> {
+  const kind = activityKind(activity);
+  const name = activity.name || activity.title || '';
+  const eventFields: Partial<Training> =
+    kind === 'match' ? (() => { const { home, away } = parseMatchTeams(name); return { kind, home_team: home, away_team: away }; })()
+    : kind === 'tournament' ? { kind, title: name }
+    : {};
   return {
     team_id: teamId,
+    ...eventFields,
     date: activity.starttime?.split('T')[0],
     start_time: activity.starttime?.split('T')[1]?.slice(0, 5),
     end_time: activity.endtime?.split('T')[1]?.slice(0, 5),
@@ -110,7 +119,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   const [hsConfig, setHsConfig] = useState<{ workerUrl: string; token: string } | null>(null);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [showAll, setShowAll] = useState(false);
+  const [kinds, setKinds] = useState<Set<ActivityKind>>(new Set(['training', 'match', 'tournament']));
   const [importing, setImporting] = useState(false);
 
   // Allerede importerede holdsport_id'er
@@ -159,10 +168,10 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
         });
 
         setActivities(inRange);
-        // Forvælg alle træninger der ikke er importeret endnu
+        // Forvælg alle synlige aktiviteter der ikke er importeret endnu
         const preselect = new Set(
           inRange
-            .filter(a => isTraining(a) && !importedIds.has(String(a.id)))
+            .filter(a => kinds.has(activityKind(a)) && !importedIds.has(String(a.id)))
             .map(a => String(a.id))
         );
         setSelected(preselect);
@@ -174,7 +183,26 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
     })();
   }, [step, from, to]);
 
-  const filtered = showAll ? activities : activities.filter(isTraining);
+  const filtered = activities.filter(a => kinds.has(activityKind(a)));
+  const visibleIds = new Set(filtered.map(a => String(a.id)));
+
+  function toggleKind(kind: ActivityKind) {
+    const turningOn = !kinds.has(kind);
+    setKinds(prev => {
+      const next = new Set(prev);
+      if (turningOn) next.add(kind); else next.delete(kind);
+      return next;
+    });
+    // Slå en type til → vælg dens ikke-importerede aktiviteter; slå fra → fravælg dem
+    const ids = activities
+      .filter(a => activityKind(a) === kind && !importedIds.has(String(a.id)))
+      .map(a => String(a.id));
+    setSelected(prev => {
+      const next = new Set(prev);
+      for (const id of ids) { if (turningOn) next.add(id); else next.delete(id); }
+      return next;
+    });
+  }
 
   function toggleSelect(id: string) {
     setSelected(prev => {
@@ -197,7 +225,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   async function handleImport() {
     if (importing) return;
     setImporting(true);
-    const pickedActivities = activities.filter(a => selected.has(String(a.id)));
+    const pickedActivities = activities.filter(a => selected.has(String(a.id)) && visibleIds.has(String(a.id)));
     const result: Partial<Training>[] = [];
 
     for (const a of pickedActivities) {
@@ -217,7 +245,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
     setImporting(false);
   }
 
-  const selectedCount = [...selected].filter(id => !importedIds.has(id)).length;
+  const selectedCount = [...selected].filter(id => !importedIds.has(id) && visibleIds.has(id)).length;
 
   return (
     <div style={{
@@ -238,7 +266,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
         <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 700 }}>
-              {step === 'dates' ? 'Importer fra Holdsport' : 'Vælg træninger'}
+              {step === 'dates' ? 'Importer fra Holdsport' : 'Vælg aktiviteter'}
             </h2>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text2)', padding: 4, lineHeight: 1 }}>×</button>
           </div>
@@ -319,19 +347,23 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                     padding: '10px 16px', borderBottom: '1px solid var(--border)',
                     position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1,
                   }}>
-                    {/* Kun træninger / Vis alle */}
-                    <div style={{ display: 'flex', gap: 4, background: 'var(--bg-input)', borderRadius: 20, padding: 3 }}>
-                      {[false, true].map(all => (
-                        <button key={String(all)} onClick={() => setShowAll(all)} style={{
-                          padding: '8px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-                          background: showAll === all ? 'var(--bg-card)' : 'transparent',
-                          border: showAll === all ? '1px solid var(--border2)' : '1px solid transparent',
-                          color: showAll === all ? 'var(--text)' : 'var(--text3)',
-                          cursor: 'pointer',
-                        }}>
-                          {all ? 'Vis alle' : 'Kun træninger'}
-                        </button>
-                      ))}
+                    {/* Aktivitetstyper — slå til/fra */}
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', width: '100%' }}>
+                      {KIND_FILTERS.map(({ kind, label }) => {
+                        const on = kinds.has(kind);
+                        const count = activities.filter(a => activityKind(a) === kind).length;
+                        return (
+                          <button key={kind} onClick={() => toggleKind(kind)} style={{
+                            padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                            background: on ? 'var(--accent-light)' : 'var(--bg-input)',
+                            border: on ? '1px solid var(--accent)' : '1px solid var(--border2)',
+                            color: on ? 'var(--accent)' : 'var(--text3)',
+                            cursor: 'pointer',
+                          }}>
+                            {on ? '✓ ' : ''}{label} ({count})
+                          </button>
+                        );
+                      })}
                     </div>
                     <span style={{ fontSize: 12, color: 'var(--text3)', flex: 1 }}>
                       {filtered.length} aktiviteter
@@ -360,6 +392,8 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                       const actTrainers = att.trainers ?? [];
                       const actKeepers = att.keeper_trainers ?? [];
                       const actYouth = att.youth_trainers ?? [];
+                      const kind = activityKind(activity);
+                      const kindStyle = kind === 'match' || kind === 'tournament' ? KIND_STYLE[kind] : null;
 
                       return (
                         <div
@@ -389,6 +423,12 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                           {/* Indhold */}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              {kindStyle && (
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                                  color: kindStyle.color, background: kindStyle.light, borderRadius: 4, padding: '1px 6px',
+                                }}>{kindStyle.label}</span>
+                              )}
                               <span style={{ fontWeight: 600, fontSize: 14, color: alreadyImported ? 'var(--text3)' : 'var(--text)' }}>
                                 {name}
                               </span>

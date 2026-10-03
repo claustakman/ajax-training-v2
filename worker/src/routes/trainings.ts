@@ -26,6 +26,13 @@ trainingRoutes.get('/', requireAuth(), async (c) => {
   const archivedParam = c.req.query('archived');
   if (!teamId) return c.json({ error: 'team_id påkrævet' }, 400);
 
+  // Kampe og stævner slettes automatisk 2 døgn efter de er afsluttet
+  await c.env.DB.prepare(`
+    DELETE FROM trainings
+    WHERE team_id = ? AND kind != 'training' AND date IS NOT NULL
+      AND datetime(date || ' ' || COALESCE(NULLIF(end_time, ''), NULLIF(start_time, ''), '23:59')) < datetime('now', '-2 days')
+  `).bind(teamId).run();
+
   let query: string;
   let params: unknown[];
 
@@ -61,12 +68,15 @@ trainingRoutes.post('/', requireAuth('trainer'), async (c) => {
   const now = new Date().toISOString();
   await c.env.DB.prepare(`
     INSERT INTO trainings
-      (id, team_id, title, date, start_time, end_time, location, lead_trainer,
+      (id, team_id, kind, home_team, away_team, title, date, start_time, end_time, location, lead_trainer,
        trainers, keeper_trainers, youth_trainers, themes, focus_points, notes, participant_count,
        sections, stars, archived, holdsport_id, created_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
-    id, body.team_id, body.title ?? null, body.date ?? null,
+    id, body.team_id,
+    ['match', 'tournament'].includes(body.kind as string) ? body.kind : 'training',
+    body.home_team ?? null, body.away_team ?? null,
+    body.title ?? null, body.date ?? null,
     body.start_time ?? null, body.end_time ?? null,
     body.location ?? null, body.lead_trainer ?? null,
     JSON.stringify(body.trainers ?? []),
@@ -92,7 +102,7 @@ trainingRoutes.patch('/:id', requireAuth('trainer'), async (c) => {
   const body = await c.req.json<Record<string, unknown>>();
   const JSON_COLS = ['trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'sections'];
   const allowed = [
-    'title', 'date', 'start_time', 'end_time', 'location', 'lead_trainer',
+    'home_team', 'away_team', 'title', 'date', 'start_time', 'end_time', 'location', 'lead_trainer',
     'trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'focus_points', 'notes', 'participant_count',
     'sections', 'stars', 'archived',
   ];
@@ -105,6 +115,10 @@ trainingRoutes.patch('/:id', requireAuth('trainer'), async (c) => {
       else if (key === 'archived') values.push(body[key] ? 1 : 0);
       else values.push(body[key]);
     }
+  }
+  if (['training', 'match', 'tournament'].includes(body.kind as string)) {
+    updates.push('kind = ?');
+    values.push(body.kind);
   }
   if (updates.length === 0) return c.json({ error: 'Ingen felter at opdatere' }, 400);
   const now = new Date().toISOString();

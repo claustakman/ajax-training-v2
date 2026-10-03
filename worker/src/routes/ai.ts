@@ -71,6 +71,7 @@ async function markRecentExercises(
       SELECT sections FROM trainings
       WHERE team_id = ?
         AND archived = 0
+        AND kind = 'training'
       ORDER BY date DESC, created_at DESC
       LIMIT 3
     `)
@@ -166,7 +167,7 @@ async function fetchReferenceTrainings(
     .prepare(`
       SELECT themes, sections, stars
       FROM trainings
-      WHERE team_id = ? AND archived = 1 AND stars >= 4
+      WHERE team_id = ? AND archived = 1 AND stars >= 4 AND kind = 'training'
       ORDER BY stars DESC, date DESC
       LIMIT 6
     `)

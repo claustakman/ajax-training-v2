@@ -7,7 +7,34 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–20)
+## Hvad er bygget (Sessions 1–21)
+
+### Session 21 — Kampe og stævner i træningsoversigten
+
+Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik for kampe styres stadig i Gameday-appen.
+
+#### Datamodel
+- **Migration** `0015_matches.sql`: `trainings.kind` (`'training' | 'match' | 'tournament'`, default `'training'`), `trainings.home_team`, `trainings.away_team`
+- Kampe/stævner bor i `trainings`-tabellen → Holdsport-sync (↻-knap, auto-sync, natlig `holdsport-sync.mjs`) virker uændret for dem
+- Kamp-titel = `home_team - away_team`; stævne-titel = `title` (fx "Albertslund Cup"). `eventTitle()` i `lib/events.ts`
+- Kun header-felter bruges: dato, start, slut, sted, `participant_count`, `trainers`, `keeper_trainers`, `youth_trainers`. Ingen sektioner/temaer/noter/vurdering
+
+#### Worker
+- `POST /api/trainings` accepterer `kind`, `home_team`, `away_team`; `PATCH` accepterer `home_team`, `away_team` og `kind` (valideret)
+- **Auto-sletning:** `GET /api/trainings` sletter først holdets kampe/stævner hvor `date + (end_time || start_time || 23:59)` er mere end 2 døgn siden (sammenlignes mod UTC — et par timers slør er OK)
+- `ai.ts`: seneste-øvelser og reference-træninger filtrerer på `kind = 'training'`
+
+#### Frontend
+- **`lib/events.ts`** — `isTrainingKind()`, `KIND_STYLE` (Kamp = grøn `#1D9E75`, Stævne = amber `#d97706`), `activityKind()` (Holdsport `event_type_id` 1=Kamp, 2=Træning, 4=Stævne; fallback på navn), `parseMatchTeams()` (stripper `"Kamp:"`-prefix og trailing `(...)`, splitter på `" - "`), `eventTitle()`
+- **`components/EventSheet.tsx`** — opret/redigér kamp eller stævne (bottom sheet). Kamp/Stævne-toggle, hjemme/ude med ⇄-byt, ↺ Opdater fra Holdsport ved `holdsport_id`, 🗑 Slet (samme ikon som i TrainingEditor). Keeper-/ungtræner-felter kun hvis holdet har brugere med rollen. Gemmer eksplicit (ingen auto-gem); sender `''`/`null` så ryddede felter faktisk ryddes ved PATCH
+- **`components/ui/UserMultiSelect.tsx`** — `Chip` + `UserMultiSelect` flyttet ud af `TrainingEditor.tsx` (delt med EventSheet)
+- **`Trainings.tsx`** — `EventCard` (farvet baggrund + venstrekant, KAMP/STÆVNE-label, titel, tid, sted, samme counters som træninger via `AttendanceBadges`). Klik åbner `EventSheet`. FAB (+) åbner mini-menu: Ny træning / Ny kamp / Nyt stævne
+- **`HoldsportImportModal.tsx`** — "Kun træninger/Vis alle" erstattet af type-chips **Træninger / Kampe / Stævner / Andet** (til/fra, med antal). Slå en type til → dens ikke-importerede aktiviteter forvælges; fra → fravælges. Kun synlige valgte importeres. Kampe/stævner får KAMP/STÆVNE-badge i listen
+- **Ekskluderet fra statistik:** `Statistik.tsx`, ugedags-gennemsnittet i `TrainingEditor.tsx` og `Archive.tsx` filtrerer med `isTrainingKind`
+
+#### Gotchas
+- Migration 0015 **skal** køres på prod før worker-deploy — `GET /api/trainings` refererer til `kind`-kolonnen og fejler ellers (hele træningslisten)
+- Matcher en Holdsport-worker ikke `event_type_id` igennem, klassificeres på navn ("kamp", "stævne", "cup", "turnering", "træning")
 
 ### Session 20 — Roller: Ungtræner + Keepertræner
 
@@ -693,7 +720,7 @@ Mounted under `/api/auth/webauthn`:
 ajax-traening-v2/
 ├── database/
 │   ├── schema.sql              # D1 skema — alle tabeller + seed
-│   └── migrations/             # Versionstyrede migrationer (0001_initial.sql osv.)
+│   └── migrations/             # Versionstyrede migrationer (0001_initial.sql … 0015_matches.sql)
 ├── worker/
 │   ├── src/
 │   │   ├── index.ts            # Hono router — registrerer alle routes

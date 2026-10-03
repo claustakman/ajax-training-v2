@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin } from '../lib/dateUtils';
+import { isTrainingKind } from '../lib/events';
 
 // ─── Hjælpere ─────────────────────────────────────────────────────────────────
 
@@ -258,7 +259,7 @@ export default function Archive() {
     if (!currentTeamId) return;
     setLoading(true);
     api.fetchTrainings(currentTeamId, 1)
-      .then(data => setTrainings(data.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))))
+      .then(data => setTrainings(data.filter(isTrainingKind).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))))
       .catch(() => {})
       .finally(() => setLoading(false));
   }

@@ -1,8 +1,13 @@
 // Delte TypeScript-typer — bruges af frontend og refereres i worker
 
+export type TrainingKind = 'training' | 'match' | 'tournament'
+
 export interface Training {
   id: string
   team_id: string
+  kind?: TrainingKind          // 'match'/'tournament' = kamp/stævne — kun header, ingen sektioner, ikke i statistik
+  home_team?: string           // kun kampe
+  away_team?: string           // kun kampe
   title?: string
   date?: string
   start_time?: string

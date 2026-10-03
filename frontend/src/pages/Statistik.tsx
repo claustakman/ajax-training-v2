@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training, Exercise } from '../lib/types';
+import { isTrainingKind } from '../lib/events';
 
 const WEEKDAY_ORDER = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
 
@@ -44,9 +45,9 @@ export default function Statistik() {
 
   const isLoading = loadingActive || loadingArchived;
 
-  // Kun afholdte træninger (dato sat + dato ≤ i dag)
+  // Kun afholdte træninger (dato sat + dato ≤ i dag) — kampe/stævne tæller ikke med
   const allTrainings: Training[] = useMemo(
-    () => [...activeTrainings, ...archivedTrainings].filter(t => t.date && isPast(t.date)),
+    () => [...activeTrainings, ...archivedTrainings].filter(t => t.date && isPast(t.date) && isTrainingKind(t)),
     [activeTrainings, archivedTrainings]
   );
 

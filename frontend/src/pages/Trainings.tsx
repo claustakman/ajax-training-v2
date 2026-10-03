@@ -7,6 +7,8 @@ import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin, totalMins } from '../lib/dateUtils';
 import HoldsportImportModal from '../components/HoldsportImportModal';
+import EventSheet from '../components/EventSheet';
+import { isTrainingKind, eventTitle, KIND_STYLE } from '../lib/events';
 
 // ─── Skeleton-kort ────────────────────────────────────────────────────────────
 function SkeletonCard() {
@@ -26,23 +28,70 @@ function SkeletonCard() {
 }
 
 // ─── Dato-boks ────────────────────────────────────────────────────────────────
-function DateBox({ dateStr }: { dateStr: string }) {
+function DateBox({ dateStr, color = 'var(--accent)', light = 'var(--accent-light)' }: { dateStr: string; color?: string; light?: string }) {
   return (
     <div style={{
       minWidth: 44, width: 44,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      background: 'var(--accent-light)', borderRadius: 10,
+      background: light, borderRadius: 10,
       padding: '6px 0', gap: 0,
     }}>
-      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
         {fmtMon(dateStr)}
       </span>
-      <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)', lineHeight: 1.1, fontFamily: 'var(--font-heading)' }}>
+      <span style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1.1, fontFamily: 'var(--font-heading)' }}>
         {fmtDay(dateStr)}
       </span>
       <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>
         {fmtWday(dateStr)}
       </span>
+    </div>
+  );
+}
+
+// ─── Tilmeldte-badges: spillere, trænere, keeper-/ungtrænere, HS ────────────────
+function AttendanceBadges({ training }: { training: Training }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {training.participant_count != null && training.participant_count > 0 && (
+        <span title={`${training.participant_count} spillere`} style={{
+          width: 26, height: 26, borderRadius: '50%',
+          background: 'var(--bg-input)', border: '1px solid var(--border2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12, fontWeight: 600, color: 'var(--text2)',
+        }}>{training.participant_count}</span>
+      )}
+      {training.trainers && training.trainers.length > 0 && (
+        <span title={training.trainers.join(', ')} style={{
+          width: 26, height: 26, borderRadius: '50%',
+          background: 'var(--accent-light)', border: '1px solid rgba(200,16,46,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+        }}>{training.trainers.length}</span>
+      )}
+      {(training.keeper_trainers?.length ?? 0) > 0 && (
+        <span title={`Keepertrænere: ${training.keeper_trainers!.join(', ')}`} style={{
+          width: 26, height: 26, borderRadius: '50%',
+          background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12, fontWeight: 600, color: 'var(--blue)',
+        }}>{training.keeper_trainers!.length}</span>
+      )}
+      {(training.youth_trainers?.length ?? 0) > 0 && (
+        <span title={`Ungtrænere: ${training.youth_trainers!.join(', ')}`} style={{
+          width: 26, height: 26, borderRadius: '50%',
+          background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12, fontWeight: 600, color: 'var(--purple)',
+        }}>{training.youth_trainers!.length}</span>
+      )}
+      {training.holdsport_id && (
+        <span title="Importeret fra Holdsport" style={{
+          fontSize: 10, fontWeight: 700, color: 'var(--text3)',
+          background: 'var(--bg-input)', border: '1px solid var(--border)',
+          borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px',
+        }}>HS</span>
+      )}
     </div>
   );
 }
@@ -144,47 +193,61 @@ function TrainingCard({ training, onClick }: { training: Training; onClick: () =
         {training.stars > 0 && (
           <span style={{ fontSize: 13, color: '#f59e0b' }}>{'★'.repeat(training.stars)}</span>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {training.participant_count != null && training.participant_count > 0 && (
-            <span title={`${training.participant_count} spillere`} style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: 'var(--bg-input)', border: '1px solid var(--border2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 600, color: 'var(--text2)',
-            }}>{training.participant_count}</span>
-          )}
-          {training.trainers && training.trainers.length > 0 && (
-            <span title={training.trainers.join(', ')} style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: 'var(--accent-light)', border: '1px solid rgba(200,16,46,0.2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 600, color: 'var(--accent)',
-            }}>{training.trainers.length}</span>
-          )}
-          {(training.keeper_trainers?.length ?? 0) > 0 && (
-            <span title={`Keepertrænere: ${training.keeper_trainers!.join(', ')}`} style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 600, color: 'var(--blue)',
-            }}>{training.keeper_trainers!.length}</span>
-          )}
-          {(training.youth_trainers?.length ?? 0) > 0 && (
-            <span title={`Ungtrænere: ${training.youth_trainers!.join(', ')}`} style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 600, color: 'var(--purple)',
-            }}>{training.youth_trainers!.length}</span>
-          )}
-          {training.holdsport_id && (
-            <span title="Importeret fra Holdsport" style={{
-              fontSize: 10, fontWeight: 700, color: 'var(--text3)',
-              background: 'var(--bg-input)', border: '1px solid var(--border)',
-              borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px',
-            }}>HS</span>
-          )}
+        <AttendanceBadges training={training} />
+        <span style={{ color: 'var(--text3)', fontSize: 16 }}>›</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Kamp-/stævnekort ─────────────────────────────────────────────────────────
+function EventCard({ event, onClick }: { event: Training; onClick: () => void }) {
+  const style = KIND_STYLE[event.kind === 'tournament' ? 'tournament' : 'match'];
+  const dur = durMin(event.start_time, event.end_time);
+  const timeParts: string[] = [];
+  if (event.start_time) timeParts.push(event.start_time + (event.end_time ? `–${event.end_time}` : ''));
+  if (dur) timeParts.push(`${dur} min`);
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: style.light, borderRadius: 12,
+        borderLeft: `4px solid ${style.color}`,
+        padding: '12px 16px 12px 12px', display: 'flex', gap: 14, alignItems: 'center',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        cursor: 'pointer', transition: 'box-shadow 0.15s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)')}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
+    >
+      {event.date && <DateBox dateStr={event.date} color={style.color} light="var(--bg-card)" />}
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+            color: '#fff', background: style.color, borderRadius: 4, padding: '1px 6px', flexShrink: 0,
+          }}>{style.label}</span>
+          <span style={{
+            fontWeight: 600, fontSize: 15, color: 'var(--text)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{eventTitle(event)}</span>
         </div>
+        {timeParts.length > 0 && (
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2, whiteSpace: 'nowrap' }}>
+            {timeParts.join(' · ')}
+          </div>
+        )}
+        {event.location && (
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {event.location}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+        <AttendanceBadges training={event} />
         <span style={{ color: 'var(--text3)', fontSize: 16 }}>›</span>
       </div>
     </div>
@@ -201,7 +264,7 @@ function EmptyState({ canEdit, onNew }: { canEdit: boolean; onNew: () => void })
     }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>🏐</div>
       <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, margin: '0 0 8px' }}>
-        Ingen kommende træninger
+        Ingen kommende træninger eller kampe
       </h2>
       <p style={{ color: 'var(--text2)', margin: '0 0 20px', fontSize: 15 }}>
         Opret den første træning for dette hold.
@@ -269,6 +332,31 @@ export default function Trainings() {
     try { return localStorage.getItem('trainings_sort_asc') !== '0'; } catch { return true; }
   });
   const syncingRef = useRef(false);
+  const [fabOpen, setFabOpen] = useState(false);
+  const [eventSheet, setEventSheet] = useState<{ event: Training | null; kind: 'match' | 'tournament' } | null>(null);
+
+  const { data: teamMembers = [] } = useQuery<TeamMember[]>({
+    queryKey: ['team-members', currentTeamId],
+    queryFn: () => api.fetchTeamMembers(currentTeamId!),
+    enabled: !!currentTeamId && canEdit,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  function handleEventSaved(saved: Training) {
+    queryClient.setQueryData<Training[]>(['trainings', currentTeamId, 'active'], prev => {
+      const list = prev ?? [];
+      return list.some(x => x.id === saved.id) ? list.map(x => x.id === saved.id ? saved : x) : [...list, saved];
+    });
+    setEventSheet(null);
+    setToast({ message: `${KIND_STYLE[saved.kind === 'tournament' ? 'tournament' : 'match'].label} gemt ✓`, type: 'success' });
+  }
+
+  function handleEventDeleted(id: string) {
+    queryClient.setQueryData<Training[]>(['trainings', currentTeamId, 'active'], prev =>
+      (prev ?? []).filter(x => x.id !== id)
+    );
+    setEventSheet(null);
+  }
 
   function load() {
     refetch();
@@ -318,7 +406,7 @@ export default function Trainings() {
       const ms = Math.round(performance.now() - t0);
       console.log(`[AutoSync] ${updated}/${hsTrainings.length} træninger synkroniseret på ${ms}ms`);
       if (!silent) {
-        setToast({ message: `${updated} træning${updated !== 1 ? 'er' : ''} synkroniseret ✓`, type: 'success' });
+        setToast({ message: `${updated} aktivitet${updated !== 1 ? 'er' : ''} synkroniseret ✓`, type: 'success' });
       }
     } catch (err) {
       const ms = Math.round(performance.now() - t0);
@@ -334,7 +422,7 @@ export default function Trainings() {
     if (!currentTeamId || syncing) return;
     const hsTrainings = trainings.filter(t => t.holdsport_id && t.date);
     if (hsTrainings.length === 0) {
-      setToast({ message: 'Ingen Holdsport-træninger at synkronisere', type: 'error' });
+      setToast({ message: 'Ingen Holdsport-aktiviteter at synkronisere', type: 'error' });
       return;
     }
     setSyncing(true);
@@ -411,7 +499,7 @@ export default function Trainings() {
 
     if (successCount > 0) {
       setToast({
-        message: `${successCount} træning${successCount !== 1 ? 'er' : ''} importeret ✓`,
+        message: `${successCount} aktivitet${successCount !== 1 ? 'er' : ''} importeret ✓`,
         type: 'success',
       });
     }
@@ -448,7 +536,7 @@ export default function Trainings() {
           <button
             onClick={handleSyncAll}
             disabled={syncing}
-            title="Synkroniser tilmeldte fra Holdsport for alle træninger"
+            title="Synkroniser tilmeldte fra Holdsport for alle træninger og kampe"
             style={{
               background: 'var(--bg-input)', border: '1px solid var(--border2)',
               borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: syncing ? 'default' : 'pointer',
@@ -497,11 +585,17 @@ export default function Trainings() {
             const da = a.date ?? '';
             const db = b.date ?? '';
             return sortAsc ? da.localeCompare(db) : db.localeCompare(da);
-          }).map(t => (
+          }).map(t => isTrainingKind(t) ? (
             <TrainingCard
               key={t.id}
               training={t}
               onClick={() => navigate(`/traininger/${t.id}`)}
+            />
+          ) : (
+            <EventCard
+              key={t.id}
+              event={t}
+              onClick={() => canEdit && setEventSheet({ event: t, kind: t.kind === 'tournament' ? 'tournament' : 'match' })}
             />
           ))}
         </div>
@@ -517,11 +611,53 @@ export default function Trainings() {
         />
       )}
 
-      {/* ── FAB: Ny træning ── */}
+      {/* ── Kamp-/stævne-formular ── */}
+      {eventSheet && currentTeamId && (
+        <EventSheet
+          teamId={currentTeamId}
+          event={eventSheet.event}
+          initialKind={eventSheet.kind}
+          members={teamMembers}
+          onSaved={handleEventSaved}
+          onDeleted={handleEventDeleted}
+          onClose={() => setEventSheet(null)}
+        />
+      )}
+
+      {/* ── FAB-menu: Ny træning / kamp / stævne ── */}
+      {canEdit && fabOpen && (
+        <>
+          <div onClick={() => setFabOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
+          <div style={{
+            position: 'fixed',
+            bottom: 'calc(var(--bottomnav-h) + 80px + env(safe-area-inset-bottom))',
+            right: 20, zIndex: 200,
+            background: 'var(--bg-card)', borderRadius: 12, overflow: 'hidden',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.18)', minWidth: 180,
+          }}>
+            {[
+              { label: 'Ny træning', color: 'var(--accent)', onClick: handleNew },
+              { label: 'Ny kamp', color: KIND_STYLE.match.color, onClick: () => setEventSheet({ event: null, kind: 'match' }) },
+              { label: 'Nyt stævne', color: KIND_STYLE.tournament.color, onClick: () => setEventSheet({ event: null, kind: 'tournament' }) },
+            ].map(item => (
+              <button key={item.label} onClick={() => { setFabOpen(false); item.onClick(); }} style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '12px 16px', minHeight: 44, fontSize: 15, fontWeight: 500,
+                background: 'none', border: 'none', borderBottom: '1px solid var(--border)',
+                color: 'var(--text)', cursor: 'pointer', textAlign: 'left',
+              }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       {canEdit && (
         <button
-          onClick={handleNew}
-          title="Ny træning"
+          onClick={() => setFabOpen(o => !o)}
+          title="Ny træning, kamp eller stævne"
           style={{
             position: 'fixed',
             bottom: 'calc(var(--bottomnav-h) + 16px + env(safe-area-inset-bottom))',
@@ -533,7 +669,7 @@ export default function Trainings() {
             boxShadow: '0 4px 16px rgba(200,16,46,0.35)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
-        >+</button>
+        >{fabOpen ? '×' : '+'}</button>
       )}
 
       {/* ── Toast ── */}

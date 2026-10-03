@@ -12,6 +12,8 @@ import { SectionList } from '../components/SectionList';
 import SaveTemplateModal from '../components/SaveTemplateModal';
 import AISuggestModal from '../components/AISuggestModal';
 import AISectionModal from '../components/AISectionModal';
+import { isTrainingKind } from '../lib/events';
+import { Chip, UserMultiSelect } from '../components/ui/UserMultiSelect';
 
 // ─── Status-indikator ────────────────────────────────────────────────────────
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -26,25 +28,6 @@ function SaveIndicator({ state }: { state: SaveState }) {
   };
   const { label, color } = map[state];
   return <span style={{ fontSize: 13, color, transition: 'color 0.3s' }}>{label}</span>;
-}
-
-// ─── Chip ────────────────────────────────────────────────────────────────────
-function Chip({ label, onRemove }: { label: string; onRemove?: () => void }) {
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      background: 'var(--accent-light)', color: 'var(--accent)',
-      borderRadius: 20, padding: '3px 10px', fontSize: 13, fontWeight: 500,
-    }}>
-      {label}
-      {onRemove && (
-        <button onClick={onRemove} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--accent)', padding: 0, lineHeight: 1, fontSize: 15,
-        }}>×</button>
-      )}
-    </span>
-  );
 }
 
 // ─── Label-felt wrapper ───────────────────────────────────────────────────────
@@ -97,50 +80,6 @@ function UserSelect({
         <option key={m.id} value={m.name}>{m.name}</option>
       ))}
     </select>
-  );
-}
-
-// ─── Bruger-multi-valg (chips + dropdown) ────────────────────────────────────
-function UserMultiSelect({
-  selected,
-  onChange,
-  members,
-  disabled,
-  addLabel = '+ Tilføj træner…',
-}: {
-  selected: string[];
-  onChange: (names: string[]) => void;
-  members: { id: string; name: string }[];
-  disabled?: boolean;
-  addLabel?: string;
-}) {
-  const available = members.filter(m => !selected.includes(m.name));
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {selected.map(name => (
-          <Chip
-            key={name}
-            label={name}
-            onRemove={disabled ? undefined : () => onChange(selected.filter(n => n !== name))}
-          />
-        ))}
-      </div>
-      {!disabled && available.length > 0 && (
-        <select
-          value=""
-          onChange={e => {
-            if (e.target.value) onChange([...selected, e.target.value]);
-          }}
-          style={{ ...inputStyle, color: selected.length > 0 ? 'var(--text2)' : 'var(--text)' }}
-        >
-          <option value="">{addLabel}</option>
-          {available.map(m => (
-            <option key={m.id} value={m.name}>{m.name}</option>
-          ))}
-        </select>
-      )}
-    </div>
   );
 }
 
@@ -281,7 +220,7 @@ export default function TrainingEditor() {
     today.setHours(0, 0, 0, 0);
     const allT = [...activeTrainings, ...archivedTrainings];
     const relevant = allT.filter(t => {
-      if (!t.date || !t.id || t.id === training.id) return false;
+      if (!t.date || !t.id || t.id === training.id || !isTrainingKind(t)) return false;
       if (new Date(t.date) > today) return false;
       if ((t.participant_count ?? 0) === 0) return false;
       return new Date(t.date).getDay() === trainingWeekday;
