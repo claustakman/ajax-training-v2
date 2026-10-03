@@ -43,13 +43,25 @@ export function extractAttendance(
   const out: Record<RosterField, string[]> = { trainers: [], keeper_trainers: [], youth_trainers: [] };
   let playerCount = 0;
   const users = rec.activities_users;
-  if (Array.isArray(users)) {
-    for (const u of users) {
+  // Kampe: trænere står i activities_coaches (separat fra activities_users)
+  const coaches = Array.isArray(rec.activities_coaches) ? rec.activities_coaches : [];
+  if (Array.isArray(users) || coaches.length > 0) {
+    const seen = new Set<string>();
+    for (const u of (Array.isArray(users) ? users : [])) {
       const ur = u as Record<string, unknown>;
       if (ur.status_code !== 1) continue;
-      const field = syncField.get(ur.name as string);
-      if (field) out[field].push(ur.name as string);
+      const name = ur.name as string;
+      const field = syncField.get(name);
+      if (field) { if (!seen.has(name)) out[field].push(name); seen.add(name); }
       else playerCount++;
+    }
+    for (const u of coaches) {
+      const ur = u as Record<string, unknown>;
+      const name = ur.name as string;
+      if (ur.status_code !== 1 || !name || seen.has(name) || nonSync.has(name)) continue;
+      seen.add(name);
+      // Trænere fra Holdsport uden app-bruger placeres under Trænere
+      out[syncField.get(name) ?? 'trainers'].push(name);
     }
   } else {
     // activities_users ikke tilgængeligt — brug attendance_count som-er

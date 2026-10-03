@@ -32,6 +32,11 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 - **`HoldsportImportModal.tsx`** — "Kun træninger/Vis alle" erstattet af type-chips **Træninger / Kampe / Stævner / Andet** (til/fra, med antal). Slå en type til → dens ikke-importerede aktiviteter forvælges; fra → fravælges. Kun synlige valgte importeres. Kampe/stævner får KAMP/STÆVNE-badge i listen
 - **Ekskluderet fra statistik:** `Statistik.tsx`, ugedags-gennemsnittet i `TrainingEditor.tsx` og `Archive.tsx` filtrerer med `isTrainingKind`
 
+#### Holdsport — kamp-trænere + default-fravalg
+- `extractAttendance` og `holdsport-sync.mjs` læser nu også `activities_coaches` (kampe har trænere dér, ikke i `activities_users`). Coaches matches på navn → rollens liste; coaches uden app-bruger → `trainers`. Dedup på navn; non-sync brugere springes over (bevares fra eksisterende)
+- Detalje-endpoint kan returnere array med ét objekt — `fetchHoldsportActivity` + sync-script tager `[0]`
+- `deselectByDefault()` i `HoldsportImportModal`: titler med `aflyst` (case-insensitive), `1. Division` (case-insensitive) eller ordet `HC` (case-sensitive) forvælges ikke — kan tilvælges manuelt
+
 #### Ansvarlig træner tæller som træner
 - "Øvrige trænere" omdøbt til **Trænere** — ansvarlig træner står nu også i `trainers` (eller keeper-/ungtrænerlisten efter hold-rolle)
 - `withLeadInRoster(t, members)` (`lib/holdsportAttendance.ts`) — kaldes når ansvarlig vælges i TrainingEditor + ved indlæsning (normaliserer ældre træninger i UI; gemmes ved næste redigering)

@@ -51,6 +51,12 @@ const KIND_FILTERS: { kind: ActivityKind; label: string }[] = [
   { kind: 'other', label: 'Andet' },
 ];
 
+// Fravælges som default (kan tilvælges manuelt): aflyste, 1. Division og HC-aktiviteter
+function deselectByDefault(activity: HoldsportActivity): boolean {
+  const name = activity.name || activity.title || '';
+  return /aflyst/i.test(name) || /1\.\s*division/i.test(name) || /\bHC\b/.test(name);
+}
+
 function mapActivity(
   activity: HoldsportActivity,
   teamId: string,
@@ -171,7 +177,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
         // Forvælg alle synlige aktiviteter der ikke er importeret endnu
         const preselect = new Set(
           inRange
-            .filter(a => kinds.has(activityKind(a)) && !importedIds.has(String(a.id)))
+            .filter(a => kinds.has(activityKind(a)) && !importedIds.has(String(a.id)) && !deselectByDefault(a))
             .map(a => String(a.id))
         );
         setSelected(preselect);
@@ -195,7 +201,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
     });
     // Slå en type til → vælg dens ikke-importerede aktiviteter; slå fra → fravælg dem
     const ids = activities
-      .filter(a => activityKind(a) === kind && !importedIds.has(String(a.id)))
+      .filter(a => activityKind(a) === kind && !importedIds.has(String(a.id)) && (!turningOn || !deselectByDefault(a)))
       .map(a => String(a.id));
     setSelected(prev => {
       const next = new Set(prev);

@@ -149,7 +149,9 @@ export const api = {
         headers: { 'X-Token': token, 'Accept': 'application/json' },
       });
       if (detailRes.ok) {
-        const act = await detailRes.json() as import('./types').HoldsportActivity;
+        // Holdsport returnerer nogle gange et array med ét objekt
+        const raw = await detailRes.json() as import('./types').HoldsportActivity | import('./types').HoldsportActivity[];
+        const act = Array.isArray(raw) ? raw[0] : raw;
         if (act && act.id) return act;
       }
     } catch { /* ignorer — fallback til liste */ }

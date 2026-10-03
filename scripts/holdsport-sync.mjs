@@ -102,7 +102,8 @@ async function main() {
             { headers: { 'X-Token': config.token, 'Accept': 'application/json' } }
           );
           if (detailRes.ok) {
-            const act = await detailRes.json();
+            const raw = await detailRes.json();
+            const act = Array.isArray(raw) ? raw[0] : raw;
             if (act?.id) { found = act; break; }
           }
         } catch { /* prøv næste */ }
@@ -132,12 +133,20 @@ async function main() {
       let playerCount = 0;
       const lists = { trainers: [], keeper_trainers: [], youth_trainers: [] };
 
-      if (Array.isArray(users)) {
-        for (const u of users) {
+      // Kampe: trænere står i activities_coaches (separat fra activities_users)
+      const coaches = Array.isArray(found.activities_coaches) ? found.activities_coaches : [];
+      if (Array.isArray(users) || coaches.length > 0) {
+        const seen = new Set();
+        for (const u of (Array.isArray(users) ? users : [])) {
           if (u.status_code !== 1) continue;
           const field = syncField.get(u.name);
-          if (field) lists[field].push(u.name);
+          if (field) { if (!seen.has(u.name)) lists[field].push(u.name); seen.add(u.name); }
           else playerCount++;
+        }
+        for (const u of coaches) {
+          if (u.status_code !== 1 || !u.name || seen.has(u.name) || nonSyncField.has(u.name)) continue;
+          seen.add(u.name);
+          lists[syncField.get(u.name) ?? 'trainers'].push(u.name);
         }
       } else {
         playerCount = found.attendance_count ?? found.signups_count ?? 0;
