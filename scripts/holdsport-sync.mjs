@@ -159,7 +159,23 @@ async function main() {
         }
       }
 
+      // Dato, tid og sted — Holdsport bestemmer altid (samme som extractSchedule i frontend)
+      const schedule = {};
+      if (found.starttime) {
+        const startDate = found.starttime.split('T')[0];
+        const endDate = (found.endtime ?? '').split('T')[0];
+        schedule.date = startDate;
+        if (t.kind === 'tournament') {
+          schedule.end_date = endDate && endDate > startDate ? endDate : '';
+        } else {
+          schedule.start_time = found.starttime.split('T')[1]?.slice(0, 5) ?? '';
+          if (found.endtime) schedule.end_time = found.endtime.split('T')[1]?.slice(0, 5) ?? '';
+        }
+      }
+      if (found.place || found.location) schedule.location = found.place || found.location;
+
       const patch = {
+        ...schedule,
         participant_count: playerCount > 0 ? playerCount : null,
         ...lists,
       };

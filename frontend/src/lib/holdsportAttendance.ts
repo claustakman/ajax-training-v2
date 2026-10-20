@@ -104,3 +104,29 @@ export function withLeadInRoster<T extends Partial<Training>>(t: T, members: Tea
   const field: RosterField = ROLE_FIELD[role] ?? 'trainers';
   return { ...t, [field]: [...(t[field] ?? []), lead] };
 }
+
+/**
+ * Dato, tid og sted fra Holdsport — Holdsport bestemmer altid ved sync.
+ * Træninger/kampe: date + start_time + end_time. Stævner: date + end_date (ingen tider).
+ * Felter Holdsport ikke har med, røres ikke.
+ */
+export function extractSchedule(activity: unknown, kind?: Training['kind']): Partial<Training> {
+  const rec = activity as Record<string, unknown>;
+  const start = typeof rec.starttime === 'string' ? rec.starttime : '';
+  const end = typeof rec.endtime === 'string' ? rec.endtime : '';
+  const place = (rec.place || rec.location) as string | undefined;
+  const out: Partial<Training> = {};
+  if (start) {
+    const startDate = start.split('T')[0];
+    const endDate = end.split('T')[0];
+    out.date = startDate;
+    if (kind === 'tournament') {
+      out.end_date = endDate && endDate > startDate ? endDate : '';
+    } else {
+      out.start_time = start.split('T')[1]?.slice(0, 5) ?? '';
+      if (end) out.end_time = end.split('T')[1]?.slice(0, 5) ?? '';
+    }
+  }
+  if (place) out.location = place;
+  return out;
+}

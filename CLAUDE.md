@@ -43,6 +43,12 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 - HS-badge fjernet fra **alle** kort (træninger + kampe) — vises i stedet efter titlen i headeren i `TrainingEditor` og `EventEditor`
 - TrainingEditor header: Dato | (Start | Slut) og Sted | (Antal | ↺ Opdater) bruger samme `1fr 1fr`-grid (gap 10, indre gap 8), så felterne flugter i fuld bredde. `dateTimeInputStyle` (`display: block` + `appearance: none`) — ellers ignorerer iOS `width: 100%` på date/time-inputs. `Field` har `minWidth: 0` så grid-celler kan krympe
 
+#### Holdsport-sync opdaterer også dato, tid og sted
+- `extractSchedule(activity, kind)` (`lib/holdsportAttendance.ts`) — **Holdsport bestemmer altid**: `date`, `start_time`, `end_time`, `location` overskrives ved hver sync (stævner: `date` + `end_date`, ingen tider). Felter Holdsport ikke har med, røres ikke
+- Bruges i Sync-knap + auto-sync (`Trainings.tsx`), ↺ Opdater (`TrainingEditor`, `EventEditor`) og natlig sync (`holdsport-sync.mjs`, samme logik inline). Ikke i Arkiv-sync
+- Ingen ekstra Holdsport-kald — felterne ligger i den aktivitet der allerede hentes til tilmeldinger
+- Manuelle rettelser af tid/sted i appen på HS-aktiviteter overskrives ved næste sync — ret i Holdsport
+
 #### Holdsport — kamp-trænere + default-fravalg
 - `extractAttendance` og `holdsport-sync.mjs` læser nu også `activities_coaches` (kampe har trænere dér, ikke i `activities_users`). Coaches matches på navn → rollens liste; coaches uden app-bruger → `trainers`. Dedup på navn; non-sync brugere springes over (bevares fra eksisterende)
 - Detalje-endpoint kan returnere array med ét objekt — `fetchHoldsportActivity` + sync-script tager `[0]`

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import { extractAttendance, trainerList, type TeamMember } from '../lib/holdsportAttendance';
+import { extractAttendance, extractSchedule, trainerList, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday, fmtWdayFull, durMin, totalMins } from '../lib/dateUtils';
 import HoldsportImportModal from '../components/HoldsportImportModal';
@@ -393,7 +393,7 @@ export default function Trainings() {
         }
         if (!found) continue;
 
-        const patch: Partial<Training> = extractAttendance(found, members, t);
+        const patch: Partial<Training> = { ...extractSchedule(found, t.kind), ...extractAttendance(found, members, t) };
         await api.patch(`/api/trainings/${t.id}`, patch);
         queryClient.setQueryData<Training[]>(['trainings', currentTeamId, 'active'], prev =>
           (prev ?? []).map(x => x.id === t.id ? { ...x, ...patch } : x)

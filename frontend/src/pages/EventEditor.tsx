@@ -9,7 +9,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
+import { extractAttendance, extractSchedule, type TeamMember } from '../lib/holdsportAttendance';
 import { KIND_STYLE, eventTitle, eventDays } from '../lib/events';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 import { UserMultiSelect } from '../components/ui/UserMultiSelect';
@@ -173,7 +173,7 @@ export default function EventEditor() {
         const found = await api.fetchHoldsportActivity(
           config.workerUrl, config.token, team.id, event.holdsport_id, event.date
         );
-        if (found) { update(extractAttendance(found, members, event)); break; }
+        if (found) { update({ ...extractSchedule(found, event.kind), ...extractAttendance(found, members, event) }); break; }
       }
     } catch { /* fejl ignoreres stille */ } finally {
       setHsUpdating(false);

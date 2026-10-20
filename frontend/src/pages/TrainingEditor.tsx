@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import { extractAttendance, withLeadInRoster, type TeamMember } from '../lib/holdsportAttendance';
+import { extractAttendance, extractSchedule, withLeadInRoster, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 
@@ -367,7 +367,7 @@ export default function TrainingEditor() {
       }
       if (!found) { setHsUpdating(false); return; }
 
-      update(extractAttendance(found, members, training));
+      update({ ...extractSchedule(found, training.kind), ...extractAttendance(found, members, training) });
     } catch { /* fejl ignoreres stille */ } finally {
       setHsUpdating(false);
     }
