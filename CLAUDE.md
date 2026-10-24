@@ -11,7 +11,7 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ### Session 22 — Træningsfremmøde pr. spiller (Statistik)
 - Ny sektion **"Træningsfremmøde den sidste måned"** i `Statistik.tsx` (over "Gennemsnitlig antal spillere per ugedag")
-- Undertitel: *"Antal tilmeldinger korrigeret fra fravær (= fremmøde) de sidste 30 dage · % af alle afholdte træninger i denne app, også i ferieperioden."*
+- Undertitel: *"Antal tilmeldinger korrigeret fra fravær (= fremmøde) de sidste 30 dage · % af alle afholdte træninger i denne app, også når spilleren er på ferie. Bemærk Holdsport regner % anderledes ud."*
 - **Periode:** afholdte træninger (`isPast` + `isTrainingKind`) med `holdsport_id` fra i dag og 30 dage tilbage (`ATTENDANCE_DAYS`), inkl. dagens træning
 - **Ingen spillerdata gemmes i appen** — hentes live fra Holdsport ved visning: `fetchPlayerAttendance()` henter detalje-endpoint for alle træninger parallelt (React Query `['player-attendance', teamId, ids]`, `staleTime: 10 min`, `retry: false`)
 - **`extractPlayerNames(activity, members)`** (`lib/holdsportAttendance.ts`) → `{ attended, roster }`:

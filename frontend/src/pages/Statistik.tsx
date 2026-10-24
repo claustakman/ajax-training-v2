@@ -294,7 +294,7 @@ export default function Statistik() {
           ) : (
             <>
               <p style={{ fontSize: 12, color: 'var(--text3)', margin: '-8px 0 12px' }}>
-                Antal tilmeldinger korrigeret fra fravær (= fremmøde) de sidste {ATTENDANCE_DAYS} dage · % af alle afholdte træninger i denne app, også i ferieperioden.
+                Antal tilmeldinger korrigeret fra fravær (= fremmøde) de sidste {ATTENDANCE_DAYS} dage · % af alle afholdte træninger i denne app, også når spilleren er på ferie. Bemærk Holdsport regner % anderledes ud.
               </p>
               <AttendanceChart rows={attendanceRows} total={attendance.totalTrainings} />
             </>
