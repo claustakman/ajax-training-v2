@@ -7,7 +7,16 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–21)
+## Hvad er bygget (Sessions 1–22)
+
+### Session 22 — Træningsfremmøde pr. spiller (Statistik)
+- Ny sektion **"Træningsfremmøde den sidste måned"** i `Statistik.tsx` (over "Spillere per ugedag") — horisontale søjler sorteret faldende, `Fornavn E.` (fuldt navn ved kollision, fuldt navn i tooltip), `N/M` + `%`
+- **Ingen spillerdata gemmes i appen** — hentes live fra Holdsport ved visning (`fetchPlayerAttendance()`, React Query `staleTime: 10 min`): HS-træninger (`isTrainingKind`) de sidste 30 dage → detalje-endpoint parallelt → `extractPlayerNames()` (`lib/holdsportAttendance.ts`)
+- Tilmeldt (`status_code=1`) == mødt op — trænerne justerer tilmeldinger i Holdsport når der føres fravær
+- Alle med trænerrolle på holdet frasorteres (uanset `holdsport_sync`). 100% = antal træninger hvor tilmeldinger kunne hentes
+- Kun trainer+ (kræver `/api/holdsport/config`)
+- Holdsports `attendance_statistics`-side (cookie-baseret HTML) bruges **ikke** — API'et har ingen separat fremmøde-felt, men tilmeldinger afspejler fremmøde
+
 
 ### Session 21 — Kampe og stævner i træningsoversigten
 

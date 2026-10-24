@@ -130,3 +130,20 @@ export function extractSchedule(activity: unknown, kind?: Training['kind']): Par
   if (place) out.location = place;
   return out;
 }
+
+/**
+ * Navne på tilmeldte spillere (status_code=1) — alle med en trænerrolle på holdet frasorteres
+ * (uanset holdsport_sync). Bruges til fremmødestatistik pr. spiller.
+ */
+export function extractPlayerNames(activity: unknown, members: TeamMember[]): string[] {
+  const users = (activity as Record<string, unknown>).activities_users;
+  if (!Array.isArray(users)) return [];
+  const staff = new Set(members.filter(m => ROLE_FIELD[m.team_role]).map(m => m.name));
+  const names = new Set<string>();
+  for (const u of users) {
+    const ur = u as Record<string, unknown>;
+    const name = typeof ur.name === 'string' ? ur.name.trim() : '';
+    if (ur.status_code === 1 && name && !staff.has(name)) names.add(name);
+  }
+  return [...names];
+}

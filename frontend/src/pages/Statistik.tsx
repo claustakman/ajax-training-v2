@@ -1,10 +1,11 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '../lib/auth';
+import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training, Exercise } from '../lib/types';
 import { isTrainingKind } from '../lib/events';
-import { trainerList } from '../lib/holdsportAttendance';
+import { trainerList, extractPlayerNames } from '../lib/holdsportAttendance';
+import type { TeamMember } from '../lib/holdsportAttendance';
 
 const WEEKDAY_ORDER = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
 
@@ -20,8 +21,53 @@ function isPast(dateStr: string): boolean {
   return new Date(dateStr) <= today;
 }
 
+const ATTENDANCE_DAYS = 30;
+
+// "Mads Holm Hansen" → "Mads H."
+function shortName(full: string): string {
+  const parts = full.trim().split(/\s+/);
+  return parts.length < 2 ? full : `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
+
+interface PlayerAttendance {
+  totalTrainings: number;  // HS-træninger hvor tilmeldinger kunne hentes
+  players: { name: string; count: number }[];
+}
+
+// Henter tilmeldinger live fra Holdsport for den sidste måneds træninger og tæller pr. spiller
+async function fetchPlayerAttendance(teamId: string, trainings: Training[]): Promise<PlayerAttendance> {
+  const [config, members] = await Promise.all([
+    api.fetchHoldsportConfig(teamId),
+    api.get<TeamMember[]>(`/api/users/team-members?team_id=${teamId}`),
+  ]);
+  const hsTeams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
+
+  const results = await Promise.all(trainings.map(async t => {
+    for (const team of hsTeams) {
+      try {
+        const act = await api.fetchHoldsportActivity(config.workerUrl, config.token, team.id, t.holdsport_id!, t.date!);
+        if (act && Array.isArray((act as Record<string, unknown>).activities_users)) return extractPlayerNames(act, members);
+      } catch { /* prøv næste hold */ }
+    }
+    return null;
+  }));
+
+  const counts = new Map<string, number>();
+  let totalTrainings = 0;
+  for (const names of results) {
+    if (!names) continue;
+    totalTrainings++;
+    for (const n of names) counts.set(n, (counts.get(n) ?? 0) + 1);
+  }
+  const players = [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'da'));
+  return { totalTrainings, players };
+}
+
 export default function Statistik() {
-  const { currentTeamId } = useAuth();
+  const { user, currentTeamId, currentTeamRole } = useAuth();
+  const canSeeAttendance = hasRole(user, 'trainer', currentTeamRole);
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [tagFilterOpen, setTagFilterOpen] = useState(false);
 
@@ -51,6 +97,32 @@ export default function Statistik() {
     () => [...activeTrainings, ...archivedTrainings].filter(t => t.date && isPast(t.date) && isTrainingKind(t)),
     [activeTrainings, archivedTrainings]
   );
+
+  // Træninger fra Holdsport inden for den sidste måned
+  const recentHsTrainings = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setDate(cutoff.getDate() - ATTENDANCE_DAYS);
+    return allTrainings
+      .filter(t => t.holdsport_id && new Date(t.date!) >= cutoff)
+      .sort((a, b) => a.date!.localeCompare(b.date!));
+  }, [allTrainings]);
+
+  const { data: attendance, isLoading: loadingAttendance, isError: attendanceError } = useQuery({
+    queryKey: ['player-attendance', currentTeamId, recentHsTrainings.map(t => t.id).join(',')],
+    queryFn: () => fetchPlayerAttendance(currentTeamId!, recentHsTrainings),
+    enabled: !!currentTeamId && canSeeAttendance && recentHsTrainings.length > 0,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+
+  // Fornavn + forbogstav i efternavn — fuldt navn hvis to spillere ville få samme forkortelse
+  const attendanceRows = useMemo(() => {
+    const players = attendance?.players ?? [];
+    const shortCount = new Map<string, number>();
+    for (const p of players) shortCount.set(shortName(p.name), (shortCount.get(shortName(p.name)) ?? 0) + 1);
+    return players.map(p => ({ ...p, label: shortCount.get(shortName(p.name))! > 1 ? p.name : shortName(p.name) }));
+  }, [attendance]);
 
   const exerciseMap = useMemo(() => {
     const m = new Map<string, Exercise>();
@@ -199,6 +271,38 @@ export default function Statistik() {
           <StatCard label="Trænere pr. træning (gns.)" value={avgTrainers.toFixed(1)} />
         </div>
       </div>
+
+      {/* ── Træningsfremmøde sidste måned ───────────────────────────────────── */}
+      {canSeeAttendance && (
+        <Section title="Træningsfremmøde den sidste måned">
+          {recentHsTrainings.length === 0 ? (
+            <Empty text="Ingen Holdsport-træninger den sidste måned" />
+          ) : loadingAttendance ? (
+            [1, 2, 3, 4].map(i => (
+              <div key={i} className="skeleton" style={{ height: 18, marginBottom: 8, width: `${90 - i * 12}%` }} />
+            ))
+          ) : attendanceError || !attendance ? (
+            <Empty text="Kunne ikke hente tilmeldinger fra Holdsport" />
+          ) : attendanceRows.length === 0 ? (
+            <Empty text="Ingen tilmeldte spillere fundet" />
+          ) : (
+            <>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '-8px 0 12px' }}>
+                Tilmeldt i Holdsport · {attendance.totalTrainings} træning{attendance.totalTrainings !== 1 ? 'er' : ''} de sidste {ATTENDANCE_DAYS} dage
+              </p>
+              {attendanceRows.map(p => (
+                <AttendanceBar
+                  key={p.name}
+                  label={p.label}
+                  title={p.name}
+                  count={p.count}
+                  total={attendance.totalTrainings}
+                />
+              ))}
+            </>
+          )}
+        </Section>
+      )}
 
       {/* ── Spillere per ugedag ─────────────────────────────────────────────── */}
       <Section title="Gennemsnitlig antal spillere per ugedag">
@@ -399,6 +503,24 @@ function Bar({ label, count, max, color }: { label: string; count: number; max: 
       </div>
       <div style={{ width: 28, fontSize: 13, fontWeight: 600, color: 'var(--text)', textAlign: 'right', flexShrink: 0 }}>
         {count}
+      </div>
+    </div>
+  );
+}
+
+function AttendanceBar({ label, title, count, total }: { label: string; title: string; count: number; total: number }) {
+  const share = total > 0 ? count / total : 0;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      <div style={{ width: 110, fontSize: 13, color: 'var(--text)', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={title}>
+        {label}
+      </div>
+      <div style={{ flex: 1, background: 'var(--bg-input)', borderRadius: 4, height: 18, overflow: 'hidden' }}>
+        <div style={{ width: `${Math.max(4, Math.round(share * 100))}%`, background: 'var(--green)', height: '100%', borderRadius: 4, transition: 'width 0.3s ease' }} />
+      </div>
+      <div style={{ width: 76, fontSize: 13, color: 'var(--text)', textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
+        <span style={{ fontWeight: 600 }}>{count}/{total}</span>
+        <span style={{ color: 'var(--text3)', marginLeft: 6 }}>{Math.round(share * 100)}%</span>
       </div>
     </div>
   );
