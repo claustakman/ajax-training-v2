@@ -14,6 +14,7 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 - **Ingen spillerdata gemmes i appen** — hentes live fra Holdsport ved visning (`fetchPlayerAttendance()`, React Query `staleTime: 10 min`): HS-træninger (`isTrainingKind`) de sidste 30 dage → detalje-endpoint parallelt → `extractPlayerNames()` (`lib/holdsportAttendance.ts`)
 - Tilmeldt (`status_code=1`) == mødt op — trænerne justerer tilmeldinger i Holdsport når der føres fravær
 - Alle med trænerrolle på holdet frasorteres (uanset `holdsport_sync`). 100% = antal træninger hvor tilmeldinger kunne hentes
+- `AttendanceChart`: søjlelængde = antal tilmeldinger; rød stiplet lodret markør "N afholdt" = antal afholdte HS-træninger i perioden (akse-max = total × 1.15). % er altid af **alle** afholdte træninger — i modsætning til Holdsports egen statistik, der udelader træninger hvor spilleren er på ferie
 - Kun trainer+ (kræver `/api/holdsport/config`)
 - Holdsports `attendance_statistics`-side (cookie-baseret HTML) bruges **ikke** — API'et har ingen separat fremmøde-felt, men tilmeldinger afspejler fremmøde
 

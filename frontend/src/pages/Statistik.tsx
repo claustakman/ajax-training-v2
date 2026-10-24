@@ -288,17 +288,9 @@ export default function Statistik() {
           ) : (
             <>
               <p style={{ fontSize: 12, color: 'var(--text3)', margin: '-8px 0 12px' }}>
-                Tilmeldt i Holdsport · {attendance.totalTrainings} træning{attendance.totalTrainings !== 1 ? 'er' : ''} de sidste {ATTENDANCE_DAYS} dage
+                Antal tilmeldinger (= fremmøde) de sidste {ATTENDANCE_DAYS} dage · % af alle afholdte træninger
               </p>
-              {attendanceRows.map(p => (
-                <AttendanceBar
-                  key={p.name}
-                  label={p.label}
-                  title={p.name}
-                  count={p.count}
-                  total={attendance.totalTrainings}
-                />
-              ))}
+              <AttendanceChart rows={attendanceRows} total={attendance.totalTrainings} />
             </>
           )}
         </Section>
@@ -508,20 +500,41 @@ function Bar({ label, count, max, color }: { label: string; count: number; max: 
   );
 }
 
-function AttendanceBar({ label, title, count, total }: { label: string; title: string; count: number; total: number }) {
-  const share = total > 0 ? count / total : 0;
+// Fremmøde pr. spiller — lodret markør viser antal afholdte træninger i perioden
+function AttendanceChart({ rows, total }: { rows: { name: string; label: string; count: number }[]; total: number }) {
+  const LABEL_W = 110, VALUE_W = 76, GAP = 10;
+  // Lidt luft efter markøren så den ikke flugter med kanten
+  const max = Math.max(total, ...rows.map(r => r.count), 1) * 1.15;
+  const markerPct = (total / max) * 100;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-      <div style={{ width: 110, fontSize: 13, color: 'var(--text)', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={title}>
-        {label}
+    <div style={{ position: 'relative', paddingTop: 20 }}>
+      {/* Markør: spænder over søjleområdet */}
+      <div style={{ position: 'absolute', top: 0, bottom: 8, left: LABEL_W + GAP, right: VALUE_W + GAP, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', left: `${markerPct}%`, top: 16, bottom: 0, borderLeft: '2px dashed var(--accent)' }} />
+        <div style={{
+          position: 'absolute', left: `${markerPct}%`, top: 0, transform: 'translateX(-50%)',
+          fontSize: 11, fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap',
+        }}>
+          {total} afholdt
+        </div>
       </div>
-      <div style={{ flex: 1, background: 'var(--bg-input)', borderRadius: 4, height: 18, overflow: 'hidden' }}>
-        <div style={{ width: `${Math.max(4, Math.round(share * 100))}%`, background: 'var(--green)', height: '100%', borderRadius: 4, transition: 'width 0.3s ease' }} />
-      </div>
-      <div style={{ width: 76, fontSize: 13, color: 'var(--text)', textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
-        <span style={{ fontWeight: 600 }}>{count}/{total}</span>
-        <span style={{ color: 'var(--text3)', marginLeft: 6 }}>{Math.round(share * 100)}%</span>
-      </div>
+      {rows.map(r => {
+        const share = total > 0 ? r.count / total : 0;
+        return (
+          <div key={r.name} style={{ display: 'flex', alignItems: 'center', gap: GAP, marginBottom: 8 }}>
+            <div style={{ width: LABEL_W, fontSize: 13, color: 'var(--text)', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>
+              {r.label}
+            </div>
+            <div style={{ flex: 1, height: 18 }}>
+              <div style={{ width: `${Math.max(2, (r.count / max) * 100)}%`, background: 'var(--green)', height: '100%', borderRadius: 4, transition: 'width 0.3s ease' }} />
+            </div>
+            <div style={{ width: VALUE_W, fontSize: 13, color: 'var(--text)', textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 600 }}>{r.count}</span>
+              <span style={{ color: 'var(--text3)', marginLeft: 6 }}>{Math.round(share * 100)}%</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
