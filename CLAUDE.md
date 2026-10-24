@@ -266,7 +266,7 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 1. Counters
 2. Træningsfremmøde den sidste måned (grøn, trainer+ — se Session 22)
 3. Gennemsnitlig antal spillere per ugedag (blå)
-4. Spillere til træning over tid (tidsserie)
+4. Spillere til træning de sidste 3 måneder (tidsserie)
 5. Gennemsnitlig antal trænere per ugedag (lilla)
 6. Ansvarlig træner (rød)
 7. Temaer (blå)
@@ -1388,7 +1388,7 @@ CREATE TABLE templates (
 - **Histogrammer og grafer** (sektionsrækkefølge):
   0. *Træningsfremmøde den sidste måned* (grøn, `AttendanceChart`, trainer+) — tilmeldinger pr. spiller live fra Holdsport, lodret markør = afholdte træninger, zebra-striber, spillere med 0 vises (se Session 22)
   1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun dage med deltagerdata
-  2. *Spillere til træning over tid* — SVG tidsserie (`PlayerChart`): blå linje + gradient-fyldt areal + stiplet gennemsnits-linje + hover-tooltip
+  2. *Spillere til træning de sidste 3 måneder* (`TIME_SERIES_MONTHS`; gennemsnitslinjen beregnes kun over perioden) — SVG tidsserie (`PlayerChart`): blå linje + gradient-fyldt areal + stiplet gennemsnits-linje + hover-tooltip
   3. *Gennemsnitlig antal trænere per ugedag* (lilla, BarFloat) — kun ugedage med træninger, subtitle viser træningsantal
   4. *Ansvarlig træner* (rød, Bar) — antal gange som `lead_trainer`
   5. *Temaer* (blå, Bar) — hyppighed af alle `themes`-værdier

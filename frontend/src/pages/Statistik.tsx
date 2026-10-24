@@ -22,6 +22,7 @@ function isPast(dateStr: string): boolean {
 }
 
 const ATTENDANCE_DAYS = 30;
+const TIME_SERIES_MONTHS = 3;
 
 // "Mads Holm Hansen" → "Mads H."
 function shortName(full: string): string {
@@ -157,10 +158,13 @@ export default function Statistik() {
     return sum / withData.length;
   }, [allTrainings]);
 
-  // Tidsserie: træninger med deltagertal, sorteret kronologisk
+  // Tidsserie: kun de sidste 3 måneder
   const playerTimeSeries = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setMonth(cutoff.getMonth() - TIME_SERIES_MONTHS);
     return allTrainings
-      .filter(t => t.date && (t.participant_count ?? 0) > 0)
+      .filter(t => t.date && (t.participant_count ?? 0) > 0 && new Date(t.date) >= cutoff)
       .sort((a, b) => a.date!.localeCompare(b.date!))
       .map(t => ({ date: t.date!, count: t.participant_count! }));
   }, [allTrainings]);
@@ -317,11 +321,11 @@ export default function Statistik() {
       </Section>
 
       {/* ── Tidsserie: spillere ─────────────────────────────────────────────── */}
-      <Section title="Spillere til træning over tid">
+      <Section title="Spillere til træning de sidste 3 måneder">
         {playerTimeSeries.length < 2 ? (
           <Empty text="Ikke nok data til at vise tidsserie — synkronisér træningerne med Holdsport" />
         ) : (
-          <PlayerChart data={playerTimeSeries} avg={avgPlayers ?? 0} />
+          <PlayerChart data={playerTimeSeries} avg={playerTimeSeries.reduce((a, p) => a + p.count, 0) / playerTimeSeries.length} />
         )}
       </Section>
 
