@@ -288,7 +288,7 @@ export default function Statistik() {
           ) : (
             <>
               <p style={{ fontSize: 12, color: 'var(--text3)', margin: '-8px 0 12px' }}>
-                Antal tilmeldinger (= fremmøde) de sidste {ATTENDANCE_DAYS} dage · % af alle afholdte træninger
+                Antal tilmeldinger korrigeret fra fravær (= fremmøde) de sidste {ATTENDANCE_DAYS} dage · % af alle afholdte træninger
               </p>
               <AttendanceChart rows={attendanceRows} total={attendance.totalTrainings} />
             </>
