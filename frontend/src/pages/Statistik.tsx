@@ -509,7 +509,7 @@ function AttendanceChart({ rows, total }: { rows: { name: string; label: string;
   return (
     <div style={{ position: 'relative', paddingTop: 20 }}>
       {/* Markør: spænder over søjleområdet */}
-      <div style={{ position: 'absolute', top: 0, bottom: 8, left: LABEL_W + GAP, right: VALUE_W + GAP, pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: 0, bottom: 0, left: LABEL_W + GAP, right: VALUE_W + GAP, pointerEvents: 'none', zIndex: 1 }}>
         <div style={{ position: 'absolute', left: `${markerPct}%`, top: 16, bottom: 0, borderLeft: '2px dashed var(--accent)' }} />
         <div style={{
           position: 'absolute', left: `${markerPct}%`, top: 0, transform: 'translateX(-50%)',
@@ -518,10 +518,15 @@ function AttendanceChart({ rows, total }: { rows: { name: string; label: string;
           {total} afholdt
         </div>
       </div>
-      {rows.map(r => {
+      {rows.map((r, i) => {
         const share = total > 0 ? r.count / total : 0;
         return (
-          <div key={r.name} style={{ display: 'flex', alignItems: 'center', gap: GAP, marginBottom: 8 }}>
+          // Zebra-striber: hver anden række får svag baggrund så linjerne er lette at følge
+          <div key={r.name} style={{
+            display: 'flex', alignItems: 'center', gap: GAP,
+            padding: '4px 6px', margin: '0 -6px', borderRadius: 6,
+            background: i % 2 === 1 ? 'var(--bg-input)' : 'transparent',
+          }}>
             <div style={{ width: LABEL_W, fontSize: 13, color: 'var(--text)', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>
               {r.label}
             </div>
