@@ -132,18 +132,27 @@ export function extractSchedule(activity: unknown, kind?: Training['kind']): Par
 }
 
 /**
- * Navne på tilmeldte spillere (status_code=1) — alle med en trænerrolle på holdet frasorteres
- * (uanset holdsport_sync). Bruges til fremmødestatistik pr. spiller.
+ * Spillere på en Holdsport-aktivitet — alle med en trænerrolle på holdet frasorteres (uanset holdsport_sync).
+ * - attended: tilmeldt (status_code=1) — trænerne retter tilmeldinger ved fravær, så tilmeldt == mødt op
+ * - roster: alle spillere på aktiviteten uanset status (inkl. no_rsvp) — så spillere med 0 fremmøde også kendes
  */
-export function extractPlayerNames(activity: unknown, members: TeamMember[]): string[] {
-  const users = (activity as Record<string, unknown>).activities_users;
-  if (!Array.isArray(users)) return [];
+export function extractPlayerNames(activity: unknown, members: TeamMember[]): { attended: string[]; roster: string[] } {
+  const rec = activity as Record<string, unknown>;
   const staff = new Set(members.filter(m => ROLE_FIELD[m.team_role]).map(m => m.name));
-  const names = new Set<string>();
-  for (const u of users) {
-    const ur = u as Record<string, unknown>;
-    const name = typeof ur.name === 'string' ? ur.name.trim() : '';
-    if (ur.status_code === 1 && name && !staff.has(name)) names.add(name);
+  const attended = new Set<string>();
+  const roster = new Set<string>();
+  const nameOf = (u: unknown) =>
+    (typeof u === 'string' ? u : typeof (u as Record<string, unknown>)?.name === 'string' ? (u as Record<string, string>).name : '').trim();
+
+  for (const u of Array.isArray(rec.activities_users) ? rec.activities_users : []) {
+    const name = nameOf(u);
+    if (!name || staff.has(name)) continue;
+    roster.add(name);
+    if ((u as Record<string, unknown>).status_code === 1) attended.add(name);
   }
-  return [...names];
+  for (const u of Array.isArray(rec.no_rsvp) ? rec.no_rsvp : []) {
+    const name = nameOf(u);
+    if (name && !staff.has(name)) roster.add(name);
+  }
+  return { attended: [...attended], roster: [...roster] };
 }

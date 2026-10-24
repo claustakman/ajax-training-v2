@@ -10,14 +10,25 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 ## Hvad er bygget (Sessions 1–22)
 
 ### Session 22 — Træningsfremmøde pr. spiller (Statistik)
-- Ny sektion **"Træningsfremmøde den sidste måned"** i `Statistik.tsx` (over "Spillere per ugedag") — horisontale søjler sorteret faldende, `Fornavn E.` (fuldt navn ved kollision, fuldt navn i tooltip), `N/M` + `%`
-- **Ingen spillerdata gemmes i appen** — hentes live fra Holdsport ved visning (`fetchPlayerAttendance()`, React Query `staleTime: 10 min`): HS-træninger (`isTrainingKind`) de sidste 30 dage → detalje-endpoint parallelt → `extractPlayerNames()` (`lib/holdsportAttendance.ts`)
-- Tilmeldt (`status_code=1`) == mødt op — trænerne justerer tilmeldinger i Holdsport når der føres fravær
-- Alle med trænerrolle på holdet frasorteres (uanset `holdsport_sync`). 100% = antal træninger hvor tilmeldinger kunne hentes
-- `AttendanceChart`: søjlelængde = antal tilmeldinger; rød stiplet lodret markør "N afholdt" = antal afholdte HS-træninger i perioden (akse-max = total × 1.15). % er altid af **alle** afholdte træninger — i modsætning til Holdsports egen statistik, der udelader træninger hvor spilleren er på ferie
-- Kun trainer+ (kræver `/api/holdsport/config`)
-- Holdsports `attendance_statistics`-side (cookie-baseret HTML) bruges **ikke** — API'et har ingen separat fremmøde-felt, men tilmeldinger afspejler fremmøde
+- Ny sektion **"Træningsfremmøde den sidste måned"** i `Statistik.tsx` (over "Gennemsnitlig antal spillere per ugedag")
+- Undertitel: *"Antal tilmeldinger korrigeret fra fravær (= fremmøde) de sidste 30 dage · % af alle afholdte træninger"*
+- **Periode:** afholdte træninger (`isPast` + `isTrainingKind`) med `holdsport_id` fra i dag og 30 dage tilbage (`ATTENDANCE_DAYS`), inkl. dagens træning
+- **Ingen spillerdata gemmes i appen** — hentes live fra Holdsport ved visning: `fetchPlayerAttendance()` henter detalje-endpoint for alle træninger parallelt (React Query `['player-attendance', teamId, ids]`, `staleTime: 10 min`, `retry: false`)
+- **`extractPlayerNames(activity, members)`** (`lib/holdsportAttendance.ts`) → `{ attended, roster }`:
+  - `attended` = `activities_users` med `status_code=1` — trænerne retter tilmeldinger i Holdsport ved fravær, så **tilmeldt == mødt op**
+  - `roster` = alle spillere på aktiviteten uanset status + `no_rsvp` → spillere med **0 fremmøde vises også**
+  - Alle med trænerrolle på holdet frasorteres (uanset `holdsport_sync`)
+- **`AttendanceChart`** (i `Statistik.tsx`):
+  - Sorteret faldende (fremmøde, derefter navn). Label `Fornavn E.` via `shortName()` — fuldt navn ved kollision; fuldt navn i tooltip
+  - Søjlelængde = antal tilmeldinger (0 → ingen søjle); højre kolonne: antal + `%`
+  - Rød stiplet lodret markør **"N afholdt"** = antal afholdte HS-træninger i perioden. Akse-max = `total × 1.15` så markøren ikke flugter med kanten. Markør har `zIndex: 1` (ellers dækkes den af zebra-baggrund)
+  - Zebra-striber: hver anden række `background: var(--bg-input)`; ingen grå track bag søjlerne
+- **% er altid af alle afholdte træninger** — i modsætning til Holdsports egen statistik, som udelader træninger hvor spilleren er registreret på ferie. 100% = antal træninger hvor tilmeldinger kunne hentes
+- Kun synlig for trainer+ (kræver `/api/holdsport/config`); skeleton mens data hentes, fejltekst hvis Holdsport ikke svarer
 
+#### Gotchas
+- Holdsports `attendance_statistics`-side (cookie-baseret HTML, `POST /activity_search_filters/:id`) bruges **ikke** — kræver web-session, returnerer HTML og har CORS kun til holdsport.dk. Holdsport-API'et har ingen separat fremmøde-felt, men tilmeldinger afspejler fremmøde
+- Første visning laver ét Holdsport-kald pr. træning (× antal HS-hold ved fallback) — tager et par sekunder
 
 ### Session 21 — Kampe og stævner i træningsoversigten
 
@@ -253,12 +264,13 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 
 #### Sektionsrækkefølge
 1. Counters
-2. Gennemsnitlig antal spillere per ugedag (blå)
-3. Spillere til træning over tid (tidsserie)
-4. Gennemsnitlig antal trænere per ugedag (lilla)
-5. Ansvarlig træner (rød)
-6. Temaer (blå)
-7. Mest anvendte øvelser — top 20 (grøn)
+2. Træningsfremmøde den sidste måned (grøn, trainer+ — se Session 22)
+3. Gennemsnitlig antal spillere per ugedag (blå)
+4. Spillere til træning over tid (tidsserie)
+5. Gennemsnitlig antal trænere per ugedag (lilla)
+6. Ansvarlig træner (rød)
+7. Temaer (blå)
+8. Mest anvendte øvelser — top 20 (grøn)
 
 #### Histogrammer (søjlediagrammer med relativ bredde)
 | Histogram | Farve | Beskrivelse |
@@ -794,7 +806,7 @@ ajax-traening-v2/
 │   │   │   ├── auth.tsx        # AuthContext, useAuth(), hasRole(), ROLE_LABELS
 │   │   │   ├── types.ts        # Delte TypeScript-typer: Training, Section, SectionExercise, Template, Exercise, SectionType, BoardPost, BoardComment, BoardAttachment, HoldsportActivity
 │   │   │   ├── dateUtils.ts    # fmtDay, fmtMon, fmtWday, fmtWdayFull, fmtDateLong, durMin, totalMins
-│   │   │   ├── holdsportAttendance.ts # extractAttendance, trainerList, withLeadInRoster — delt Holdsport-tilmeldingslogik
+│   │   │   ├── holdsportAttendance.ts # extractAttendance, extractPlayerNames, trainerList, withLeadInRoster, extractSchedule — delt Holdsport-tilmeldingslogik
 │   │   │   └── events.ts       # Kampe/stævner: isTrainingKind, KIND_STYLE, activityKind, parseMatchTeams, eventTitle, eventDays
 │   │   ├── components/
 │   │   │   ├── Layout.tsx           # Nav shell: topbar + bundnav + hamburger-menu + hold-switcher
@@ -1374,6 +1386,7 @@ CREATE TABLE templates (
 - **Counters** (3 StatCard — 2 rækker): Træninger i alt (fuld bredde) · Spillere pr. træning gns. · Trænere pr. træning gns. (`trainerList()` inkl. ansvarlig + keeper- og ungtrænere)
   - `avgPlayers` viser `–` hvis ingen træninger har `participant_count > 0`
 - **Histogrammer og grafer** (sektionsrækkefølge):
+  0. *Træningsfremmøde den sidste måned* (grøn, `AttendanceChart`, trainer+) — tilmeldinger pr. spiller live fra Holdsport, lodret markør = afholdte træninger, zebra-striber, spillere med 0 vises (se Session 22)
   1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun dage med deltagerdata
   2. *Spillere til træning over tid* — SVG tidsserie (`PlayerChart`): blå linje + gradient-fyldt areal + stiplet gennemsnits-linje + hover-tooltip
   3. *Gennemsnitlig antal trænere per ugedag* (lilla, BarFloat) — kun ugedage med træninger, subtitle viser træningsantal

@@ -52,12 +52,14 @@ async function fetchPlayerAttendance(teamId: string, trainings: Training[]): Pro
     return null;
   }));
 
+  // Alle spillere der optræder på en aktivitet i perioden starter på 0 — så 0 fremmøde også vises
   const counts = new Map<string, number>();
   let totalTrainings = 0;
-  for (const names of results) {
-    if (!names) continue;
+  for (const res of results) {
+    if (!res) continue;
     totalTrainings++;
-    for (const n of names) counts.set(n, (counts.get(n) ?? 0) + 1);
+    for (const n of res.roster) if (!counts.has(n)) counts.set(n, 0);
+    for (const n of res.attended) counts.set(n, (counts.get(n) ?? 0) + 1);
   }
   const players = [...counts.entries()]
     .map(([name, count]) => ({ name, count }))
@@ -531,7 +533,7 @@ function AttendanceChart({ rows, total }: { rows: { name: string; label: string;
               {r.label}
             </div>
             <div style={{ flex: 1, height: 18 }}>
-              <div style={{ width: `${Math.max(2, (r.count / max) * 100)}%`, background: 'var(--green)', height: '100%', borderRadius: 4, transition: 'width 0.3s ease' }} />
+              <div style={{ width: r.count > 0 ? `${Math.max(2, (r.count / max) * 100)}%` : 0, background: 'var(--green)', height: '100%', borderRadius: 4, transition: 'width 0.3s ease' }} />
             </div>
             <div style={{ width: VALUE_W, fontSize: 13, color: 'var(--text)', textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
               <span style={{ fontWeight: 600 }}>{r.count}</span>
