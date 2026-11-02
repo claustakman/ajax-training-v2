@@ -23,7 +23,7 @@ function isPast(dateStr: string): boolean {
 
 const ATTENDANCE_DAYS = 30;
 const TIME_SERIES_MONTHS = 3;
-const WEEKDAY_AVG_WEEKS = 5;
+const RECENT_WEEKS = 5;
 
 // "Mads Holm Hansen" → "Mads H."
 function shortName(full: string): string {
@@ -144,20 +144,28 @@ export default function Statistik() {
 
   const totalCount = allTrainings.length;
 
+  // Afholdte træninger de sidste 5 rullende uger — bruges til gennemsnit for spillere/trænere
+  const recentTrainings = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setDate(cutoff.getDate() - RECENT_WEEKS * 7);
+    return allTrainings.filter(t => new Date(t.date!) >= cutoff);
+  }, [allTrainings]);
+
   const avgTrainers = useMemo(() => {
-    if (totalCount === 0) return 0;
+    if (recentTrainings.length === 0) return null;
     // Inkl. ansvarlig, keeper- og ungtrænere
-    const sum = allTrainings.reduce((acc, t) =>
+    const sum = recentTrainings.reduce((acc, t) =>
       acc + trainerList(t).length + (t.keeper_trainers?.length ?? 0) + (t.youth_trainers?.length ?? 0), 0);
-    return sum / totalCount;
-  }, [allTrainings, totalCount]);
+    return sum / recentTrainings.length;
+  }, [recentTrainings]);
 
   const avgPlayers = useMemo(() => {
-    const withData = allTrainings.filter(t => (t.participant_count ?? 0) > 0);
+    const withData = recentTrainings.filter(t => (t.participant_count ?? 0) > 0);
     if (withData.length === 0) return null;
     const sum = withData.reduce((acc, t) => acc + (t.participant_count ?? 0), 0);
     return sum / withData.length;
-  }, [allTrainings]);
+  }, [recentTrainings]);
 
   // Tidsserie: kun de sidste 3 måneder
   const playerTimeSeries = useMemo(() => {
@@ -172,13 +180,10 @@ export default function Statistik() {
 
   // Gennemsnitlig antal spillere per ugedag — kun de sidste 5 rullende uger
   const playersByWeekday = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setHours(0, 0, 0, 0);
-    cutoff.setDate(cutoff.getDate() - WEEKDAY_AVG_WEEKS * 7);
     const sums: Record<string, number> = {};
     const counts: Record<string, number> = {};
-    for (const t of allTrainings) {
-      if (!t.date || !((t.participant_count ?? 0) > 0) || new Date(t.date) < cutoff) continue;
+    for (const t of recentTrainings) {
+      if (!t.date || !((t.participant_count ?? 0) > 0)) continue;
       const day = getWeekday(t.date);
       sums[day] = (sums[day] ?? 0) + (t.participant_count ?? 0);
       counts[day] = (counts[day] ?? 0) + 1;
@@ -186,7 +191,7 @@ export default function Statistik() {
     return WEEKDAY_ORDER
       .filter(day => counts[day] > 0)
       .map(day => ({ day, avg: sums[day] / counts[day], count: counts[day] }));
-  }, [allTrainings]);
+  }, [recentTrainings]);
 
   // Gennemsnitlig antal trænere per ugedag
   const trainersByWeekday = useMemo(() => {
@@ -277,8 +282,8 @@ export default function Statistik() {
         <StatCard label="Træninger i alt" value={totalCount} fullWidth />
         {/* Række 2: de to gennemsnit side om side */}
         <div style={{ display: 'flex', gap: 12 }}>
-          <StatCard label="Spillere pr. træning (gns.)" value={avgPlayers !== null ? avgPlayers.toFixed(1) : '–'} />
-          <StatCard label="Trænere pr. træning (gns.)" value={avgTrainers.toFixed(1)} />
+          <StatCard label={`Spillere pr. træning (gns., seneste ${RECENT_WEEKS} uger)`} value={avgPlayers !== null ? avgPlayers.toFixed(1) : '–'} />
+          <StatCard label={`Trænere pr. træning (gns., seneste ${RECENT_WEEKS} uger)`} value={avgTrainers !== null ? avgTrainers.toFixed(1) : '–'} />
         </div>
       </div>
 
@@ -309,10 +314,10 @@ export default function Statistik() {
       {/* ── Spillere per ugedag ─────────────────────────────────────────────── */}
       <Section title="Gennemsnitlig antal spillere per ugedag">
         <p style={{ fontSize: 12, color: 'var(--text3)', margin: '-8px 0 12px' }}>
-          De sidste {WEEKDAY_AVG_WEEKS} uger
+          De sidste {RECENT_WEEKS} uger
         </p>
         {playersByWeekday.length === 0 ? (
-          <Empty text={`Ingen spillerdata de sidste ${WEEKDAY_AVG_WEEKS} uger — synkronisér træningerne med Holdsport`} />
+          <Empty text={`Ingen spillerdata de sidste ${RECENT_WEEKS} uger — synkronisér træningerne med Holdsport`} />
         ) : (
           playersByWeekday.map(({ day, avg, count }) => (
             <BarFloat

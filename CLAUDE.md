@@ -1383,11 +1383,11 @@ CREATE TABLE templates (
 - Tilgængelig for alle roller — menupunkt i hamburger under Arkiv
 - Henter aktive + arkiverede træninger og øvelseskatalog via React Query
 - **Kun afholdte træninger** — `isPast(date)` + `isTrainingKind()` filter (kampe/stævner tæller aldrig med); subtitle "Kun afholdte træninger" under overskriften
-- **Counters** (3 StatCard — 2 rækker): Træninger i alt (fuld bredde) · Spillere pr. træning gns. · Trænere pr. træning gns. (`trainerList()` inkl. ansvarlig + keeper- og ungtrænere)
+- **Counters** (3 StatCard — 2 rækker): Træninger i alt (fuld bredde, alle afholdte) · Spillere pr. træning gns. · Trænere pr. træning gns. (`trainerList()` inkl. ansvarlig + keeper- og ungtrænere) — de to gennemsnit beregnes kun over de sidste 5 rullende uger (`recentTrainings`, `RECENT_WEEKS`)
   - `avgPlayers` viser `–` hvis ingen træninger har `participant_count > 0`
 - **Histogrammer og grafer** (sektionsrækkefølge):
   0. *Træningsfremmøde den sidste måned* (grøn, `AttendanceChart`, trainer+) — tilmeldinger pr. spiller live fra Holdsport, lodret markør = afholdte træninger, zebra-striber, spillere med 0 vises (se Session 22)
-  1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun de sidste 5 rullende uger (`WEEKDAY_AVG_WEEKS`, 35 dage tilbage inkl. i dag) og kun dage med deltagerdata
+  1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun de sidste 5 rullende uger (`RECENT_WEEKS`, 35 dage tilbage inkl. i dag) og kun dage med deltagerdata
   2. *Spillere til træning de sidste 3 måneder* (`TIME_SERIES_MONTHS`; gennemsnitslinjen beregnes kun over perioden) — SVG tidsserie (`PlayerChart`): blå linje + gradient-fyldt areal + stiplet gennemsnits-linje + hover-tooltip
   3. *Gennemsnitlig antal trænere per ugedag* (lilla, BarFloat) — kun ugedage med træninger, subtitle viser træningsantal
   4. *Ansvarlig træner* (rød, Bar) — antal gange som `lead_trainer`
