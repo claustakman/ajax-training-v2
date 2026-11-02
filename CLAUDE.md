@@ -1302,7 +1302,7 @@ CREATE TABLE templates (
 - Auto-gem med debounce 1200ms — `SaveIndicator` viser Gemmer…/✓ Gemt/✗ Fejl
 - Collapsible header-kort med ▾/▴ toggle. Titel (fx "Fredag 9. okt 2026") + HS-badge hvis `holdsport_id`:
   - Dato | (Start | Slut) og Sted | (Antal spillere | ↺ Opdater) i samme `1fr 1fr`-grid så felterne flugter
-  - Under "Antal spillere": grå hjælpetekst med statistisk gennemsnit for ugedagen — fx `Gns. på onsdag: 18.4 spillere (12 træninger)`. Beregnes fra afholdte træninger med deltagerdata på samme ugedag. Vises ikke hvis ingen data.
+  - Under "Antal spillere": grå hjælpetekst med gennemsnit for ugedagen — fx `Gns. på onsdag (5 uger): 18.4 spillere (5 træninger)`. Rullende 5 uger: afholdte træninger med deltagerdata på samme ugedag i de 35 dage op til og med træningens egen dato. Vises ikke hvis ingen data.
   - Ansvarlig (`UserSelect` — dropdown, alle holdmedlemmer), **Trænere** (`UserMultiSelect` — chips + dropdown, ekskl. keeper-/ungtrænere). Ansvarlig tilføjes automatisk til Trænere (eller keeper-/ungtrænerlisten efter rolle) via `withLeadInRoster()`
   - Keepertrænere / Ungtrænere (`UserMultiSelect`) — vises kun hvis holdet har brugere med rollen
   - Temaer (fra årshjulet — dropdown + Chip-komponenter)
@@ -1389,10 +1389,10 @@ CREATE TABLE templates (
   0. *Træningsfremmøde den sidste måned* (grøn, `AttendanceChart`, trainer+) — tilmeldinger pr. spiller live fra Holdsport, lodret markør = afholdte træninger, zebra-striber, spillere med 0 vises (se Session 22)
   1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun de sidste 5 rullende uger (`RECENT_WEEKS`, 35 dage tilbage inkl. i dag) og kun dage med deltagerdata
   2. *Spillere til træning de sidste 3 måneder* (`TIME_SERIES_MONTHS`; gennemsnitslinjen beregnes kun over perioden) — SVG tidsserie (`PlayerChart`): blå linje + gradient-fyldt areal + stiplet gennemsnits-linje + hover-tooltip
-  3. *Gennemsnitlig antal trænere per ugedag* (lilla, BarFloat) — kun ugedage med træninger, subtitle viser træningsantal
-  4. *Ansvarlig træner* (rød, Bar) — antal gange som `lead_trainer`
-  5. *Temaer* (blå, Bar) — hyppighed af alle `themes`-værdier
-  6. *Mest anvendte øvelser — top 20* (grøn, Bar) — katalogøvelser (fri øvelser springes over)
+  3. *Temaer* (blå, Bar) — hyppighed af alle `themes`-værdier
+  4. *Mest anvendte øvelser — top 20* (grøn, Bar) — katalogøvelser (fri øvelser springes over)
+  5. *Ansvarlig træner* (rød, Bar) — antal gange som `lead_trainer` (nederst)
+- "Gennemsnitlig antal trænere per ugedag" er fjernet
 - **Tag-filter** på øvelseshistogram: collapsed som default, toggle-knap med rød badge for aktive filtre, AND-logik
 - Ugedag-beregning: `(d.getDay() + 6) % 7` konverterer JS `getDay()` (0=søndag) til mandag=0
 - `PlayerChart` — ren SVG, ingen biblioteker. Tooltip flipper til venstre-anker ved x > 65% af container.

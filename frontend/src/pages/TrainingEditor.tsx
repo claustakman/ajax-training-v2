@@ -225,10 +225,14 @@ export default function TrainingEditor() {
     const trainingWeekday = new Date(training.date).getDay(); // 0=søndag
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    // Rullende 5 uger op til træningens egen dato
+    const windowStart = new Date(training.date);
+    windowStart.setDate(windowStart.getDate() - 35);
     const allT = [...activeTrainings, ...archivedTrainings];
     const relevant = allT.filter(t => {
       if (!t.date || !t.id || t.id === training.id || !isTrainingKind(t)) return false;
       if (new Date(t.date) > today) return false;
+      if (new Date(t.date) < windowStart || t.date > training.date!) return false;
       if ((t.participant_count ?? 0) === 0) return false;
       return new Date(t.date).getDay() === trainingWeekday;
     });
@@ -674,7 +678,7 @@ export default function TrainingEditor() {
                   )}
                   {weekdayAvgPlayers && (
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
-                      Gns. på {weekdayAvgPlayers.weekday.toLowerCase()}: {weekdayAvgPlayers.avg.toFixed(1)} spillere ({weekdayAvgPlayers.count} træning{weekdayAvgPlayers.count !== 1 ? 'er' : ''})
+                      Gns. på {weekdayAvgPlayers.weekday.toLowerCase()} (5 uger): {weekdayAvgPlayers.avg.toFixed(1)} spillere ({weekdayAvgPlayers.count} træning{weekdayAvgPlayers.count !== 1 ? 'er' : ''})
                     </div>
                   )}
                 </Field>

@@ -193,23 +193,6 @@ export default function Statistik() {
       .map(day => ({ day, avg: sums[day] / counts[day], count: counts[day] }));
   }, [recentTrainings]);
 
-  // Gennemsnitlig antal trænere per ugedag
-  const trainersByWeekday = useMemo(() => {
-    const sums: Record<string, number> = {};
-    const counts: Record<string, number> = {};
-    for (const t of allTrainings) {
-      if (!t.date) continue;
-      const day = getWeekday(t.date);
-      // Inkl. keeper- og ungtrænere
-      const n = trainerList(t).length + (t.keeper_trainers?.length ?? 0) + (t.youth_trainers?.length ?? 0);
-      sums[day] = (sums[day] ?? 0) + n;
-      counts[day] = (counts[day] ?? 0) + 1;
-    }
-    return WEEKDAY_ORDER
-      .filter(day => counts[day] > 0)
-      .map(day => ({ day, avg: sums[day] / counts[day], count: counts[day] }));
-  }, [allTrainings]);
-
   const leadTrainerCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const t of allTrainings) {
@@ -249,7 +232,6 @@ export default function Statistik() {
   }, [allTrainings, exerciseMap, tagFilter]);
 
   const maxPlayers = Math.max(...playersByWeekday.map(r => r.avg), 1);
-  const maxWeekday = Math.max(...trainersByWeekday.map(r => r.avg), 1);
   const maxLead = leadTrainerCounts[0]?.[1] ?? 1;
   const maxTheme = themeCounts[0]?.[1] ?? 1;
   const maxExercise = exerciseCounts[0]?.[1] ?? 1;
@@ -338,35 +320,6 @@ export default function Statistik() {
           <Empty text="Ikke nok data til at vise tidsserie — synkronisér træningerne med Holdsport" />
         ) : (
           <PlayerChart data={playerTimeSeries} avg={playerTimeSeries.reduce((a, p) => a + p.count, 0) / playerTimeSeries.length} />
-        )}
-      </Section>
-
-      {/* ── Trænere per ugedag ──────────────────────────────────────────────── */}
-      <Section title="Gennemsnitlig antal trænere per ugedag">
-        {trainersByWeekday.length === 0 ? (
-          <Empty text="Ingen træninger med dato registreret" />
-        ) : (
-          trainersByWeekday.map(({ day, avg, count }) => (
-            <BarFloat
-              key={day}
-              label={day}
-              value={avg}
-              max={maxWeekday}
-              subtitle={`${count} træning${count !== 1 ? 'er' : ''}`}
-              color="var(--purple)"
-            />
-          ))
-        )}
-      </Section>
-
-      {/* ── Ansvarlig træner ────────────────────────────────────────────────── */}
-      <Section title="Ansvarlig træner">
-        {leadTrainerCounts.length === 0 ? (
-          <Empty text="Ingen data — sæt ansvarlig træner på træningerne" />
-        ) : (
-          leadTrainerCounts.map(([name, count]) => (
-            <Bar key={name} label={name} count={count} max={maxLead} color="var(--accent)" />
-          ))
         )}
       </Section>
 
@@ -463,6 +416,17 @@ export default function Statistik() {
               />
             );
           })
+        )}
+      </Section>
+
+      {/* ── Ansvarlig træner ────────────────────────────────────────────────── */}
+      <Section title="Ansvarlig træner">
+        {leadTrainerCounts.length === 0 ? (
+          <Empty text="Ingen data — sæt ansvarlig træner på træningerne" />
+        ) : (
+          leadTrainerCounts.map(([name, count]) => (
+            <Bar key={name} label={name} count={count} max={maxLead} color="var(--accent)" />
+          ))
         )}
       </Section>
     </div>
