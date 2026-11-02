@@ -23,6 +23,7 @@ function isPast(dateStr: string): boolean {
 
 const ATTENDANCE_DAYS = 30;
 const TIME_SERIES_MONTHS = 3;
+const WEEKDAY_AVG_WEEKS = 5;
 
 // "Mads Holm Hansen" → "Mads H."
 function shortName(full: string): string {
@@ -169,12 +170,15 @@ export default function Statistik() {
       .map(t => ({ date: t.date!, count: t.participant_count! }));
   }, [allTrainings]);
 
-  // Gennemsnitlig antal spillere per ugedag
+  // Gennemsnitlig antal spillere per ugedag — kun de sidste 5 rullende uger
   const playersByWeekday = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setDate(cutoff.getDate() - WEEKDAY_AVG_WEEKS * 7);
     const sums: Record<string, number> = {};
     const counts: Record<string, number> = {};
     for (const t of allTrainings) {
-      if (!t.date || !((t.participant_count ?? 0) > 0)) continue;
+      if (!t.date || !((t.participant_count ?? 0) > 0) || new Date(t.date) < cutoff) continue;
       const day = getWeekday(t.date);
       sums[day] = (sums[day] ?? 0) + (t.participant_count ?? 0);
       counts[day] = (counts[day] ?? 0) + 1;
@@ -304,8 +308,11 @@ export default function Statistik() {
 
       {/* ── Spillere per ugedag ─────────────────────────────────────────────── */}
       <Section title="Gennemsnitlig antal spillere per ugedag">
+        <p style={{ fontSize: 12, color: 'var(--text3)', margin: '-8px 0 12px' }}>
+          De sidste {WEEKDAY_AVG_WEEKS} uger
+        </p>
         {playersByWeekday.length === 0 ? (
-          <Empty text="Ingen spillerdata — synkronisér træningerne med Holdsport" />
+          <Empty text={`Ingen spillerdata de sidste ${WEEKDAY_AVG_WEEKS} uger — synkronisér træningerne med Holdsport`} />
         ) : (
           playersByWeekday.map(({ day, avg, count }) => (
             <BarFloat

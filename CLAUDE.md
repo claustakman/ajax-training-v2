@@ -1387,7 +1387,7 @@ CREATE TABLE templates (
   - `avgPlayers` viser `–` hvis ingen træninger har `participant_count > 0`
 - **Histogrammer og grafer** (sektionsrækkefølge):
   0. *Træningsfremmøde den sidste måned* (grøn, `AttendanceChart`, trainer+) — tilmeldinger pr. spiller live fra Holdsport, lodret markør = afholdte træninger, zebra-striber, spillere med 0 vises (se Session 22)
-  1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun dage med deltagerdata
+  1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun de sidste 5 rullende uger (`WEEKDAY_AVG_WEEKS`, 35 dage tilbage inkl. i dag) og kun dage med deltagerdata
   2. *Spillere til træning de sidste 3 måneder* (`TIME_SERIES_MONTHS`; gennemsnitslinjen beregnes kun over perioden) — SVG tidsserie (`PlayerChart`): blå linje + gradient-fyldt areal + stiplet gennemsnits-linje + hover-tooltip
   3. *Gennemsnitlig antal trænere per ugedag* (lilla, BarFloat) — kun ugedage med træninger, subtitle viser træningsantal
   4. *Ansvarlig træner* (rød, Bar) — antal gange som `lead_trainer`
