@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import { extractAttendance, extractSchedule, withLeadInRoster, type TeamMember } from '../lib/holdsportAttendance';
+import { extractAttendance, extractSchedule, withLeadInRoster, GUEST_TRAINER, type TeamMember } from '../lib/holdsportAttendance';
 import type { Training } from '../lib/types';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 
@@ -61,7 +61,7 @@ const textareaStyle: React.CSSProperties = {
 };
 
 // ─── Bruger-dropdown ──────────────────────────────────────────────────────────
-// Viser en <select> med holdets brugere. Returnerer valgt name (ikke id).
+// Viser en <select> med holdets brugere + "Gæstetræner". Returnerer valgt name (ikke id).
 function UserSelect({
   value,
   onChange,
@@ -86,6 +86,11 @@ function UserSelect({
       {members.map(m => (
         <option key={m.id} value={m.name}>{m.name}</option>
       ))}
+      {/* Ansvarlig der ikke længere er på holdet (fx stoppet træner) — vis navnet i stedet for tomt felt */}
+      {value && value !== GUEST_TRAINER && !members.some(m => m.name === value) && (
+        <option value={value}>{value}</option>
+      )}
+      <option value={GUEST_TRAINER}>{GUEST_TRAINER}</option>
     </select>
   );
 }

@@ -9,6 +9,11 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ## Hvad er bygget (Sessions 1–22)
 
+### Session 23 — Gæstetræner som ansvarlig
+- "Ansvarlig"-dropdown i `TrainingEditor` har altid valget **Gæstetræner** (`GUEST_TRAINER` i `lib/holdsportAttendance.ts`) — gemmes som `lead_trainer = 'Gæstetræner'` og tælles derfor automatisk i Statistik ("Ansvarlig træner") og som træner via `trainerList()`
+- Hvis ansvarlig ikke længere er på holdet (slettet/fjernet træner), vises navnet stadig i dropdownen i stedet for et tomt felt
+- Sletning af en bruger rører ikke træninger — navne gemmes som tekst, så ansvarlig-statistik bevares. Men Holdsport-sync (knap, natlig, Sync arkiv) klassificerer en slettet træner som spiller fremover
+
 ### Session 22 — Træningsfremmøde pr. spiller (Statistik)
 - Ny sektion **"Træningsfremmøde den sidste måned"** i `Statistik.tsx` (over "Gennemsnitlig antal spillere per ugedag")
 - Undertitel: *"Antal tilmeldinger korrigeret fra fravær (= fremmøde) de sidste 30 dage · % af alle afholdte træninger i denne app, også når spilleren er på ferie. Bemærk Holdsport regner % anderledes ud."*

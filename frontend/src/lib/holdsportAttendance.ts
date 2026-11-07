@@ -81,6 +81,9 @@ export function extractAttendance(
   };
 }
 
+/** Ansvarlig træner udefra (ikke bruger i appen) — tælles som ansvarlig + træner i statistik. */
+export const GUEST_TRAINER = 'Gæstetræner';
+
 /**
  * Trænerliste inkl. ansvarlig træner — ansvarlig tæller altid som træner.
  * Ældre træninger kan have lead_trainer uden at personen står i trainers; tilføjes her
