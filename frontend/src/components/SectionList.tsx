@@ -1208,7 +1208,25 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
                         {blkMins} min
                       </span>
                       {canEdit && (
-                        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#60a5fa' }}>✏️ Rediger</span>
+                        <>
+                          <span style={{ marginLeft: 'auto', fontSize: 11, color: '#60a5fa' }}>✏️ Rediger</span>
+                          <button
+                            title="Slet stationsblok"
+                            onClick={e => {
+                              e.stopPropagation();
+                              const newExs = exList.map(ex => ex.block === blockId
+                                ? { ...ex, block: undefined, fixed: undefined, who: undefined }
+                                : ex
+                              );
+                              const updated = normalizeBlocks({ ...section, exercises: newExs, blocks: { ...(section.blocks ?? {}) } });
+                              onUpdate({ exercises: updated.exercises, blocks: updated.blocks });
+                            }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              padding: '0 2px', fontSize: 14, color: '#93c5fd', lineHeight: 1,
+                            }}
+                          >×</button>
+                        </>
                       )}
                     </div>
 
@@ -1278,8 +1296,24 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
           exercises={exercises}
           alreadyAdded={alreadyAddedIds}
           onPick={ex => {
-            if (pendingBlockId) {
-              // Tilføj øvelse direkte til blokken
+            if (pendingBlockId && pendingBlockConfig) {
+              // Tilføj øvelse til blokken — skriv nu blokken til section.blocks
+              const usedMins = exList.reduce((s, e) => s + (e.mins || 0), 0);
+              const remaining = section.mins - usedMins;
+              const isFree = !ex.id;
+              const newEx: SectionExercise = {
+                id: isFree ? undefined : ex.id,
+                customName: isFree ? ex.name : undefined,
+                mins: ex.default_mins ?? Math.max(1, Math.min(remaining, 10)),
+                done: false,
+                block: pendingBlockId,
+              };
+              const newBlocks = { ...(section.blocks ?? {}), [pendingBlockId]: pendingBlockConfig };
+              onUpdate({ exercises: [...exList, newEx], blocks: newBlocks });
+              setPendingBlockId(null);
+              setPendingBlockConfig(null);
+            } else if (pendingBlockId && !pendingBlockConfig) {
+              // Tilføj øvelse til eksisterende blok (ingen pendingConfig)
               const usedMins = exList.reduce((s, e) => s + (e.mins || 0), 0);
               const remaining = section.mins - usedMins;
               const isFree = !ex.id;
@@ -1292,13 +1326,24 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
               };
               onUpdate({ exercises: [...exList, newEx] });
               setPendingBlockId(null);
-              setPendingBlockConfig(null);
             } else {
               addExercise(ex);
             }
             setShowPicker(false);
           }}
-          onClose={() => { setShowPicker(false); setPendingBlockId(null); setPendingBlockConfig(null); }}
+          onClose={() => {
+            setShowPicker(false);
+            if (pendingBlockConfig) {
+              // Ny blok — kassér den (ingen øvelse valgt, blokken er ikke skrevet til section.blocks)
+              setPendingBlockId(null);
+              setPendingBlockConfig(null);
+            } else {
+              // Eksisterende blok — ryd blot pendingBlockId
+              setPendingBlockId(null);
+              const updated = normalizeBlocks(section);
+              if (updated.blocks !== section.blocks) onUpdate({ blocks: updated.blocks });
+            }
+          }}
         />
       )}
 
@@ -1330,9 +1375,8 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
         <StationBlockModal
           block={pendingBlockConfig}
           onSave={patch => {
-            // Gem blokken i section.blocks og åbn picker
-            const newBlocks = { ...(section.blocks ?? {}), [pendingBlockId]: patch };
-            onUpdate({ blocks: newBlocks });
+            // Gem kun i pendingBlockConfig — skriv IKKE til section.blocks endnu.
+            // Blokken skrives til section.blocks først når en øvelse vælges i onPick.
             setPendingBlockConfig(patch);
             setShowPicker(true);
           }}
@@ -1341,10 +1385,9 @@ function SectionBlock({ section, sectionType, sectionIndex, exercises, canEdit, 
             setPendingBlockConfig(null);
           }}
           onClose={() => {
-            // Gem blokken med nuværende config og åbn picker
-            const newBlocks = { ...(section.blocks ?? {}), [pendingBlockId]: pendingBlockConfig };
-            onUpdate({ blocks: newBlocks });
-            setShowPicker(true);
+            // Luk uden at gemme — kassér den ventende blok
+            setPendingBlockId(null);
+            setPendingBlockConfig(null);
           }}
         />
       )}
