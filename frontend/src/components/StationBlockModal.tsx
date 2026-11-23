@@ -29,7 +29,6 @@ export default function StationBlockModal({
 
   function handleSave() {
     onSave({ rotate, mins });
-    onClose();
   }
 
   return (
