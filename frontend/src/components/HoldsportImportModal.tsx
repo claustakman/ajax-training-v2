@@ -1,12 +1,12 @@
 /**
  * HoldsportImportModal — to-trins import af aktiviteter fra Holdsport.
  * Trin 1: Vælg datoperiode.
- * Trin 2: Vælg aktiviteter (træninger, kampe, stævner) fra listen og importer.
+ * Trin 2: Vælg aktiviteter (træninger, kampe) fra listen og importer. Stævner importeres ikke.
  */
 
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { extractAttendance, type TeamMember } from '../lib/holdsportAttendance';
+import { extractAttendance, extractMatchPlayers, type TeamMember } from '../lib/holdsportAttendance';
 import type { HoldsportActivity, Training } from '../lib/types';
 import { fmtDay, fmtMon, fmtWday } from '../lib/dateUtils';
 import { activityKind, parseMatchTeams, KIND_STYLE, type ActivityKind } from '../lib/events';
@@ -21,6 +21,13 @@ function addDays(dateStr: string, days: number) {
   const d = new Date(dateStr);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+// Seneste 1. maj (i år hvis vi er forbi maj, ellers sidste år) — sæsonstart til engangsimport af kampe
+function lastMayFirst() {
+  const now = new Date();
+  const year = now.getMonth() >= 4 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${year}-05-01`;
 }
 
 function endOfSeason() {
@@ -47,7 +54,6 @@ function fmtTimeRange(starttime?: string, endtime?: string): string {
 const KIND_FILTERS: { kind: ActivityKind; label: string }[] = [
   { kind: 'training', label: 'Træninger' },
   { kind: 'match', label: 'Kampe' },
-  { kind: 'tournament', label: 'Stævner' },
   { kind: 'other', label: 'Andet' },
 ];
 
@@ -64,22 +70,17 @@ function mapActivity(
 ): Partial<Training> {
   const kind = activityKind(activity);
   const name = activity.name || activity.title || '';
+  // Kampe: hold fra navnet + udtagne (Tilmeldt) og oversiddere (Til rådighed)
   const eventFields: Partial<Training> =
-    kind === 'match' ? (() => { const { home, away } = parseMatchTeams(name); return { kind, home_team: home, away_team: away }; })()
-    : kind === 'tournament' ? (() => {
-        // Stævner: kun start-/slutdato, ingen tider
-        const start = activity.starttime?.split('T')[0];
-        const end = activity.endtime?.split('T')[0];
-        return { kind, title: name, end_date: end && start && end > start ? end : undefined };
-      })()
-    : {};
-  const withTimes = kind !== 'tournament';
+    kind === 'match'
+      ? { kind, ...(({ home, away }) => ({ home_team: home, away_team: away }))(parseMatchTeams(name)), ...extractMatchPlayers(activity, members) }
+      : {};
   return {
     team_id: teamId,
     ...eventFields,
     date: activity.starttime?.split('T')[0],
-    start_time: withTimes ? activity.starttime?.split('T')[1]?.slice(0, 5) : undefined,
-    end_time: withTimes ? activity.endtime?.split('T')[1]?.slice(0, 5) : undefined,
+    start_time: activity.starttime?.split('T')[1]?.slice(0, 5),
+    end_time: activity.endtime?.split('T')[1]?.slice(0, 5),
     location: activity.place || activity.location || undefined,
     ...extractAttendance(activity, members),
     holdsport_id: String(activity.id),
@@ -131,13 +132,16 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
   const [hsConfig, setHsConfig] = useState<{ workerUrl: string; token: string } | null>(null);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [kinds, setKinds] = useState<Set<ActivityKind>>(new Set(['training', 'match', 'tournament']));
+  const [kinds, setKinds] = useState<Set<ActivityKind>>(new Set(['training', 'match']));
   const [importing, setImporting] = useState(false);
+  // holdsport_id'er på arkiverede aktiviteter — så arkiverede kampe ikke importeres igen
+  const [archivedIds, setArchivedIds] = useState<string[]>([]);
 
-  // Allerede importerede holdsport_id'er
-  const importedIds = new Set(
-    existingTrainings.map(t => t.holdsport_id).filter(Boolean) as string[]
-  );
+  // Allerede importerede holdsport_id'er (aktive + arkiverede)
+  const importedIds = new Set([
+    ...existingTrainings.map(t => t.holdsport_id).filter(Boolean) as string[],
+    ...archivedIds,
+  ]);
 
   // Hent aktiviteter når step skifter til 'activities'
   // Flow: hent config + team-members parallelt → kald Holdsport-worker direkte fra browser
@@ -149,10 +153,14 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
     (async () => {
       try {
         // 1. Hent credentials og app-brugere parallelt
-        const [config, members] = await Promise.all([
+        const [config, members, archived] = await Promise.all([
           api.fetchHoldsportConfig(teamId),
           api.get<TeamMember[]>(`/api/users/team-members?team_id=${teamId}`),
+          api.fetchTrainings(teamId, 1).catch(() => [] as Training[]),
         ]);
+        const archivedHs = archived.map(t => t.holdsport_id).filter(Boolean) as string[];
+        setArchivedIds(archivedHs);
+        const alreadyImported = new Set([...importedIds, ...archivedHs]);
 
         setTeamMembers(members);
         setHsConfig(config);
@@ -173,9 +181,10 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
         }
 
         // Filtrer på perioden — Holdsport-API'et respekterer ikke altid 'to'-parameteren
+        // Stævner importeres ikke
         const inRange = all.filter(a => {
           const d = a.starttime?.split('T')[0];
-          if (!d) return false;
+          if (!d || activityKind(a) === 'tournament') return false;
           return d >= from && d <= to;
         });
 
@@ -183,7 +192,7 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
         // Forvælg alle synlige aktiviteter der ikke er importeret endnu
         const preselect = new Set(
           inRange
-            .filter(a => kinds.has(activityKind(a)) && !importedIds.has(String(a.id)) && !deselectByDefault(a))
+            .filter(a => kinds.has(activityKind(a)) && !alreadyImported.has(String(a.id)) && !deselectByDefault(a))
             .map(a => String(a.id))
         );
         setSelected(preselect);
@@ -321,6 +330,23 @@ export default function HoldsportImportModal({ teamId, existingTrainings, onImpo
                   color: 'var(--text2)', cursor: 'pointer',
                 }}>Resten af sæsonen</button>
               </div>
+
+              {/* Engangsimport: alle kampe fra sæsonstart til i dag */}
+              <button onClick={() => {
+                setFrom(lastMayFirst());
+                setTo(today);
+                setKinds(new Set(['match']));
+                setStep('activities');
+              }} style={{
+                padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, textAlign: 'left',
+                background: KIND_STYLE.match.light, border: `1px solid ${KIND_STYLE.match.color}`,
+                color: KIND_STYLE.match.color, cursor: 'pointer',
+              }}>
+                ⚽ Kampe siden 1. maj til i dag
+                <div style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 400, marginTop: 2 }}>
+                  Henter spillede kampe med udtagne og oversiddere — arkivér dem selv bagefter
+                </div>
+              </button>
             </div>
           )}
 

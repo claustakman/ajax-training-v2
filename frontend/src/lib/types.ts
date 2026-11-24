@@ -18,6 +18,8 @@ export interface Training {
   trainers: string[]
   keeper_trainers?: string[]   // Keepertrænere — tælles ikke med i spillere eller trænere
   youth_trainers?: string[]    // Ungtrænere — tælles ikke med i spillere eller trænere
+  selected_players?: string[]  // Kun kampe: Holdsport-status Tilmeldt (udtaget)
+  bench_players?: string[]     // Kun kampe: Holdsport-status Til rådighed (oversidder)
   themes: string[]
   focus_points?: string
   notes?: string

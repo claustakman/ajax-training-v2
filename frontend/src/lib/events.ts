@@ -29,12 +29,14 @@ export function activityKind(activity: Record<string, unknown>): ActivityKind {
 /**
  * "Kamp: Ajax København 2 - Holte 2" → { home: 'Ajax København 2', away: 'Holte 2' }
  * "FHH90 - Ajax 2 (Træningskamp i Fløng)" → { home: 'FHH90', away: 'Ajax 2' }
+ * "Ajax København:1 - Hvidovre IF:2" → { home: 'Ajax København:1', away: 'Hvidovre IF:2' }
  */
 export function parseMatchTeams(name: string): { home: string; away: string } {
   let s = name.trim().replace(/\s*\([^)]*\)\s*$/, '');
-  const colon = s.indexOf(':');
-  const dash = s.indexOf(' - ');
-  if (colon >= 0 && (dash < 0 || colon < dash)) s = s.slice(colon + 1).trim();
+  // Prefix som "Kamp: " / "Niveaustævne A: " — kun når kolon efterfølges af mellemrum,
+  // så "Ajax København:1 - Hvidovre IF:2" (holdnummer efter kolon) ikke beskæres
+  const prefix = s.match(/^[^-]*?:\s+/);
+  if (prefix && (s.indexOf(' - ') < 0 || prefix[0].length <= s.indexOf(' - '))) s = s.slice(prefix[0].length).trim();
   const idx = s.indexOf(' - ');
   if (idx < 0) return { home: s, away: '' };
   return { home: s.slice(0, idx).trim(), away: s.slice(idx + 3).trim() };
@@ -53,4 +55,16 @@ export function eventTitle(t: Pick<Training, 'kind' | 'home_team' | 'away_team' 
     if (parts.length) return parts.join(' - ');
   }
   return t.title || (t.kind === 'tournament' ? 'Stævne' : 'Kamp');
+}
+
+/**
+ * Kamphold (Ajax 1/2/3) ud fra holdnavnet på Ajax-siden af kampen.
+ * "Ajax København" / "Ajax København:1" / "Ajax København 1" → "Ajax 1"; "Ajax København 2" / "Ajax 2" → "Ajax 2".
+ * null hvis ingen af holdene indeholder "Ajax".
+ */
+export function matchTeam(t: Pick<Training, 'home_team' | 'away_team'>): string | null {
+  const side = [t.home_team, t.away_team].find(s => s && /\bajax\b/i.test(s));
+  if (!side) return null;
+  const m = side.trim().match(/[\s:](\d+)$/);
+  return `Ajax ${m ? m[1] : '1'}`;
 }

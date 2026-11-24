@@ -7,7 +7,49 @@ App til planlægning af håndboldtræninger for Ajax håndbold — multiple hold
 
 ---
 
-## Hvad er bygget (Sessions 1–22)
+## Hvad er bygget (Sessions 1–24)
+
+### Session 24 — Kampstatistik: Statistik udvælgelse + Kamparkiv
+Til at vælge hvem der skal spille og hvem der skal sidde over.
+
+#### Datamodel
+- **Migration** `0017_match_players.sql`: `trainings.selected_players` + `trainings.bench_players` (JSON, default `'[]'`) — kun kampe
+- Holdsport `status_code`: **1=Tilmeldt → udtaget** (`selected_players`), **3=Til rådighed → oversidder** (`bench_players`), 2=Afmeldt, 4=Udvalgt, 5=Ukendt (verificeret mod rigtige kampe)
+- Spillernavne **gemmes** for kampe (i modsætning til træningsfremmøde, der hentes live) — arkiv + mange kampe gør live-hentning upraktisk
+- **Auto-sletning af kampe/stævner er fjernet** fra `GET /api/trainings`. Kampe bliver i oversigten til de arkiveres manuelt
+
+#### Holdsport
+- `extractMatchPlayers(activity, members)` (`lib/holdsportAttendance.ts`) — trænere (trænerrolle eller i `activities_coaches`) frasorteres. Returnerer `{}` hvis `activities_users` mangler
+- `extractActivityPatch(activity, members, existing)` = `extractAttendance` + (kun `kind='match'`) `extractMatchPlayers`. Bruges af Sync-knap/auto-sync (`Trainings.tsx`) og ↺ Opdater (`EventEditor`). `holdsport-sync.mjs` har samme logik inline
+- **Stævner importeres ikke længere** — Stævner-chippen er fjernet i `HoldsportImportModal`, og stævne-aktiviteter filtreres fra listen
+- Import-modalen: knappen **"⚽ Kampe siden 1. maj til i dag"** (engangsimport) — sætter periode fra seneste 1. maj til i dag, kun Kampe. Importeres som **aktive** (ikke arkiverede) — træneren arkiverer selv
+- Arkiverede aktiviteter tæller som "Allerede importeret" (modalen henter `archived=1`)
+- `fetchHoldsportActivitiesForTeam` pagerer (`page=2…`, maks. 10 sider) — Holdsport returnerer maks. 100 pr. side
+- Detalje-endpointet `/teams/:id/activities/:aid` svarer "Ukendt endpoint" på den nuværende worker → fallback til liste-endpoint (som har `activities_users`)
+
+#### Kamphold (Ajax 1/2/3)
+- `matchTeam(t)` (`lib/events.ts`) — fra Ajax-siden af kampnavnet: `"Ajax København"`/`"Ajax København:1"`/`"Ajax København 1"` → Ajax 1, `"Ajax København 2"`/`"Ajax 2"` → Ajax 2. Ingen konfiguration
+- `parseMatchTeams` fix: prefix (`"Kamp: "`, `"Niveaustævne A: "`) strippes kun når kolon efterfølges af mellemrum — ellers blev `"Ajax København:1 - Hvidovre IF:2"` til `"1 - Hvidovre IF:2"`
+
+#### UI
+- **EventEditor** (kun kampe): 🗄️ Arkiv / ↩ Gendan-knap i toolbar. Read-only boks "Udtaget (Tilmeldt)" + "Oversiddere (Til rådighed)" for HS-kampe. Tilbage/slet navigerer til `/kamparkiv` hvis kampen er arkiveret
+- **`pages/MatchArchive.tsx`** (`/kamparkiv`) — arkiverede kampe, kamphold-filter, ↩ Genskab, ✕ Slet. Menupunkt "Kamparkiv" under Arkiv
+- Menu: "Statistik" → **Statistik træning**; nyt **Statistik udvælgelse** (trainer+)
+- **`pages/StatistikUdvaelgelse.tsx`** (`/statistik-udvaelgelse`) — kun spillede kampe (starttid passeret), aktive + arkiverede, kun kampe med spillerdata. Kamphold-chips (sessionStorage `stat_udv_team`). Søjlediagrammer:
+  1. Kampe pr. spiller (markør = antal kampe)
+  2. Kampe de sidste 5 uger
+  3. Træninger de sidste 5 uger (live fra Holdsport, samme widget som Statistik træning — med kamphold valgt: kun spillere fra det holds kampe)
+  4. Oversidninger pr. spiller (med beskrivelse)
+  5. Oversidninger de sidste 5 uger (med beskrivelse)
+  6. Kampe pr. træner (trænere + keeper- + ungtrænere)
+- Spillere der kun har været til rådighed vises med 0 kampe
+- **`components/StatWidgets.tsx`** — `Section`, `Empty`, `AttendanceChart` (nu med `color`, `markerLabel`, valgfri `total`), `shortName`, `withShortLabels`. **`lib/playerAttendance.ts`** — `fetchPlayerAttendance`. Delt af begge statistiksider
+
+#### Gotchas
+- Migration 0017 **skal** køres på prod før worker-deploy
+- "Til rådighed" bruges først i Holdsport fra oktober 2026 — ældre kampe har 0 oversiddere
+- Seniorkampe ("Oprykningskamp…", "1. Division", "HC …") ligger i samme Holdsport-hold — 1. Division/HC fravælges som default, "Oprykningskamp" skal fravælges manuelt ved import (ellers tæller den som Ajax 1)
+- `.claude/launch.json` har `frontend-node22` (bruger node@22 direkte) fordi Homebrew-`node` er brudt
 
 ### Session 23 — Gæstetræner som ansvarlig
 - "Ansvarlig"-dropdown i `TrainingEditor` har altid valget **Gæstetræner** (`GUEST_TRAINER` i `lib/holdsportAttendance.ts`) — gemmes som `lead_trainer = 'Gæstetræner'` og tælles derfor automatisk i Statistik ("Ansvarlig træner") og som træner via `trainerList()`
@@ -777,7 +819,7 @@ Mounted under `/api/auth/webauthn`:
 ajax-traening-v2/
 ├── database/
 │   ├── schema.sql              # D1 skema — alle tabeller + seed
-│   └── migrations/             # Versionstyrede migrationer (0001_initial.sql … 0015_matches.sql)
+│   └── migrations/             # Versionstyrede migrationer (0001_initial.sql … 0017_match_players.sql)
 ├── worker/
 │   ├── src/
 │   │   ├── index.ts            # Hono router — registrerer alle routes
@@ -1054,6 +1096,8 @@ CREATE TABLE trainings (
   trainers     TEXT,          -- JSON array af navne (strings) — inkl. ansvarlig træner
   keeper_trainers TEXT NOT NULL DEFAULT '[]',  -- JSON array — migration 0014
   youth_trainers  TEXT NOT NULL DEFAULT '[]',  -- JSON array — migration 0014
+  selected_players TEXT NOT NULL DEFAULT '[]', -- kun kampe: HS "Tilmeldt" (udtaget) — migration 0017
+  bench_players    TEXT NOT NULL DEFAULT '[]', -- kun kampe: HS "Til rådighed" (oversidder) — migration 0017
   themes       TEXT,          -- JSON array af temastrenge
   focus_points TEXT,
   notes        TEXT,
@@ -1067,7 +1111,7 @@ CREATE TABLE trainings (
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
-Kampe og stævner (`kind != 'training'`) bruger kun header-felterne (dato/tid, sted, `participant_count`, træner-listerne, `holdsport_id`) — aldrig sektioner, temaer, noter eller vurdering, og de arkiveres ikke men slettes automatisk 2 døgn efter afslutning.
+Kampe og stævner (`kind != 'training'`) bruger kun header-felterne (dato/tid, sted, `participant_count`, træner-listerne, `holdsport_id`) — aldrig sektioner, temaer, noter eller vurdering, Kampe arkiveres manuelt til Kamparkiv (Session 24); stævner importeres ikke fra Holdsport.
 
 ### `exercises`
 ```sql

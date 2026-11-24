@@ -7,7 +7,7 @@ type HonoEnv = { Bindings: Env } & AuthContext;
 
 export const trainingRoutes = new Hono<HonoEnv>();
 
-const JSON_FIELDS = ['trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'sections'] as const;
+const JSON_FIELDS = ['trainers', 'keeper_trainers', 'youth_trainers', 'selected_players', 'bench_players', 'themes', 'sections'] as const;
 
 function parseTraining(row: Record<string, unknown>) {
   for (const f of JSON_FIELDS) {
@@ -25,19 +25,6 @@ trainingRoutes.get('/', requireAuth(), async (c) => {
   const teamId = c.req.query('team_id');
   const archivedParam = c.req.query('archived');
   if (!teamId) return c.json({ error: 'team_id påkrævet' }, 400);
-
-  // Kampe og stævner slettes automatisk 2 døgn efter de er afsluttet
-  // Stævner: slutdato (end_date, ellers date) kl. 23:59. Kampe: date + sluttid/starttid
-  await c.env.DB.prepare(`
-    DELETE FROM trainings
-    WHERE team_id = ? AND kind != 'training' AND date IS NOT NULL
-      AND datetime(
-        CASE WHEN kind = 'tournament'
-          THEN COALESCE(NULLIF(end_date, ''), date) || ' 23:59'
-          ELSE date || ' ' || COALESCE(NULLIF(end_time, ''), NULLIF(start_time, ''), '23:59')
-        END
-      ) < datetime('now', '-2 days')
-  `).bind(teamId).run();
 
   let query: string;
   let params: unknown[];
@@ -75,9 +62,9 @@ trainingRoutes.post('/', requireAuth('trainer'), async (c) => {
   await c.env.DB.prepare(`
     INSERT INTO trainings
       (id, team_id, kind, home_team, away_team, end_date, title, date, start_time, end_time, location, lead_trainer,
-       trainers, keeper_trainers, youth_trainers, themes, focus_points, notes, participant_count,
-       sections, stars, archived, holdsport_id, created_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       trainers, keeper_trainers, youth_trainers, selected_players, bench_players, themes, focus_points, notes,
+       participant_count, sections, stars, archived, holdsport_id, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id, body.team_id,
     ['match', 'tournament'].includes(body.kind as string) ? body.kind : 'training',
@@ -88,6 +75,8 @@ trainingRoutes.post('/', requireAuth('trainer'), async (c) => {
     JSON.stringify(body.trainers ?? []),
     JSON.stringify(body.keeper_trainers ?? []),
     JSON.stringify(body.youth_trainers ?? []),
+    JSON.stringify(body.selected_players ?? []),
+    JSON.stringify(body.bench_players ?? []),
     JSON.stringify(body.themes ?? []),
     body.focus_points ?? null,
     body.notes ?? null,
@@ -106,10 +95,10 @@ trainingRoutes.post('/', requireAuth('trainer'), async (c) => {
 trainingRoutes.patch('/:id', requireAuth('trainer'), async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json<Record<string, unknown>>();
-  const JSON_COLS = ['trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'sections'];
+  const JSON_COLS = ['trainers', 'keeper_trainers', 'youth_trainers', 'selected_players', 'bench_players', 'themes', 'sections'];
   const allowed = [
     'home_team', 'away_team', 'end_date', 'title', 'date', 'start_time', 'end_time', 'location', 'lead_trainer',
-    'trainers', 'keeper_trainers', 'youth_trainers', 'themes', 'focus_points', 'notes', 'participant_count',
+    'trainers', 'keeper_trainers', 'youth_trainers', 'selected_players', 'bench_players', 'themes', 'focus_points', 'notes', 'participant_count',
     'sections', 'stars', 'archived',
   ];
   const updates: string[] = [];

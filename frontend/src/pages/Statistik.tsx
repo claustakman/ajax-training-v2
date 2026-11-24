@@ -4,8 +4,9 @@ import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training, Exercise } from '../lib/types';
 import { isTrainingKind } from '../lib/events';
-import { trainerList, extractPlayerNames } from '../lib/holdsportAttendance';
-import type { TeamMember } from '../lib/holdsportAttendance';
+import { trainerList } from '../lib/holdsportAttendance';
+import { fetchPlayerAttendance } from '../lib/playerAttendance';
+import { Section, Empty, AttendanceChart, withShortLabels } from '../components/StatWidgets';
 
 const WEEKDAY_ORDER = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
 
@@ -24,50 +25,6 @@ function isPast(dateStr: string): boolean {
 const ATTENDANCE_DAYS = 30;
 const TIME_SERIES_MONTHS = 3;
 const RECENT_WEEKS = 5;
-
-// "Mads Holm Hansen" → "Mads H."
-function shortName(full: string): string {
-  const parts = full.trim().split(/\s+/);
-  return parts.length < 2 ? full : `${parts[0]} ${parts[parts.length - 1][0]}.`;
-}
-
-interface PlayerAttendance {
-  totalTrainings: number;  // HS-træninger hvor tilmeldinger kunne hentes
-  players: { name: string; count: number }[];
-}
-
-// Henter tilmeldinger live fra Holdsport for den sidste måneds træninger og tæller pr. spiller
-async function fetchPlayerAttendance(teamId: string, trainings: Training[]): Promise<PlayerAttendance> {
-  const [config, members] = await Promise.all([
-    api.fetchHoldsportConfig(teamId),
-    api.get<TeamMember[]>(`/api/users/team-members?team_id=${teamId}`),
-  ]);
-  const hsTeams = await api.fetchHoldsportTeams(config.workerUrl, config.token);
-
-  const results = await Promise.all(trainings.map(async t => {
-    for (const team of hsTeams) {
-      try {
-        const act = await api.fetchHoldsportActivity(config.workerUrl, config.token, team.id, t.holdsport_id!, t.date!);
-        if (act && Array.isArray((act as Record<string, unknown>).activities_users)) return extractPlayerNames(act, members);
-      } catch { /* prøv næste hold */ }
-    }
-    return null;
-  }));
-
-  // Alle spillere der optræder på en aktivitet i perioden starter på 0 — så 0 fremmøde også vises
-  const counts = new Map<string, number>();
-  let totalTrainings = 0;
-  for (const res of results) {
-    if (!res) continue;
-    totalTrainings++;
-    for (const n of res.roster) if (!counts.has(n)) counts.set(n, 0);
-    for (const n of res.attended) counts.set(n, (counts.get(n) ?? 0) + 1);
-  }
-  const players = [...counts.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'da'));
-  return { totalTrainings, players };
-}
 
 export default function Statistik() {
   const { user, currentTeamId, currentTeamRole } = useAuth();
@@ -121,12 +78,7 @@ export default function Statistik() {
   });
 
   // Fornavn + forbogstav i efternavn — fuldt navn hvis to spillere ville få samme forkortelse
-  const attendanceRows = useMemo(() => {
-    const players = attendance?.players ?? [];
-    const shortCount = new Map<string, number>();
-    for (const p of players) shortCount.set(shortName(p.name), (shortCount.get(shortName(p.name)) ?? 0) + 1);
-    return players.map(p => ({ ...p, label: shortCount.get(shortName(p.name))! > 1 ? p.name : shortName(p.name) }));
-  }, [attendance]);
+  const attendanceRows = useMemo(() => withShortLabels(attendance?.players ?? []), [attendance]);
 
   const exerciseMap = useMemo(() => {
     const m = new Map<string, Exercise>();
@@ -240,7 +192,7 @@ export default function Statistik() {
     return (
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 4px' }}>
-          Statistik
+          Statistik træning
         </h1>
         {[1, 2, 3].map(i => (
           <div key={i} className="skeleton" style={{ height: 120, borderRadius: 12, marginBottom: 16 }} />
@@ -252,7 +204,7 @@ export default function Statistik() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
       <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 4px' }}>
-        Statistik
+        Statistik træning
       </h1>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>
         Kun afholdte træninger
@@ -450,21 +402,6 @@ function StatCard({ label, value, fullWidth }: { label: string; value: string | 
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{
-      background: 'var(--bg-card)', borderRadius: 12,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      padding: 20, marginBottom: 20,
-    }}>
-      <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700, margin: '0 0 16px', color: 'var(--text)' }}>
-        {title}
-      </h2>
-      {children}
-    </div>
-  );
-}
-
 function Bar({ label, count, max, color }: { label: string; count: number; max: number; color: string }) {
   const pct = Math.max(4, Math.round((count / max) * 100));
   return (
@@ -478,50 +415,6 @@ function Bar({ label, count, max, color }: { label: string; count: number; max: 
       <div style={{ width: 28, fontSize: 13, fontWeight: 600, color: 'var(--text)', textAlign: 'right', flexShrink: 0 }}>
         {count}
       </div>
-    </div>
-  );
-}
-
-// Fremmøde pr. spiller — lodret markør viser antal afholdte træninger i perioden
-function AttendanceChart({ rows, total }: { rows: { name: string; label: string; count: number }[]; total: number }) {
-  const LABEL_W = 110, VALUE_W = 76, GAP = 10;
-  // Lidt luft efter markøren så den ikke flugter med kanten
-  const max = Math.max(total, ...rows.map(r => r.count), 1) * 1.15;
-  const markerPct = (total / max) * 100;
-  return (
-    <div style={{ position: 'relative', paddingTop: 20 }}>
-      {/* Markør: spænder over søjleområdet */}
-      <div style={{ position: 'absolute', top: 0, bottom: 0, left: LABEL_W + GAP, right: VALUE_W + GAP, pointerEvents: 'none', zIndex: 1 }}>
-        <div style={{ position: 'absolute', left: `${markerPct}%`, top: 16, bottom: 0, borderLeft: '2px dashed var(--accent)' }} />
-        <div style={{
-          position: 'absolute', left: `${markerPct}%`, top: 0, transform: 'translateX(-50%)',
-          fontSize: 11, fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap',
-        }}>
-          {total} afholdt
-        </div>
-      </div>
-      {rows.map((r, i) => {
-        const share = total > 0 ? r.count / total : 0;
-        return (
-          // Zebra-striber: hver anden række får svag baggrund så linjerne er lette at følge
-          <div key={r.name} style={{
-            display: 'flex', alignItems: 'center', gap: GAP,
-            padding: '4px 6px', margin: '0 -6px', borderRadius: 6,
-            background: i % 2 === 1 ? 'var(--bg-input)' : 'transparent',
-          }}>
-            <div style={{ width: LABEL_W, fontSize: 13, color: 'var(--text)', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>
-              {r.label}
-            </div>
-            <div style={{ flex: 1, height: 18 }}>
-              <div style={{ width: r.count > 0 ? `${Math.max(2, (r.count / max) * 100)}%` : 0, background: 'var(--green)', height: '100%', borderRadius: 4, transition: 'width 0.3s ease' }} />
-            </div>
-            <div style={{ width: VALUE_W, fontSize: 13, color: 'var(--text)', textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
-              <span style={{ fontWeight: 600 }}>{r.count}</span>
-              <span style={{ color: 'var(--text3)', marginLeft: 6 }}>{Math.round(share * 100)}%</span>
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -541,12 +434,6 @@ function BarFloat({ label, value, max, subtitle, color }: { label: string; value
         {value.toFixed(1)}
       </div>
     </div>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <div style={{ color: 'var(--text3)', fontSize: 14, padding: '8px 0' }}>{text}</div>
   );
 }
 

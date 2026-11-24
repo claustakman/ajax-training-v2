@@ -16,6 +16,8 @@ import TrainingEditor from './pages/TrainingEditor';
 import EventEditor from './pages/EventEditor';
 import Archive from './pages/Archive';
 import Statistik from './pages/Statistik';
+import StatistikUdvaelgelse from './pages/StatistikUdvaelgelse';
+import MatchArchive from './pages/MatchArchive';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -44,6 +46,8 @@ export default function App() {
                   <Route path="/kampe/:id" element={<EventEditor />} />
                   <Route path="/arkiv" element={<Archive />} />
                   <Route path="/statistik" element={<Statistik />} />
+                  <Route path="/statistik-udvaelgelse" element={<StatistikUdvaelgelse />} />
+                  <Route path="/kamparkiv" element={<MatchArchive />} />
                   <Route path="/aarshjul" element={<Aarshjul />} />
                   <Route path="/katalog" element={<Catalog />} />
                   <Route path="/tavle" element={<Board />} />

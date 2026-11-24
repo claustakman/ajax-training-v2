@@ -4,7 +4,23 @@
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "frontend"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "frontend-node22",
+      "runtimeExecutable": "/opt/homebrew/opt/node@22/bin/node",
+      "runtimeArgs": [
+        "frontend/node_modules/vite/bin/vite.js",
+        "frontend",
+        "--port",
+        "5173"
+      ],
       "port": 5173
     }
   ]

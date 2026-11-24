@@ -159,3 +159,40 @@ export function extractPlayerNames(activity: unknown, members: TeamMember[]): { 
   }
   return { attended: [...attended], roster: [...roster] };
 }
+
+// Holdsport status_code: 1=Tilmeldt, 2=Afmeldt, 3=Til rådighed, 4=Udvalgt, 5=Ukendt
+const HS_SELECTED = 1;
+const HS_AVAILABLE = 3;
+
+/**
+ * Spillere på en kamp: Tilmeldt = udtaget, Til rådighed = oversidder.
+ * Trænere (trænerrolle på holdet eller i activities_coaches) frasorteres.
+ * Returnerer {} hvis aktiviteten ikke har activities_users (så eksisterende lister ikke overskrives med tomme).
+ */
+export function extractMatchPlayers(activity: unknown, members: TeamMember[]): Pick<Training, 'selected_players' | 'bench_players'> {
+  const rec = activity as Record<string, unknown>;
+  if (!Array.isArray(rec.activities_users)) return {};
+  const staff = new Set(members.filter(m => ROLE_FIELD[m.team_role]).map(m => m.name));
+  for (const c of Array.isArray(rec.activities_coaches) ? rec.activities_coaches : []) {
+    const n = (c as Record<string, unknown>)?.name;
+    if (typeof n === 'string') staff.add(n.trim());
+  }
+  const selected = new Set<string>();
+  const bench = new Set<string>();
+  for (const u of rec.activities_users) {
+    const ur = u as Record<string, unknown>;
+    const name = typeof ur.name === 'string' ? ur.name.trim() : '';
+    if (!name || staff.has(name)) continue;
+    if (ur.status_code === HS_SELECTED) selected.add(name);
+    else if (ur.status_code === HS_AVAILABLE) bench.add(name);
+  }
+  return { selected_players: [...selected], bench_players: [...bench] };
+}
+
+/** Patch fra en Holdsport-aktivitet: tilmeldinger + (kun kampe) udtagne/oversiddere. */
+export function extractActivityPatch(activity: unknown, members: TeamMember[], existing?: Partial<Training>): Partial<Training> {
+  return {
+    ...extractAttendance(activity, members, existing),
+    ...(existing?.kind === 'match' ? extractMatchPlayers(activity, members) : {}),
+  };
+}

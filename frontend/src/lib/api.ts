@@ -128,16 +128,27 @@ export const api = {
     return res.json() as Promise<Array<{ id: string | number; name?: string; title?: string }>>;
   },
 
+  // Holdsport returnerer maks. 100 pr. side — hent flere sider indtil perioden er dækket (maks. 10 sider)
   fetchHoldsportActivitiesForTeam: async (workerUrl: string, token: string, teamId: string | number, from: string, to: string) => {
-    const url = new URL(`${workerUrl}/teams/${teamId}/activities`);
-    url.searchParams.set('date', from);
-    url.searchParams.set('to', to);
-    url.searchParams.set('per_page', '100');
-    const res = await fetch(url.toString(), {
-      headers: { 'X-Token': token, 'Accept': 'application/json' },
-    });
-    if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
-    return res.json() as Promise<import('./types').HoldsportActivity[]>;
+    type Act = import('./types').HoldsportActivity;
+    const all: Act[] = [];
+    for (let page = 1; page <= 10; page++) {
+      const url = new URL(`${workerUrl}/teams/${teamId}/activities`);
+      url.searchParams.set('date', from);
+      url.searchParams.set('to', to);
+      url.searchParams.set('per_page', '100');
+      if (page > 1) url.searchParams.set('page', String(page));
+      const res = await fetch(url.toString(), {
+        headers: { 'X-Token': token, 'Accept': 'application/json' },
+      });
+      if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
+      const batch = await res.json() as Act[];
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      all.push(...batch);
+      const last = batch[batch.length - 1]?.starttime?.split('T')[0] ?? '';
+      if (batch.length < 100 || (to && last > to)) break;
+    }
+    return all;
   },
 
   // Hent én specifik Holdsport-aktivitet — prøver detalje-endpoint først (har activities_users), fallback til liste

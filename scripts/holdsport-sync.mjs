@@ -174,10 +174,26 @@ async function main() {
       }
       if (found.place || found.location) schedule.location = found.place || found.location;
 
+      // Kampe: udtagne (status 1 = Tilmeldt) og oversiddere (status 3 = Til rådighed) — samme som extractMatchPlayers i frontend
+      const matchPlayers = {};
+      if (t.kind === 'match' && Array.isArray(users)) {
+        const staff = new Set([...syncField.keys(), ...nonSyncField.keys(), ...coaches.map(c => (c.name ?? '').trim())]);
+        const selected = new Set(), bench = new Set();
+        for (const u of users) {
+          const name = (u.name ?? '').trim();
+          if (!name || staff.has(name)) continue;
+          if (u.status_code === 1) selected.add(name);
+          else if (u.status_code === 3) bench.add(name);
+        }
+        matchPlayers.selected_players = [...selected];
+        matchPlayers.bench_players = [...bench];
+      }
+
       const patch = {
         ...schedule,
         participant_count: playerCount > 0 ? playerCount : null,
         ...lists,
+        ...matchPlayers,
       };
       await apiFetch(`/api/trainings/${t.id}`, {
         method: 'PATCH',

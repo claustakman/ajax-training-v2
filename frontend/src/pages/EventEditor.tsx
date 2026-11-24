@@ -9,7 +9,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
-import { extractAttendance, extractSchedule, type TeamMember } from '../lib/holdsportAttendance';
+import { extractActivityPatch, extractSchedule, type TeamMember } from '../lib/holdsportAttendance';
 import { KIND_STYLE, eventTitle, eventDays } from '../lib/events';
 import { fmtDateLong, durMin } from '../lib/dateUtils';
 import { UserMultiSelect } from '../components/ui/UserMultiSelect';
@@ -33,6 +33,33 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
         {label}
       </label>
       {children}
+    </div>
+  );
+}
+
+// Udtagne (Tilmeldt) og oversiddere (Til rådighed) fra Holdsport — read-only, opdateres via ↺ Opdater / sync
+function MatchPlayers({ selected, bench }: { selected: string[]; bench: string[] }) {
+  const group = (label: string, names: string[], color: string, light: string) => (
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>
+        {label} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>({names.length})</span>
+      </div>
+      {names.length === 0 ? (
+        <div style={{ fontSize: 13, color: 'var(--text3)' }}>Ingen</div>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {[...names].sort((a, b) => a.localeCompare(b, 'da')).map(n => (
+            <span key={n} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: light, color }}>{n}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 12, borderRadius: 10, background: 'var(--bg-input)' }}>
+      {group('Udtaget (Tilmeldt)', selected, '#1D9E75', 'rgba(29,158,117,0.14)')}
+      {group('Oversiddere (Til rådighed)', bench, 'var(--text2)', 'var(--bg-card)')}
+      <div style={{ fontSize: 11, color: 'var(--text3)' }}>Fra Holdsport — opdateres med ↺ Opdater og sync</div>
     </div>
   );
 }
@@ -65,6 +92,8 @@ function toPayload(e: Training): Partial<Training> {
     trainers: e.trainers ?? [],
     keeper_trainers: e.keeper_trainers ?? [],
     youth_trainers: e.youth_trainers ?? [],
+    selected_players: kind === 'match' ? e.selected_players ?? [] : [],
+    bench_players: kind === 'match' ? e.bench_players ?? [] : [],
   } as unknown as Partial<Training>;
 }
 
@@ -159,8 +188,18 @@ export default function EventEditor() {
     if (!confirm(`Slet ${label}? Dette kan ikke fortrydes.`)) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     await api.deleteTraining(event.id);
-    queryClient.invalidateQueries({ queryKey: ['trainings', currentTeamId, 'active'] });
-    navigate('/');
+    queryClient.invalidateQueries({ queryKey: ['trainings', currentTeamId] });
+    navigate(event.archived ? '/kamparkiv' : '/');
+  }
+
+  // Arkivér/gendan kamp — arkiverede kampe ligger i Kamparkiv og tæller stadig i Statistik udvælgelse
+  async function handleArchive() {
+    if (!event?.id) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const archived = !event.archived;
+    await api.updateTraining(event.id, { ...toPayload(event), archived });
+    queryClient.invalidateQueries({ queryKey: ['trainings', currentTeamId] });
+    navigate(archived ? '/' : '/kamparkiv');
   }
 
   async function handleHoldsportUpdate() {
@@ -173,7 +212,7 @@ export default function EventEditor() {
         const found = await api.fetchHoldsportActivity(
           config.workerUrl, config.token, team.id, event.holdsport_id, event.date
         );
-        if (found) { update({ ...extractSchedule(found, event.kind), ...extractAttendance(found, members, event) }); break; }
+        if (found) { update({ ...extractSchedule(found, event.kind), ...extractActivityPatch(found, members, event) }); break; }
       }
     } catch { /* fejl ignoreres stille */ } finally {
       setHsUpdating(false);
@@ -208,7 +247,7 @@ export default function EventEditor() {
       {/* ── Toolbar ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate(event.archived ? '/kamparkiv' : '/')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--text2)', fontSize: 14, padding: '6px 0',
@@ -217,6 +256,21 @@ export default function EventEditor() {
         >← Tilbage</button>
         <div style={{ flex: 1 }} />
         <SaveIndicator state={saveState} />
+        {canEdit && kind === 'match' && event.id && (
+          <button
+            onClick={handleArchive}
+            title={event.archived ? 'Gendan fra kamparkiv' : 'Arkivér kamp'}
+            aria-label={event.archived ? 'Gendan' : 'Arkivér'}
+            style={{
+              background: 'var(--bg-input)', border: '1px solid var(--border2)',
+              borderRadius: 8, padding: '6px 10px', fontSize: 16, cursor: 'pointer', color: 'var(--text)',
+              minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            }}
+          >
+            <span>{event.archived ? '↩' : '🗄️'}</span>
+            <span style={{ fontSize: 10, lineHeight: 1, color: 'var(--text2)' }}>{event.archived ? 'Gendan' : 'Arkiv'}</span>
+          </button>
+        )}
         {canEdit && (
           <button
             onClick={handleDelete}
@@ -381,6 +435,10 @@ export default function EventEditor() {
           </div>
 
           <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+
+          {kind === 'match' && event.holdsport_id && (
+            <MatchPlayers selected={event.selected_players ?? []} bench={event.bench_players ?? []} />
+          )}
 
           <Field label="Trænere">
             <UserMultiSelect
