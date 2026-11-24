@@ -38,9 +38,11 @@ Til at vælge hvem der skal spille og hvem der skal sidde over.
 - **`pages/StatistikUdvaelgelse.tsx`** (`/statistik-udvaelgelse`) — kun spillede kampe (starttid passeret), aktive + arkiverede, kun kampe med spillerdata. Kamphold-chips (sessionStorage `stat_udv_team`). To afsnit med undertitel (`Subtitle`):
   - **De sidste fem uger:** Antal træninger de sidste 5 uger (live fra Holdsport, samme widget som Statistik træning — med kamphold valgt: kun spillere fra det holds kampe) · Antal kampe og oversidninger de sidste 5 uger
   - **For sæsonen:** Kampe og oversidninger per spiller · Kampe per træner (trænere + keeper- + ungtrænere)
+- Træningsfremmøde hentes **én gang for hele sæsonen** (`seasonHsTrainings()` + `fetchTrainingAttendance`, query `['training-attendance', teamId, ids]`) — samme query på begge statistiksider, så cachen deles. 5-ugers-tallene beregnes med `aggregateAttendance(results, daysAgoStr(35))`
 - `MatchBenchChart` — to søjler pr. spiller (grøn = kampe/udtaget, gul = oversidninger), tal "kampe · oversidninger" til højre, stiplet markør = antal spillede kampe. Sorteret flest kampe, derefter flest oversidninger
 - Spillere der kun har været til rådighed vises med 0 kampe
-- **`components/StatWidgets.tsx`** — `Section`, `Empty`, `AttendanceChart` (nu med `color`, `markerLabel`, valgfri `total`), `shortName`, `withShortLabels`. **`lib/playerAttendance.ts`** — `fetchPlayerAttendance`. Delt af begge statistiksider
+- **`components/StatWidgets.tsx`** — `Section`, `Empty`, `AttendanceChart` (nu med `color`, `markerLabel`, valgfri `total`), `shortName`, `withShortLabels`. Delt af begge statistiksider
+- **`lib/playerAttendance.ts`** — `fetchTrainingAttendance(teamId, trainings)` henter Holdsports **liste-endpoint for hele perioden** pr. HS-hold (pagineret) og slår træninger op på `holdsport_id` — ca. 5 kald for en hel sæson (~1 s) i stedet for ~4 kald pr. træning. `aggregateAttendance()`, `fetchPlayerAttendance()` (Statistik træning), `seasonStart()` (seneste 1. maj). Verificeret: samme tal som den gamle pr.-træning-hentning
 
 #### Gotchas
 - Migration 0017 **skal** køres på prod før worker-deploy
@@ -72,7 +74,7 @@ Til at vælge hvem der skal spille og hvem der skal sidde over.
 
 #### Gotchas
 - Holdsports `attendance_statistics`-side (cookie-baseret HTML, `POST /activity_search_filters/:id`) bruges **ikke** — kræver web-session, returnerer HTML og har CORS kun til holdsport.dk. Holdsport-API'et har ingen separat fremmøde-felt, men tilmeldinger afspejler fremmøde
-- Første visning laver ét Holdsport-kald pr. træning (× antal HS-hold ved fallback) — tager et par sekunder
+- Hentes nu med én periode-hentning pr. Holdsport-hold (`fetchTrainingAttendance`, Session 24) — ikke længere ét kald pr. træning
 
 ### Session 21 — Kampe og stævner i træningsoversigten
 
@@ -311,10 +313,10 @@ Kun til planlægning (hvornår er næste kamp, mod hvem). Resultater/statistik f
 2. Træningsfremmøde den sidste måned (grøn, trainer+ — se Session 22)
 3. Gennemsnitlig antal spillere per ugedag (blå)
 4. Spillere til træning de sidste 3 måneder (tidsserie)
-5. Gennemsnitlig antal trænere per ugedag (lilla)
-6. Ansvarlig træner (rød)
-7. Temaer (blå)
-8. Mest anvendte øvelser — top 20 (grøn)
+5. Træningsfremmøde for sæsonen (grøn, trainer+ — siden 1. maj, Session 24)
+6. Temaer (blå)
+7. Mest anvendte øvelser — top 20 (grøn)
+8. Ansvarlig træner (rød)
 
 #### Histogrammer (søjlediagrammer med relativ bredde)
 | Histogram | Farve | Beskrivelse |
@@ -1438,6 +1440,7 @@ CREATE TABLE templates (
   0. *Træningsfremmøde den sidste måned* (grøn, `AttendanceChart`, trainer+) — tilmeldinger pr. spiller live fra Holdsport, lodret markør = afholdte træninger, zebra-striber, spillere med 0 vises (se Session 22)
   1. *Gennemsnitlig antal spillere per ugedag* (blå, BarFloat) — kun de sidste 5 rullende uger (`RECENT_WEEKS`, 35 dage tilbage inkl. i dag) og kun dage med deltagerdata
   2. *Spillere til træning de sidste 3 måneder* (`TIME_SERIES_MONTHS`; gennemsnitslinjen beregnes kun over perioden) — SVG tidsserie (`PlayerChart`): blå linje + gradient-fyldt areal + stiplet gennemsnits-linje + hover-tooltip
+  2b. *Træningsfremmøde for sæsonen* (grøn, `AttendanceChart`, trainer+) — siden seneste 1. maj (`seasonStart()`). Samme data som "den sidste måned" (én sæson-hentning, `aggregateAttendance` med/uden fra-dato)
   3. *Temaer* (blå, Bar) — hyppighed af alle `themes`-værdier
   4. *Mest anvendte øvelser — top 20* (grøn, Bar) — katalogøvelser (fri øvelser springes over)
   5. *Ansvarlig træner* (rød, Bar) — antal gange som `lead_trainer` (nederst)

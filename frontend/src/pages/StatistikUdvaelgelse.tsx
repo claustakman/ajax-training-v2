@@ -8,9 +8,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth, hasRole } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Training } from '../lib/types';
-import { isTrainingKind, matchTeam, KIND_STYLE } from '../lib/events';
+import { matchTeam, KIND_STYLE } from '../lib/events';
 import { trainerList } from '../lib/holdsportAttendance';
-import { fetchPlayerAttendance } from '../lib/playerAttendance';
+import { fetchTrainingAttendance, aggregateAttendance, seasonHsTrainings, daysAgoStr, type PlayerAttendance } from '../lib/playerAttendance';
 import { Section, Empty, AttendanceChart, withShortLabels } from '../components/StatWidgets';
 
 const RECENT_WEEKS = 5;
@@ -111,29 +111,24 @@ export default function StatistikUdvaelgelse() {
     new Set(),
   ).filter(r => r.count > 0)), [matches]);
 
-  // Træningsfremmøde de sidste 5 uger — hentes live fra Holdsport (samme som Statistik træning)
-  const recentHsTrainings = useMemo(() => {
-    const cutoff = recentCutoff();
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    return all
-      .filter(t => isTrainingKind(t) && t.holdsport_id && t.date && new Date(t.date) >= cutoff && new Date(t.date) <= today)
-      .sort((a, b) => a.date!.localeCompare(b.date!));
-  }, [all]);
+  // Træningsfremmøde — hele sæsonen hentes med få kald og deles med Statistik træning (samme cache).
+  // 5-ugers-tallene beregnes af de samme data.
+  const seasonTrainings = useMemo(() => seasonHsTrainings(all), [all]);
 
-  const { data: attendance, isLoading: loadingAttendance, isError: attendanceError } = useQuery({
-    queryKey: ['player-attendance', currentTeamId, recentHsTrainings.map(t => t.id).join(',')],
-    queryFn: () => fetchPlayerAttendance(currentTeamId!, recentHsTrainings),
-    enabled: !!currentTeamId && canSee && recentHsTrainings.length > 0,
+  const { data: trainingAttendance, isLoading: loadingAttendance, isError: attendanceError } = useQuery({
+    queryKey: ['training-attendance', currentTeamId, seasonTrainings.map(t => t.id).join(',')],
+    queryFn: () => fetchTrainingAttendance(currentTeamId!, seasonTrainings),
+    enabled: !!currentTeamId && canSee && seasonTrainings.length > 0,
     staleTime: 10 * 60 * 1000,
     retry: false,
   });
 
-  // Med kamphold valgt: kun spillere der har været på det holds kampe
-  const attendanceRows = useMemo(() => {
-    const players = attendance?.players ?? [];
-    return withShortLabels(activeTeam ? players.filter(p => universe.has(p.name)) : players);
-  }, [attendance, activeTeam, universe]);
+  const recentFrom = useMemo(() => daysAgoStr(RECENT_DAYS), []);
+  const recentAttendance = useMemo(
+    () => trainingAttendance ? aggregateAttendance(trainingAttendance, recentFrom) : undefined,
+    [trainingAttendance, recentFrom]
+  );
+  const recentHsCount = seasonTrainings.filter(t => t.date! >= recentFrom).length;
 
   if (!canSee) {
     return (
@@ -186,27 +181,16 @@ export default function StatistikUdvaelgelse() {
       <Subtitle>De sidste fem uger</Subtitle>
 
       {/* ── Træninger de sidste 5 uger (samme widget som Statistik træning) ── */}
-      <Section title={`Antal træninger de sidste ${RECENT_WEEKS} uger`}>
-        {recentHsTrainings.length === 0 ? (
-          <Empty text={`Ingen Holdsport-træninger de sidste ${RECENT_WEEKS} uger`} />
-        ) : loadingAttendance ? (
-          [1, 2, 3, 4].map(i => (
-            <div key={i} className="skeleton" style={{ height: 18, marginBottom: 8, width: `${90 - i * 12}%` }} />
-          ))
-        ) : attendanceError || !attendance ? (
-          <Empty text="Kunne ikke hente tilmeldinger fra Holdsport" />
-        ) : attendanceRows.length === 0 ? (
-          <Empty text="Ingen tilmeldte spillere fundet" />
-        ) : (
-          <>
-            <Desc>
-              Antal tilmeldinger korrigeret fra fravær (= fremmøde) de sidste {RECENT_DAYS} dage · % af alle afholdte træninger i denne app.
-              {activeTeam && ` Viser spillere der har været på ${activeTeam}s kampe.`}
-            </Desc>
-            <AttendanceChart rows={attendanceRows} total={attendance.totalTrainings} />
-          </>
-        )}
-      </Section>
+      <TrainingAttendanceSection
+        title={`Antal træninger de sidste ${RECENT_WEEKS} uger`}
+        periodText={`de sidste ${RECENT_DAYS} dage`}
+        trainingCount={recentHsCount}
+        attendance={recentAttendance}
+        loading={loadingAttendance}
+        error={attendanceError}
+        activeTeam={activeTeam}
+        universe={universe}
+      />
 
       <Section title={`Antal kampe og oversidninger de sidste ${RECENT_WEEKS} uger`}>
         <Desc>
@@ -218,6 +202,7 @@ export default function StatistikUdvaelgelse() {
 
       {/* ══ For sæsonen ══ */}
       <Subtitle>For sæsonen</Subtitle>
+
 
       <Section title="Kampe og oversidninger per spiller">
         <Desc>
@@ -238,6 +223,47 @@ export default function StatistikUdvaelgelse() {
 }
 
 const h1Style: React.CSSProperties = { fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 4px' };
+
+// Træningsfremmøde pr. spiller for en periode — med kamphold valgt: kun spillere fra det holds kampe
+function TrainingAttendanceSection({ title, periodText, trainingCount, attendance, loading, error, activeTeam, universe }: {
+  title: string;
+  periodText: string;
+  trainingCount: number;
+  attendance?: PlayerAttendance;
+  loading: boolean;
+  error: boolean;
+  activeTeam: string;
+  universe: Set<string>;
+}) {
+  const rows = useMemo(() => {
+    const players = attendance?.players ?? [];
+    return withShortLabels(activeTeam ? players.filter(p => universe.has(p.name)) : players);
+  }, [attendance, activeTeam, universe]);
+
+  return (
+    <Section title={title}>
+      {trainingCount === 0 ? (
+        <Empty text={`Ingen Holdsport-træninger ${periodText}`} />
+      ) : loading ? (
+        [1, 2, 3, 4].map(i => (
+          <div key={i} className="skeleton" style={{ height: 18, marginBottom: 8, width: `${90 - i * 12}%` }} />
+        ))
+      ) : error || !attendance ? (
+        <Empty text="Kunne ikke hente tilmeldinger fra Holdsport" />
+      ) : rows.length === 0 ? (
+        <Empty text="Ingen tilmeldte spillere fundet" />
+      ) : (
+        <>
+          <Desc>
+            Antal tilmeldinger korrigeret fra fravær (= fremmøde) {periodText} · % af alle afholdte træninger i denne app.
+            {activeTeam && ` Viser spillere der har været på ${activeTeam}s kampe.`}
+          </Desc>
+          <AttendanceChart rows={rows} total={attendance.totalTrainings} />
+        </>
+      )}
+    </Section>
+  );
+}
 
 function Subtitle({ children }: { children: React.ReactNode }) {
   return (
