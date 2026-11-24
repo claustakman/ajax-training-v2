@@ -5,19 +5,25 @@ import { useAuth, hasRole, ROLE_LABELS } from '../lib/auth';
 import { api } from '../lib/api';
 import type { Team } from '../lib/auth';
 
+type NavItem = { to: string; label: string; icon: string; showUnread?: boolean; trainerOnly?: boolean };
+
+const UDVAELGELSE: NavItem = { to: '/statistik-udvaelgelse', label: 'Udvælgelse', icon: '📊', trainerOnly: true };
+const TAVLE: NavItem = { to: '/tavle', label: 'Tavle', icon: '📌', showUnread: true };
+
 // Faste nav-punkter — desktop topbar
-const NAV_ITEMS = [
+const NAV_ITEMS: NavItem[] = [
   { to: '/',         label: 'Træning', icon: '📋' },
   { to: '/katalog',  label: 'Katalog', icon: '📚' },
+  UDVAELGELSE,
   { to: '/aarshjul', label: 'Temaer',  icon: '📅' },
-  { to: '/tavle',    label: 'Tavle',   icon: '📌', showUnread: true },
+  TAVLE,
 ];
 
-// Mobil bundnav — kun tre punkter + hamburger
-const MOBILE_NAV_ITEMS = [
+// Mobil bundnav — tre punkter + Mere. Gæster (uden Udvælgelse) får Tavle som tredje punkt
+const MOBILE_NAV_ITEMS: NavItem[] = [
   { to: '/',        label: 'Træning', icon: '📋' },
   { to: '/katalog', label: 'Katalog', icon: '📚' },
-  { to: '/tavle',   label: 'Tavle',   icon: '📌', showUnread: true },
+  UDVAELGELSE,
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -36,6 +42,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     refetchInterval: 60_000,
   });
   const hasUnread = unreadData?.unread === true;
+  const isTrainer = hasRole(user, 'trainer', currentTeamRole);
+  const navItems = NAV_ITEMS.filter(i => !i.trainerOnly || isTrainer);
+  const mobileNavItems = isTrainer ? MOBILE_NAV_ITEMS : [...MOBILE_NAV_ITEMS.filter(i => !i.trainerOnly), TAVLE];
+  // Tavle ligger under Mere på mobil (for trænere) — ulæst-prik vises da på Mere-knappen
+  const tavleInMore = isTrainer;
 
   function handleTeamSwitch(team: Team) {
     setCurrentTeam(team.id);
@@ -63,7 +74,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Desktop nav */}
         <nav style={{ display: 'flex', gap: 4, flex: 1 }} className="desktop-nav">
-          {NAV_ITEMS.map(item => (
+          {navItems.map(item => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -175,16 +186,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           }} className="menu-dropdown">
             {/* Temaer: kun mobil (desktop har det i topbar) */}
             <MenuItem to="/aarshjul" onClick={() => setMenuOpen(false)} className="mobile-only-item">Temaer</MenuItem>
+            {/* Tavle: kun mobil for trænere (desktop har det i topbar, gæster i bundnav) */}
+            {tavleInMore && (
+              <MenuItem to="/tavle" onClick={() => setMenuOpen(false)} className="mobile-only-item">
+                Tavle
+                {hasUnread && (
+                  <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', marginLeft: 6, verticalAlign: 'middle' }} />
+                )}
+              </MenuItem>
+            )}
             {/* Arkiv: altid synlig */}
             <MenuItem to="/arkiv" onClick={() => setMenuOpen(false)}>Arkiv</MenuItem>
             {/* Kamparkiv: separat arkiv for kampe */}
             <MenuItem to="/kamparkiv" onClick={() => setMenuOpen(false)}>Kamparkiv</MenuItem>
             {/* Statistik træning: altid synlig */}
             <MenuItem to="/statistik" onClick={() => setMenuOpen(false)}>Statistik træning</MenuItem>
-            {/* Statistik udvælgelse: kampstatistik til udtagelse — trainer+ */}
-            {hasRole(user, 'trainer', currentTeamRole) && (
-              <MenuItem to="/statistik-udvaelgelse" onClick={() => setMenuOpen(false)}>Statistik udvælgelse</MenuItem>
-            )}
             {hasRole(user, 'team_manager', currentTeamRole) && (
               <MenuItem to="/holdindstillinger" onClick={() => setMenuOpen(false)}>Holdindstillinger</MenuItem>
             )}
@@ -249,7 +265,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         display: 'flex',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }} className="mobile-nav">
-        {MOBILE_NAV_ITEMS.map(item => (
+        {mobileNavItems.map(item => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -285,7 +301,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             borderTop: menuOpen ? '2px solid var(--accent)' : '2px solid transparent',
           }}
         >
-          <span style={{ fontSize: 20 }}>☰</span>
+          <span style={{ position: 'relative', fontSize: 20 }}>
+            ☰
+            {tavleInMore && hasUnread && (
+              <span style={{
+                position: 'absolute', top: 0, right: -4,
+                width: 8, height: 8, borderRadius: '50%',
+                background: 'var(--accent)', border: '1.5px solid var(--bg-card)',
+              }} />
+            )}
+          </span>
           Mere
         </button>
       </nav>

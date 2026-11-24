@@ -34,7 +34,7 @@ Til at vælge hvem der skal spille og hvem der skal sidde over.
 #### UI
 - **EventEditor** (kun kampe): 🗄️ Arkiv / ↩ Gendan-knap i toolbar. Read-only boks "Udtaget (Tilmeldt)" + "Oversiddere (Til rådighed)" for HS-kampe. Tilbage/slet navigerer til `/kamparkiv` hvis kampen er arkiveret
 - **`pages/MatchArchive.tsx`** (`/kamparkiv`) — arkiverede kampe, kamphold-filter, ↩ Genskab, ✕ Slet. Menupunkt "Kamparkiv" under Arkiv
-- Menu: "Statistik" → **Statistik træning**; nyt **Statistik udvælgelse** (trainer+)
+- Menu: "Statistik" → **Statistik træning**; **Udvælgelse** (`/statistik-udvaelgelse`, trainer+) i topbar og mobil-bundnav (📊)
 - **`pages/StatistikUdvaelgelse.tsx`** (`/statistik-udvaelgelse`) — kun spillede kampe (starttid passeret), aktive + arkiverede, kun kampe med spillerdata. Kamphold-chips (sessionStorage `stat_udv_team`). To afsnit med undertitel (`Subtitle`):
   - **De sidste fem uger:** Antal træninger de sidste 5 uger (live fra Holdsport, samme widget som Statistik træning — med kamphold valgt: kun spillere fra det holds kampe) · Antal kampe og oversidninger de sidste 5 uger
   - **For sæsonen:** Kampe og oversidninger per spiller · Kampe per træner (trænere + keeper- + ungtrænere)
@@ -928,10 +928,13 @@ Inline CSS via React `style`-props og CSS-variabler. **Ingen Tailwind.**
 
 ### Navigation
 - **Topbar** (desktop): Logo + nav-tabs + hold-switcher (hvis > 1 hold) + hamburger-menu
-  - Nav-tabs desktop: **Træning · Katalog · Temaer · Tavle** (Tavle med rød ulæst-prik)
-- **Bundnav** (mobil): **Træning · Katalog · Tavle · ☰ Mere** — hamburger i topbar skjult på mobil (`display: none !important`)
-  - Tavle-ikonet i bundnav har rød ulæst-prik (8px cirkel med border)
-- **Mere-panel rækkefølge (faktisk implementeret):** Temaer · Arkiv · Tavle *(med ulæst-prik)* · Holdindstillinger *(team_manager+)* · Brugere *(team_manager+)* · Admin *(admin)* · **Profil** · Skift hold · Log ud
+  - Nav-tabs desktop: **Træning · Katalog · Udvælgelse · Temaer · Tavle** (Udvælgelse kun trainer+; Tavle med rød ulæst-prik)
+- **Bundnav** (mobil): **Træning · Katalog · 📊 Udvælgelse · ☰ Mere** — hamburger i topbar skjult på mobil (`display: none !important`)
+  - Gæster (ingen Udvælgelse) får **📌 Tavle** som tredje punkt i stedet
+  - For trænere ligger Tavle under Mere (mobile-only) — ulæst-prikken vises på ☰ Mere-ikonet og ved Tavle i panelet
+  - `NAV_ITEMS` / `MOBILE_NAV_ITEMS` i `Layout.tsx`; `trainerOnly`-flag filtreres med `hasRole(user, 'trainer', …)`
+- **Mere-panel rækkefølge (faktisk implementeret):** Temaer *(kun mobil)* · Tavle *(kun mobil, trænere, med ulæst-prik)* · Arkiv · Kamparkiv · Statistik træning · Holdindstillinger *(team_manager+)* · Brugere *(team_manager+)* · Admin *(admin)* · **Profil** · Skift hold · Log ud
+- Statistik udvælgelse ligger kun i topbar/bundnav — ikke i Mere-panelet
 - På mobil åbner Mere-panelet **nedefra** (over bundnav, `border-radius: 16px 16px 0 0`)
 - På desktop åbner det som dropdown fra topbar (højre side, `border-radius: 12px`)
 - Topbar: `border-bottom: 3px solid var(--accent)`
