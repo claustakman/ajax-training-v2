@@ -210,8 +210,7 @@ export default function StatistikUdvaelgelse() {
 
       <Section title={`Antal kampe og oversidninger de sidste ${RECENT_WEEKS} uger`}>
         <Desc>
-          Kampe = udtaget (status "Tilmeldt" i Holdsport). Oversidninger = stod som "Til rådighed", altså klar til at spille men ikke udtaget.
-          Viser hvem der har spillet og siddet over for nylig.
+          Kampe = udtaget (status "Tilmeldt" i Holdsport). Oversidninger = stod som "Til rådighed", altså klar til at spille men ikke udtaget på kamptidspunktet.
         </Desc>
         {recentMatches.length === 0 ? <Empty text={`Ingen spillede kampe de sidste ${RECENT_WEEKS} uger`} />
           : <MatchBenchChart rows={recentRows} total={recentMatches.length} />}
