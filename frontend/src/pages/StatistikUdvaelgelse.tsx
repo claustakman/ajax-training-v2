@@ -102,10 +102,9 @@ export default function StatistikUdvaelgelse() {
     return s;
   }, [withData]);
 
-  const matchesAll = useMemo(() => withShortLabels(countNames(withData, t => t.selected_players ?? [], universe)), [withData, universe]);
-  const matchesRecent = useMemo(() => withShortLabels(countNames(recentMatches, t => t.selected_players ?? [], universe)), [recentMatches, universe]);
-  const benchAll = useMemo(() => withShortLabels(countNames(withData, t => t.bench_players ?? [], universe)), [withData, universe]);
-  const benchRecent = useMemo(() => withShortLabels(countNames(recentMatches, t => t.bench_players ?? [], universe)), [recentMatches, universe]);
+  // Kampe (udtaget) + oversidninger pr. spiller — én række med to søjler
+  const seasonRows = useMemo(() => combineRows(withData, universe), [withData, universe]);
+  const recentRows = useMemo(() => combineRows(recentMatches, universe), [recentMatches, universe]);
   const trainerRows = useMemo(() => withShortLabels(countNames(
     matches,
     t => [...new Set([...trainerList(t), ...(t.keeper_trainers ?? []), ...(t.youth_trainers ?? [])])],
@@ -156,7 +155,6 @@ export default function StatistikUdvaelgelse() {
     );
   }
 
-  const green = KIND_STYLE.match.color;
   const noMatches = withData.length === 0;
 
   return (
@@ -184,21 +182,11 @@ export default function StatistikUdvaelgelse() {
         </div>
       )}
 
-      {/* ── Kampe pr. spiller ── */}
-      <Section title="Kampe pr. spiller">
-        <Desc>Antal spillede kampe hvor spilleren var udtaget (status "Tilmeldt" i Holdsport).</Desc>
-        {noMatches ? <Empty text="Ingen spillede kampe med spillerdata endnu" />
-          : <AttendanceChart rows={matchesAll} total={withData.length} color={green} markerLabel="kampe" />}
-      </Section>
-
-      <Section title={`Kampe de sidste ${RECENT_WEEKS} uger`}>
-        <Desc>Antal kampe som udtaget de sidste {RECENT_DAYS} dage.</Desc>
-        {recentMatches.length === 0 ? <Empty text={`Ingen spillede kampe de sidste ${RECENT_WEEKS} uger`} />
-          : <AttendanceChart rows={matchesRecent} total={recentMatches.length} color={green} markerLabel="kampe" />}
-      </Section>
+      {/* ══ De sidste fem uger ══ */}
+      <Subtitle>De sidste fem uger</Subtitle>
 
       {/* ── Træninger de sidste 5 uger (samme widget som Statistik træning) ── */}
-      <Section title={`Træninger de sidste ${RECENT_WEEKS} uger`}>
+      <Section title={`Antal træninger de sidste ${RECENT_WEEKS} uger`}>
         {recentHsTrainings.length === 0 ? (
           <Empty text={`Ingen Holdsport-træninger de sidste ${RECENT_WEEKS} uger`} />
         ) : loadingAttendance ? (
@@ -220,24 +208,28 @@ export default function StatistikUdvaelgelse() {
         )}
       </Section>
 
-      {/* ── Oversidninger ── */}
-      <Section title="Oversidninger pr. spiller">
+      <Section title={`Antal kampe og oversidninger de sidste ${RECENT_WEEKS} uger`}>
         <Desc>
-          Antal kampe hvor spilleren stod som "Til rådighed" i Holdsport, altså var klar til at spille men ikke blev udtaget.
-          Mange oversidninger kan være et argument for at udtage spilleren næste gang.
+          Kampe = udtaget (status "Tilmeldt" i Holdsport). Oversidninger = stod som "Til rådighed", altså klar til at spille men ikke udtaget.
+          Viser hvem der har spillet og siddet over for nylig.
         </Desc>
-        {noMatches ? <Empty text="Ingen spillede kampe med spillerdata endnu" />
-          : <AttendanceChart rows={benchAll} color="var(--yellow)" />}
+        {recentMatches.length === 0 ? <Empty text={`Ingen spillede kampe de sidste ${RECENT_WEEKS} uger`} />
+          : <MatchBenchChart rows={recentRows} total={recentMatches.length} />}
       </Section>
 
-      <Section title={`Oversidninger de sidste ${RECENT_WEEKS} uger`}>
-        <Desc>Samme som ovenfor, men kun kampe de sidste {RECENT_DAYS} dage. Viser hvem der har siddet over for nylig.</Desc>
-        {recentMatches.length === 0 ? <Empty text={`Ingen spillede kampe de sidste ${RECENT_WEEKS} uger`} />
-          : <AttendanceChart rows={benchRecent} color="var(--yellow)" />}
+      {/* ══ For sæsonen ══ */}
+      <Subtitle>For sæsonen</Subtitle>
+
+      <Section title="Kampe og oversidninger per spiller">
+        <Desc>
+          Alle spillede kampe i sæsonen. Mange oversidninger og få kampe kan være et argument for at udtage spilleren næste gang.
+        </Desc>
+        {noMatches ? <Empty text="Ingen spillede kampe med spillerdata endnu" />
+          : <MatchBenchChart rows={seasonRows} total={withData.length} />}
       </Section>
 
       {/* ── Kampe pr. træner ── */}
-      <Section title="Kampe pr. træner">
+      <Section title="Kampe per træner">
         <Desc>Antal spillede kampe hvor træneren var tilmeldt (trænere, keeper- og ungtrænere).</Desc>
         {trainerRows.length === 0 ? <Empty text="Ingen trænere registreret på spillede kampe" />
           : <AttendanceChart rows={trainerRows} total={matches.length} color="var(--purple)" markerLabel="kampe" />}
@@ -247,6 +239,90 @@ export default function StatistikUdvaelgelse() {
 }
 
 const h1Style: React.CSSProperties = { fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, margin: '0 0 4px' };
+
+function Subtitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 style={{
+      fontFamily: 'var(--font-heading)', fontSize: 15, fontWeight: 700, textTransform: 'uppercase',
+      letterSpacing: '0.6px', color: 'var(--text2)', margin: '8px 0 10px',
+    }}>{children}</h2>
+  );
+}
+
+type CombinedRow = { name: string; label: string; matches: number; bench: number };
+
+// Kampe + oversidninger pr. spiller — alle i universe starter på 0. Sorteret flest kampe, derefter flest oversidninger
+function combineRows(matches: Training[], universe: Set<string>): CombinedRow[] {
+  const m = new Map<string, { matches: number; bench: number }>([...universe].map(n => [n, { matches: 0, bench: 0 }]));
+  const get = (n: string) => { if (!m.has(n)) m.set(n, { matches: 0, bench: 0 }); return m.get(n)!; };
+  for (const t of matches) {
+    for (const n of t.selected_players ?? []) get(n).matches++;
+    for (const n of t.bench_players ?? []) get(n).bench++;
+  }
+  const rows = [...m.entries()]
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.matches - a.matches || b.bench - a.bench || a.name.localeCompare(b.name, 'da'));
+  return withShortLabels(rows);
+}
+
+const MATCH_COLOR = KIND_STYLE.match.color;
+const BENCH_COLOR = 'var(--yellow)';
+
+// To søjler pr. spiller: kampe (grøn) og oversidninger (gul). Stiplet markør = antal spillede kampe i perioden
+function MatchBenchChart({ rows, total }: { rows: CombinedRow[]; total: number }) {
+  const LABEL_W = 110, VALUE_W = 56, GAP = 10;
+  const max = Math.max(total, ...rows.map(r => Math.max(r.matches, r.bench)), 1) * 1.15;
+  const markerPct = (total / max) * 100;
+  const bar = (n: number, color: string) => (
+    <div style={{ height: 9 }}>
+      <div style={{ width: n > 0 ? `${Math.max(2, (n / max) * 100)}%` : 0, background: color, height: '100%', borderRadius: 3, transition: 'width 0.3s ease' }} />
+    </div>
+  );
+  return (
+    <>
+      {/* Forklaring */}
+      <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text2)', marginBottom: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 12, height: 9, borderRadius: 2, background: MATCH_COLOR }} /> Kampe
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 12, height: 9, borderRadius: 2, background: BENCH_COLOR }} /> Oversidninger
+        </span>
+      </div>
+      <div style={{ position: 'relative', paddingTop: 20 }}>
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: LABEL_W + GAP, right: VALUE_W + GAP, pointerEvents: 'none', zIndex: 1 }}>
+          <div style={{ position: 'absolute', left: `${markerPct}%`, top: 16, bottom: 0, borderLeft: '2px dashed var(--accent)' }} />
+          <div style={{
+            position: 'absolute', left: `${markerPct}%`, top: 0, transform: 'translateX(-50%)',
+            fontSize: 11, fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap',
+          }}>
+            {total} kampe
+          </div>
+        </div>
+        {rows.map((r, i) => (
+          <div key={r.name} style={{
+            display: 'flex', alignItems: 'center', gap: GAP,
+            padding: '4px 6px', margin: '0 -6px', borderRadius: 6,
+            background: i % 2 === 1 ? 'var(--bg-input)' : 'transparent',
+          }}>
+            <div style={{ width: LABEL_W, fontSize: 13, color: 'var(--text)', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>
+              {r.label}
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {bar(r.matches, MATCH_COLOR)}
+              {bar(r.bench, BENCH_COLOR)}
+            </div>
+            <div style={{ width: VALUE_W, fontSize: 13, textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 600, color: MATCH_COLOR }}>{r.matches}</span>
+              <span style={{ color: 'var(--text3)' }}> · </span>
+              <span style={{ fontWeight: 600, color: 'var(--yellow)' }}>{r.bench}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
 
 function Desc({ children }: { children: React.ReactNode }) {
   return <p style={{ fontSize: 12, color: 'var(--text3)', margin: '-8px 0 12px' }}>{children}</p>;

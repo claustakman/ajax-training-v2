@@ -35,13 +35,10 @@ Til at vælge hvem der skal spille og hvem der skal sidde over.
 - **EventEditor** (kun kampe): 🗄️ Arkiv / ↩ Gendan-knap i toolbar. Read-only boks "Udtaget (Tilmeldt)" + "Oversiddere (Til rådighed)" for HS-kampe. Tilbage/slet navigerer til `/kamparkiv` hvis kampen er arkiveret
 - **`pages/MatchArchive.tsx`** (`/kamparkiv`) — arkiverede kampe, kamphold-filter, ↩ Genskab, ✕ Slet. Menupunkt "Kamparkiv" under Arkiv
 - Menu: "Statistik" → **Statistik træning**; nyt **Statistik udvælgelse** (trainer+)
-- **`pages/StatistikUdvaelgelse.tsx`** (`/statistik-udvaelgelse`) — kun spillede kampe (starttid passeret), aktive + arkiverede, kun kampe med spillerdata. Kamphold-chips (sessionStorage `stat_udv_team`). Søjlediagrammer:
-  1. Kampe pr. spiller (markør = antal kampe)
-  2. Kampe de sidste 5 uger
-  3. Træninger de sidste 5 uger (live fra Holdsport, samme widget som Statistik træning — med kamphold valgt: kun spillere fra det holds kampe)
-  4. Oversidninger pr. spiller (med beskrivelse)
-  5. Oversidninger de sidste 5 uger (med beskrivelse)
-  6. Kampe pr. træner (trænere + keeper- + ungtrænere)
+- **`pages/StatistikUdvaelgelse.tsx`** (`/statistik-udvaelgelse`) — kun spillede kampe (starttid passeret), aktive + arkiverede, kun kampe med spillerdata. Kamphold-chips (sessionStorage `stat_udv_team`). To afsnit med undertitel (`Subtitle`):
+  - **De sidste fem uger:** Antal træninger de sidste 5 uger (live fra Holdsport, samme widget som Statistik træning — med kamphold valgt: kun spillere fra det holds kampe) · Antal kampe og oversidninger de sidste 5 uger
+  - **For sæsonen:** Kampe og oversidninger per spiller · Kampe per træner (trænere + keeper- + ungtrænere)
+- `MatchBenchChart` — to søjler pr. spiller (grøn = kampe/udtaget, gul = oversidninger), tal "kampe · oversidninger" til højre, stiplet markør = antal spillede kampe. Sorteret flest kampe, derefter flest oversidninger
 - Spillere der kun har været til rådighed vises med 0 kampe
 - **`components/StatWidgets.tsx`** — `Section`, `Empty`, `AttendanceChart` (nu med `color`, `markerLabel`, valgfri `total`), `shortName`, `withShortLabels`. **`lib/playerAttendance.ts`** — `fetchPlayerAttendance`. Delt af begge statistiksider
 

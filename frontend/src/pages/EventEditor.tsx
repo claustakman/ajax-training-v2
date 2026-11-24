@@ -59,7 +59,7 @@ function MatchPlayers({ selected, bench }: { selected: string[]; bench: string[]
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 12, borderRadius: 10, background: 'var(--bg-input)' }}>
       {group('Udtaget (Tilmeldt)', selected, '#1D9E75', 'rgba(29,158,117,0.14)')}
       {group('Oversiddere (Til rådighed)', bench, 'var(--text2)', 'var(--bg-card)')}
-      <div style={{ fontSize: 11, color: 'var(--text3)' }}>Fra Holdsport — opdateres med ↺ Opdater og sync</div>
+      <div style={{ fontSize: 11, color: 'var(--text3)' }}>Fra Holdsport — opdateres med ↺ Opdater (ved Antal spillere) og ↻ Sync på oversigten</div>
     </div>
   );
 }
