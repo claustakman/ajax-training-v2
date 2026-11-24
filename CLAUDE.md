@@ -40,7 +40,7 @@ Til at vælge hvem der skal spille og hvem der skal sidde over.
   - **For sæsonen:** Kampe og oversidninger per spiller · Kampe per træner (trænere + keeper- + ungtrænere)
 - Træningsfremmøde hentes **én gang for hele sæsonen** (`seasonHsTrainings()` + `fetchTrainingAttendance`, query `['training-attendance', teamId, ids]`) — samme query på begge statistiksider, så cachen deles. 5-ugers-tallene beregnes med `aggregateAttendance(results, daysAgoStr(35))`
 - `MatchBenchChart` — to søjler pr. spiller (grøn = kampe/udtaget, gul = oversidninger), tal "kampe · oversidninger" til højre, stiplet markør = antal spillede kampe. Sorteret flest kampe, derefter flest oversidninger
-- Spillere der kun har været til rådighed vises med 0 kampe
+- Spillere der kun har været til rådighed vises med 0 kampe. Træningsfremmøde-widgets (begge sider) udelader derimod spillere med 0 træninger (`aggregateAttendance`)
 - **`components/StatWidgets.tsx`** — `Section`, `Empty`, `AttendanceChart` (nu med `color`, `markerLabel`, valgfri `total`), `shortName`, `withShortLabels`. Delt af begge statistiksider
 - **`lib/playerAttendance.ts`** — `fetchTrainingAttendance(teamId, trainings)` henter Holdsports **liste-endpoint for hele perioden** pr. HS-hold (pagineret) og slår træninger op på `holdsport_id` — ca. 5 kald for en hel sæson (~1 s) i stedet for ~4 kald pr. træning. `aggregateAttendance()`, `fetchPlayerAttendance()` (Statistik træning), `seasonStart()` (seneste 1. maj). Verificeret: samme tal som den gamle pr.-træning-hentning
 
@@ -62,11 +62,11 @@ Til at vælge hvem der skal spille og hvem der skal sidde over.
 - **Ingen spillerdata gemmes i appen** — hentes live fra Holdsport ved visning: `fetchPlayerAttendance()` henter detalje-endpoint for alle træninger parallelt (React Query `['player-attendance', teamId, ids]`, `staleTime: 10 min`, `retry: false`)
 - **`extractPlayerNames(activity, members)`** (`lib/holdsportAttendance.ts`) → `{ attended, roster }`:
   - `attended` = `activities_users` med `status_code=1` — trænerne retter tilmeldinger i Holdsport ved fravær, så **tilmeldt == mødt op**
-  - `roster` = alle spillere på aktiviteten uanset status + `no_rsvp` → spillere med **0 fremmøde vises også**
+  - `roster` = alle spillere på aktiviteten uanset status + `no_rsvp` (bruges ikke længere til visning — spillere med 0 fremmøde **udelades** i alle træningsfremmøde-widgets, Session 24)
   - Alle med trænerrolle på holdet frasorteres (uanset `holdsport_sync`)
 - **`AttendanceChart`** (i `Statistik.tsx`):
   - Sorteret faldende (fremmøde, derefter navn). Label `Fornavn E.` via `shortName()` — fuldt navn ved kollision; fuldt navn i tooltip
-  - Søjlelængde = antal tilmeldinger (0 → ingen søjle); højre kolonne: antal + `%`
+  - Søjlelængde = antal tilmeldinger; højre kolonne: antal + `%`. Spillere med 0 vises ikke
   - Rød stiplet lodret markør **"N afholdt"** = antal afholdte HS-træninger i perioden. Akse-max = `total × 1.15` så markøren ikke flugter med kanten. Markør har `zIndex: 1` (ellers dækkes den af zebra-baggrund)
   - Zebra-striber: hver anden række `background: var(--bg-input)`; ingen grå track bag søjlerne
 - **% er altid af alle afholdte træninger** — i modsætning til Holdsports egen statistik, som udelader træninger hvor spilleren er registreret på ferie. 100% = antal træninger hvor tilmeldinger kunne hentes

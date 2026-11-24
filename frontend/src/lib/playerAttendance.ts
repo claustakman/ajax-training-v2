@@ -74,15 +74,14 @@ export async function fetchTrainingAttendance(teamId: string, trainings: Trainin
   return out;
 }
 
-/** Tæller fremmøde pr. spiller — evt. kun træninger fra og med `fromDate` (YYYY-MM-DD) */
+/** Tæller fremmøde pr. spiller — evt. kun træninger fra og med `fromDate` (YYYY-MM-DD).
+ *  Spillere uden fremmøde i perioden udelades (kamp-widgets viser derimod 0). */
 export function aggregateAttendance(results: TrainingAttendance[], fromDate?: string): PlayerAttendance {
-  // Alle spillere der optræder på en aktivitet i perioden starter på 0 — så 0 fremmøde også vises
   const counts = new Map<string, number>();
   let totalTrainings = 0;
   for (const res of results) {
     if (fromDate && res.date < fromDate) continue;
     totalTrainings++;
-    for (const n of res.roster) if (!counts.has(n)) counts.set(n, 0);
     for (const n of res.attended) counts.set(n, (counts.get(n) ?? 0) + 1);
   }
   const players = [...counts.entries()]
